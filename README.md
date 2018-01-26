@@ -1,9 +1,17 @@
 ## Sync  Manager (Python3)
 
+(in Progress)
+
 ### Description
-This is a version of the Sync Job Manager (written in Bash) written in python 3. This script automates the task of syncing folders and projects (databases) on client computers with a central server. It builds on other software for data synchronization between distributed systems.
+This is a version of the Sync Job Manager (for Bash) written in python 3. This script automates the task of syncing folders and projects (databases) on client computers with a central server. It builds on other software for data synchronization between distributed systems.
 At the moment support for Git & Unison is implemented, but other protocols like rsync are planned for the future.
 In case of Git **all** branches in for those projects, which are stated in the *.conf files, will be synced with the server.  
+
+### Installation
+#### Local development
+run setup script ./setup.sh
+
+
 
 ### Usage
 for pulling changes from the server
@@ -14,7 +22,7 @@ for pushing to the server
 ```
 python3 -m sync-manager push [ -f $conf-file ]
 ```
-```
+
 for setting the config (name + email address only possible for git repos)
 ```
 python3 -m sync-manager set-conf

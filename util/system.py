@@ -1,6 +1,5 @@
 import subprocess
 
-
 def run(command, listen=False, *args, **kwargs):
     """
     Run a shell command with Popen, args & kwargs will be passed
@@ -11,7 +10,6 @@ def run(command, listen=False, *args, **kwargs):
 
     process_output = None
     exitcode = None
-    # Try it at least once, hence the +1
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, *args, **kwargs)
     process_output, process_errors = process.communicate()
     # communicate returns bytes, so we have to decode them and remove the trailing whitespace
