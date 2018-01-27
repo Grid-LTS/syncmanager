@@ -11,6 +11,7 @@ def config_parse(path):
     """
     conffile = open(path, 'r')
     config = {}
+    mode = None
     for line in conffile:
         line = line.strip()
         source, url, rest = parse_line(line)
@@ -31,20 +32,21 @@ def config_parse(path):
                 else:
                     raise StopIteration
             if source == '[git]':  # The equivalent if statement
-                config['mode'] = 'git'
+                mode = 'git'
             elif source == '[unison]':
-                config['mode'] = 'unison'
+                mode = 'unison'
             else:
-                print('The sync mode ' + source + ' is not supported.')
+                print('The sync client ' + source + ' is not supported.')
                 raise StopIteration
             source, url, rest = parse_next_line(conffile)
         config['source'] = source
         config['url'] = url
         config['settings'] = rest
-        if not config.get('mode', None):
+        if not mode:
+            print('No client specified in the config file \''+path+'\'. File is ignored')
             raise StopIteration
         else:
-            yield config
+            yield mode, config
 
 
 def parse_line(line):
