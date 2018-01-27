@@ -10,7 +10,6 @@ def main():
     """
       Parses arguments and initiates the respective sync clients
     """
-
     parser = argparse.ArgumentParser()
     parser.add_argument("action", choices=['push', 'pull', 'set-conf', 'set-config'], help="Action to perform")
     parser.add_argument("-f", "--file", help="Specify file from which the sync config is loaded")
@@ -22,7 +21,7 @@ def main():
         action = args.action
     elif args.action in ['set-conf', 'set-config']:
         action = 'set-conf'
-    if (__name__ == "__main__"):
+    if __name__ == "__main__":
         properties_path = ""
     else:
         properties_path = "sync-manager"
@@ -36,7 +35,7 @@ def main():
         print ("Please create server-sync.properties file in the project root.")
         exit(1)
 
-    if (not config['config'].get('conf_dir', None)):
+    if not config['config'].get('conf_dir', None):
         print ("Please specify the path to the config files in serve-sync.properties.")
         exit(1)
 

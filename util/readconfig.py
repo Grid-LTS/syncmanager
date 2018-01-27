@@ -9,26 +9,25 @@ def config_parse(path):
     :param path:
     :return: dict
     """
-    file = open(path, 'r')
-
+    conffile = open(path, 'r')
     config = {}
-    for line in file:
+    for line in conffile:
         line = line.strip()
         source, url, rest = parse_line(line)
-        if (source == '' or source[0] == '#'):
-            source, url, rest = parse_next_line(file)
-        if (source == False):
+        if source == '' or source[0] == '#':
+            source, url, rest = parse_next_line(conffile)
+        if not source:
             raise StopIteration
-        if (url == ''):
-            if (source.startswith("env=") and DEV_ENV):
+        if url == '':
+            if source.startswith("env=") and DEV_ENV:
                 # check if env parameter is given
                 if len(source) > 4:
                     envs = source[4:].split(', ')
                 else:
                     envs = []
-                if (DEV_ENV in envs):
+                if DEV_ENV in envs:
                     # continue to next line
-                    source, url, rest = parse_next_line(file)
+                    source, url, rest = parse_next_line(conffile)
                 else:
                     raise StopIteration
             if source == '[git]':  # The equivalent if statement
@@ -38,11 +37,11 @@ def config_parse(path):
             else:
                 print('The sync mode ' + source + ' is not supported.')
                 raise StopIteration
-            source, url, rest = parse_next_line(file)
+            source, url, rest = parse_next_line(conffile)
         config['source'] = source
         config['url'] = url
         config['settings'] = rest
-        if (not config.get('mode', None)):
+        if not config.get('mode', None):
             raise StopIteration
         else:
             yield config
@@ -62,13 +61,13 @@ def parse_line(line):
     return source, url, rest
 
 
-def parse_next_line(file):
+def parse_next_line(conffile):
     try:
-        line = file.__next__()
+        line = conffile.__next__()
         line = line.strip()
-        while (len(line) == 0 or line[0] == '#'):
-            line = file.__next__()
+        while len(line) == 0 or line[0] == '#':
+            line = conffile.__next__()
             line = line.strip()
         return parse_line(line)
-    except (StopIteration):
+    except StopIteration:
         return False, False, False
