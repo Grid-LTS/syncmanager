@@ -10,6 +10,7 @@ class GitClient:
         self.action = action
         self.source_path_short = config.get('source', None)
         self.source_path = sanitize_path(self.source_path_short)
+        self.target_repo = config.get('remote_repo', None)
         self.target_path = config.get('url', None)
         self.settings = config.get('settings', None)
 
@@ -24,6 +25,11 @@ class GitClient:
             raise Exception('Unknown command \'' + self.action + '\'.')
 
     def set_settings(self):
+        """
+        - sets the git config (name & email) that is specified the config files
+        - also sets the remote repository url
+        :return:
+        """
         name, email = self.parse_settings()
         # change to the directory and apply git settings
         code = change_dir(self.source_path)
@@ -40,9 +46,16 @@ class GitClient:
         set_email = command_prefix + ['user.email', email]
         output, errors = run(set_email, False)
         if (output != 0):
-            print('Git config \'user.email\' could not be set. Reason: ' +errors)
-
-
+            print('Git config \'user.email\' could not be set. Reason: ' + errors)
+        # check remote repository urls
+        # if remote repo is not set, add it
+        if self.isset_remote_repo():
+            set_remote = ['git', 'remote', 'set-url', self.target_repo, self.target_path]
+        else:
+            set_remote = ['git', 'remote', 'add', self.target_repo, self.target_path]
+        output, errors = run(set_remote, False)
+        if (output != 0):
+            print('Remote repo url could not be set. Reason: ' + errors)
 
     def parse_settings(self):
         if not self.settings:
@@ -55,6 +68,12 @@ class GitClient:
         name = parts[0]
         email = parts[1].strip()
         return name, email
+
+    def isset_remote_repo(self):
+        command = ['git', 'remote']
+        output, errors = run(command, True)
+        repos = output.split('\n')
+        return self.target_repo in repos
 
     def sync_pull(self):
         return None

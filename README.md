@@ -10,6 +10,7 @@ In case of Git **all** branches in for those projects, which are stated in the *
 ### Installation
 #### Local development
 run setup script ./setup.sh
+source venv/bin/activate
 
 
 

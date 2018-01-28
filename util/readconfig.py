@@ -6,7 +6,7 @@ DEV_ENV = os.environ.get('DEV_ENV', None)
 def config_parse(path):
     """
     parse a config file and yields the config
-    :param path:
+    :param path: str
     :return: dict
     """
     conffile = open(path, 'r')
@@ -40,7 +40,11 @@ def config_parse(path):
                 raise StopIteration
             source, url, rest = parse_next_line(conffile)
         config['source'] = source
-        config['url'] = url
+        if mode == 'git':
+            #split url in remote repo descriptor and url
+            config['remote_repo'], config['url'] = parse_remote_repo_descriptor(url)
+        else:
+            config['url'] = url
         config['settings'] = rest
         if not mode:
             print('No client specified in the config file \''+path+'\'. File is ignored')
@@ -61,6 +65,16 @@ def parse_line(line):
     else:
         rest = ''
     return source, url, rest
+
+def parse_remote_repo_descriptor(url):
+    parts = re.split('\|', url, maxsplit=1)
+    if len(parts) == 1:
+        repo_name = 'origin'
+        repo_url = url
+    else:
+        repo_name = parts[0].strip()
+        repo_url = parts[1]
+    return repo_name, repo_url
 
 
 def parse_next_line(conffile):
