@@ -1,13 +1,10 @@
-import re, os
+import re
 
 from ..util.system import run, change_dir, sanitize_path
 
-from . import ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF
 
-
-class GitClient:
-    def __init__(self, action, config):
-        self.action = action
+class GitClientSettings:
+    def set_config(self, config, *args):
         self.source_path_short = config.get('source', None)
         self.source_path = sanitize_path(self.source_path_short)
         self.target_repo = config.get('remote_repo', None)
@@ -15,14 +12,7 @@ class GitClient:
         self.settings = config.get('settings', None)
 
     def apply(self):
-        if (self.action == ACTION_PULL):
-            self.sync_pull()
-        elif (self.action == ACTION_PUSH):
-            self.sync_push()
-        elif (self.action == ACTION_SET_CONF):
-            self.set_settings()
-        else:
-            raise Exception('Unknown command \'' + self.action + '\'.')
+        self.set_settings()
 
     def set_settings(self):
         """
@@ -74,9 +64,3 @@ class GitClient:
         output, errors = run(command, True)
         repos = output.split('\n')
         return self.target_repo in repos
-
-    def sync_pull(self):
-        return None
-
-    def sync_push(self):
-        return None
