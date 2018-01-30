@@ -17,16 +17,16 @@ source venv/bin/activate
 ### Usage
 for pulling changes from the server
 ```
-python3 -m sync-manager pull [ -f $conf-file ]
+python3 -m syncmanager pull [ -f $conf-file ]
 ```
 for pushing to the server
 ```
-python3 -m sync-manager push [ -f $conf-file ]
+python3 -m syncmanager push [ -f $conf-file ]
 ```
 
 for setting the config (name + email address only possible for git repos)
 ```
-python3 -m sync-manager set-conf
+python3 -m syncmanager set-conf
 ```
 
 ### Configuration
