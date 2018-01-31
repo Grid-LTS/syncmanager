@@ -32,7 +32,9 @@ class GitClientSync:
         if ret_code == 0:
             self.git_fetch()
         branches = self.get_remote_branches()
-        print (branches)
+        local_branch = branches[1]
+        if len(branches) == 1:
+            print('The local branch \'{0}\' has no upstream.'.format(local_branch))
 
     def get_remote_branches(self):
         cmd = ['git', 'for-each-ref', '--format=%(refname:short) %(push:short)', 'refs/heads/']
@@ -55,14 +57,14 @@ class GitClientSync:
         # first check if the local repo exists and is a git working space
         repo_exists = os.path.isdir(self.local_path)
         local_path_base = os.path.basename(self.local_path)
-        print('Change to Git project \'' + self.local_path_short + '\'.')
+        print('Change to Git project \'{0} \'.'.format(self.local_path_short))
         if os.path.isdir(self.local_path + '/.git'):
             ret_val = change_dir(self.local_path)
             if ret_val != 0:
-                print('Cannot change to repository \"' + self.local_path + '\".')
+                print('Cannot change to repository \'{0}\'.'.format(self.local_path))
             return ret_val
         elif repo_exists:
-            print('The repository \"' + self.local_path + '\" exists, but is not a git repository')
+            print('The repository \'{0}\' exists, but is not a git repository'.format(self.local_path))
             return 1
         else:
             # local repo does not exist and must be cloned
@@ -76,11 +78,11 @@ class GitClientSync:
             else:
                 return ret_code
             if ret_code != 0:
-                print('Could change to \"' + parent_dir + '\"')
+                print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code
             # clone git repo
             git_clone = ['git', 'clone', '--origin', self.remote_repo, self.remote_path, local_path_base]
-            print('Clone to remote repo \'' + self.remote_repo + '\' to \'' + self.local_path + '\'.')
+            print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_repo,self.local_path))
             ret_code, error = run(git_clone, False)
             if ret_code == 0:
                 print('Success.')

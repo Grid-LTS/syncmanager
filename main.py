@@ -24,7 +24,7 @@ def main():
         action = ACTION_SET_CONF
     else:
         action = None
-        print('Unknown command \'' + args.action + '\'. Abort.')
+        print('Unknown command \'{0}\'. Abort.'.format(args.action))
         exit(1)
     if args.force:
         force = True

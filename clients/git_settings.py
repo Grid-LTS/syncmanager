@@ -24,10 +24,10 @@ class GitClientSettings:
         # change to the directory and apply git settings
         code = change_dir(self.source_path)
         if code == 1:
-            print('Directory \'' + self.source_path_short + '\' is not accessible.')
+            print('Directory \'{0}\' is not accessible.'.format(self.source_path_short))
             return None
         else:
-            print('Set git config for \'' + self.source_path_short + '\'')
+            print('Set git config for \'{0}\''.format(self.source_path_short))
         command_prefix = ['git', 'config']
         set_name = command_prefix + ['user.name', name]
         output, errors = run(set_name, False)
