@@ -11,11 +11,11 @@ def main():
       Parses arguments and initiates the respective sync clients
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument("action", choices=['push', 'pull', 'set-conf', 'set-config'], help="Action to perform")
     parser.add_argument("-c", "--conf", help="Specify file from which the sync config is loaded")
-    parser.add_argument("-f", "--force", help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
+    parser.add_argument("-f", "--force", action='store_true', default=False, help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
     parser.add_argument("--env",
                         help="Specify environment id, e.g. home, work. Default is written in the env variable DEV_ENV")
+    parser.add_argument("action", choices=['push', 'pull', 'set-conf', 'set-config'], help="Action to perform")
     args = parser.parse_args()
 
     if args.action in [ACTION_PULL, ACTION_PUSH]:
@@ -26,10 +26,8 @@ def main():
         action = None
         print('Unknown command \'{0}\'. Abort.'.format(args.action))
         exit(1)
-    if args.force:
-        force = True
-    else:
-        force = False
+    force = args.force
+
 
     if __name__ == "__main__":
         properties_path = ""

@@ -45,10 +45,10 @@ class GitClientSync:
         push_cmd = ['git', 'push']
         if self.force:
             push_cmd += ['-f']
-        push_cmd += ['--all','--porcelain', '--repo=' + self.remote_repo]
+        push_cmd += ['--all', '--porcelain', '-v', '--repo=' + self.remote_repo]
         output, error = run(push_cmd, True)
         output = output.strip()
-        error=error.strip()
+        error = error.strip()
         if len(output) > 0:
             print(output)
         if len(error) > 0:
