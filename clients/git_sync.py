@@ -31,10 +31,29 @@ class GitClientSync:
         ret_code = self.change_to_local_repo()
         if ret_code == 0:
             self.git_fetch()
-        branches = self.get_remote_branches()
-        local_branch = branches[1]
-        if len(branches) == 1:
-            print('The local branch \'{0}\' has no upstream.'.format(local_branch))
+        branch_pairs = self.get_remote_branches()
+        # find all local branches which do not have a upstream tracking branch
+        for branch_pair in branch_pairs:
+            if len(branch_pair) == 1:
+                local_branch = branch_pair[1]
+                print('The push new local branch \'{0}\' to repo.'.format(local_branch))
+                push_upstream_cmd = ['git', 'push', '-u', self.remote_repo, local_branch]
+                status, error = run(push_upstream_cmd, False)
+                if status == 1:
+                    print('Failed with the reason:\n' + error)
+        # Finally push all branches with one command
+        push_cmd = ['git', 'push']
+        if self.force:
+            push_cmd += ['-f']
+        push_cmd += ['--all','--porcelain', '--repo=' + self.remote_repo]
+        output, error = run(push_cmd, True)
+        output = output.strip()
+        error=error.strip()
+        if len(output) > 0:
+            print(output)
+        if len(error) > 0:
+            print(error)
+        print('')
 
     def get_remote_branches(self):
         cmd = ['git', 'for-each-ref', '--format=%(refname:short) %(push:short)', 'refs/heads/']
@@ -82,11 +101,11 @@ class GitClientSync:
                 return ret_code
             # clone git repo
             git_clone = ['git', 'clone', '--origin', self.remote_repo, self.remote_path, local_path_base]
-            print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_repo,self.local_path))
+            print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_repo, self.local_path))
             ret_code, error = run(git_clone, False)
             if ret_code == 0:
                 print('Success.')
                 ret_code = change_dir(self.local_path)
             else:
-                print('Remote repo could not be clone because of an error:' + error)
+                print('Remote repo could not be clone because of an error:\n' + error)
             return ret_code
