@@ -39,14 +39,15 @@ class GitClientSync:
         remote_branches = self.get_remote_branches()
         for remote_branch in remote_branches:
             # remove the repository part
-            branch_base = self.get_branch_name_from_remote_path(remote_branch)
-            if branch_base == 'HEAD':
+            branch_base, repo = self.get_branch_name_and_repo_from_remote_path(remote_branch)
+            if branch_base == 'HEAD' or repo != self.remote_repo :
                 continue
             print(branch_base)
             if branch_base in local_branches:
                 checkout_cmd = ['git', 'checkout', branch_base]
                 status, error = run(checkout_cmd, False)
-                if status != 0:
+                if status != 0 and len(error)>0:
+                    print (error)
                     continue
                 if self.force:
                     # force pull of the remote repo
@@ -76,7 +77,7 @@ class GitClientSync:
             if len(branch_pair) == 1:
                 local_branch = branch_pair[1]
                 print('The push new local branch \'{0}\' to repo.'.format(local_branch))
-                push_upstream_cmd = ['git', 'push', '-u', '--porcelain', self.remote_repo, local_branch]
+                push_upstream_cmd = ['git', 'push', '-u', self.remote_repo, local_branch,  '--porcelain']
                 output, error = run(push_upstream_cmd, True)
                 output = output.strip()
                 print(output)
@@ -167,7 +168,7 @@ class GitClientSync:
                 print('Remote repo could not be clone because of an error:\n' + error)
             return ret_code
 
-    def get_branch_name_from_remote_path(self, remote_branch):
+    def get_branch_name_and_repo_from_remote_path(self, remote_branch):
         remote_branch = remote_branch.strip()
         parts = remote_branch.split('/')
-        return '/'.join(parts[1:])
+        return '/'.join(parts[1:]) , parts[0]
