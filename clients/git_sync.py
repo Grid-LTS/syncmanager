@@ -19,33 +19,72 @@ class GitClientSync:
         self.force = force
 
     def apply(self):
+        start_dir = os.getcwd()
+        ret_code = self.change_to_local_repo()
+        if ret_code != 0:
+            return
         if (self.action == ACTION_PULL):
             self.sync_pull()
         elif (self.action == ACTION_PUSH):
             self.sync_push()
+        change_dir(start_dir)
 
     def sync_pull(self):
-        return None
+        # prune all local branches
+        code = self.git_fetch(True)
+        if code != 0:
+            print ('Cannot fetch remote brances.')
+            return
+        local_branches = self.get_local_branches()
+        remote_branches = self.get_remote_branches()
+        for remote_branch in remote_branches:
+            # remove the repository part
+            branch_base = self.get_branch_name_from_remote_path(remote_branch)
+            if branch_base == 'HEAD':
+                continue
+            print(branch_base)
+            if branch_base in local_branches:
+                checkout_cmd = ['git', 'checkout', branch_base]
+                status, error = run(checkout_cmd, False)
+                if status != 0:
+                    continue
+                if self.force:
+                    # force pull of the remote repo
+                    reset_cmd = ['git', 'reset', '--hard', remote_branch]
+                    print ('Force reset of local branch \'{0}\' to remote ref.'.format(branch_base))
+                    status, error = run(reset_cmd, False)
+                else:
+                    pull_cmd = ['git', 'pull', self.remote_repo, branch_base]
+                    output, error = run(pull_cmd, True)
+                    print (output + error)
+            else:
+                # remote ref does not have a local tracking branch
+                print('Set up local tracking branch')
+                checkout_local_cmd = ['git', 'checkout', '-b', '--porcelain', branch_base, remote_branch]
+                output, error = run(checkout_local_cmd, True)
+                print (output + error)
+        # return to master branch
+        checkout_master_cmd = ['git', 'checkout', 'master']
+        code, error = run(checkout_master_cmd, False)
+        print('')
 
     def sync_push(self):
-        ret_code = self.change_to_local_repo()
-        if ret_code == 0:
-            self.git_fetch()
+        code = self.git_fetch()
         branch_pairs = self.get_remote_branches()
         # find all local branches which do not have a upstream tracking branch
         for branch_pair in branch_pairs:
             if len(branch_pair) == 1:
                 local_branch = branch_pair[1]
                 print('The push new local branch \'{0}\' to repo.'.format(local_branch))
-                push_upstream_cmd = ['git', 'push', '-u', self.remote_repo, local_branch]
-                status, error = run(push_upstream_cmd, False)
-                if status == 1:
-                    print('Failed with the reason:\n' + error)
+                push_upstream_cmd = ['git', 'push', '-u', '--porcelain', self.remote_repo, local_branch]
+                output, error = run(push_upstream_cmd, True)
+                output = output.strip()
+                print(output)
         # Finally push all branches with one command
         push_cmd = ['git', 'push']
         if self.force:
             push_cmd += ['-f']
-        push_cmd += ['--all', '--porcelain', '-v', '--repo=' + self.remote_repo]
+        push_cmd += ['--all', '--porcelain', '--repo=' + self.remote_repo]
         output, error = run(push_cmd, True)
         output = output.strip()
         error = error.strip()
@@ -55,7 +94,23 @@ class GitClientSync:
             print(error)
         print('')
 
+    def get_local_branches(self):
+        cmd = ['git', 'for-each-ref', '--format=%(refname:short)', 'refs/heads/']
+        output, errors = run(cmd, True)
+        output = output.strip()
+        if not output:
+            return []
+        return output.split('\n')
+
     def get_remote_branches(self):
+        cmd = ['git', 'for-each-ref', '--format=%(refname:short)', 'refs/remotes/']
+        output, errors = run(cmd, True)
+        output = output.strip()
+        if not output:
+            return []
+        return output.split('\n')
+
+    def get_tracking_pairs(self):
         cmd = ['git', 'for-each-ref', '--format=%(refname:short) %(push:short)', 'refs/heads/']
         output, errors = run(cmd, True)
         output = output.strip()
@@ -67,8 +122,10 @@ class GitClientSync:
             branches += line.split(' ')
         return branches
 
-    def git_fetch(self):
+    def git_fetch(self, prune=False):
         git_fetch = ['git', 'fetch', self.remote_repo]
+        if prune:
+            git_fetch += ['--prune']
         ret_code, error = run(git_fetch, False)
         return ret_code
 
@@ -76,7 +133,7 @@ class GitClientSync:
         # first check if the local repo exists and is a git working space
         repo_exists = os.path.isdir(self.local_path)
         local_path_base = os.path.basename(self.local_path)
-        print('Change to Git project \'{0} \'.'.format(self.local_path_short))
+        print('Change to Git project \'{0}\'.'.format(self.local_path_short))
         if os.path.isdir(self.local_path + '/.git'):
             ret_val = change_dir(self.local_path)
             if ret_val != 0:
@@ -109,3 +166,8 @@ class GitClientSync:
             else:
                 print('Remote repo could not be clone because of an error:\n' + error)
             return ret_code
+
+    def get_branch_name_from_remote_path(self, remote_branch):
+        remote_branch = remote_branch.strip()
+        parts = remote_branch.split('/')
+        return '/'.join(parts[1:])
