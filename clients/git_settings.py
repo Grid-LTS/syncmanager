@@ -1,4 +1,5 @@
 import re
+from git import Repo
 
 from ..util.system import run, change_dir, sanitize_path
 
@@ -22,30 +23,28 @@ class GitClientSettings:
         """
         name, email = self.parse_settings()
         # change to the directory and apply git settings
-        code = change_dir(self.source_path)
-        if code == 1:
-            print('Directory \'{0}\' is not accessible.'.format(self.source_path_short))
-            return None
-        else:
-            print('Set git config for \'{0}\''.format(self.source_path_short))
+        self.repo = Repo(self.source_path)
+        conf_writer = self.repo.config_writer()
+        print('Set git config for \'{0}\''.format(self.source_path_short))
         command_prefix = ['git', 'config']
-        set_name = command_prefix + ['user.name', name]
-        output, errors = run(set_name, False)
-        if (output != 0):
-            print('Git config \'user.name\' could not be set. Reason: ' + errors)
-        set_email = command_prefix + ['user.email', email]
-        output, errors = run(set_email, False)
-        if (output != 0):
-            print('Git config \'user.email\' could not be set. Reason: ' + errors)
+        try:
+            conf_writer.set_value('user', 'name', name)
+        except Exception as err:
+            print('Git config \'user.name\' could not be set. Error: ' + str(err))
+        try:
+            conf_writer.set_value('user', 'email', email)
+        except Exception as err:
+            print('Git config \'user.email\' could not be set. Error: ' + str(err))
+        conf_writer.release()
         # check remote repository urls
         # if remote repo is not set, add it
-        if self.isset_remote_repo():
-            set_remote = ['git', 'remote', 'set-url', self.target_repo, self.target_path]
+        remote_repo = self.get_remote_repo()
+        if remote_repo:
+            with remote_repo.config_writer as cw:
+                cw.set("url", self.target_path)
+                cw.release()
         else:
-            set_remote = ['git', 'remote', 'add', self.target_repo, self.target_path]
-        output, errors = run(set_remote, False)
-        if (output != 0):
-            print('Remote repo url could not be set. Reason: ' + errors)
+            remote_repo = self.repo.create_remote(self.target_repo, self.target_path)
 
     def parse_settings(self):
         if not self.settings:
@@ -59,8 +58,9 @@ class GitClientSettings:
         email = parts[1].strip()
         return name, email
 
-    def isset_remote_repo(self):
-        command = ['git', 'remote']
-        output, errors = run(command, True)
-        repos = output.split('\n')
-        return self.target_repo in repos
+    def get_remote_repo(self):
+        try:
+            remote_repo = self.repo.remote(self.target_repo)
+            return remote_repo
+        except ValueError:
+            return False
