@@ -20,6 +20,9 @@ class GitClientSync:
 
     def apply(self):
         start_dir = os.getcwd()
+        code = self.change_to_local_repo()
+        if code !=0:
+            return
         self.gitrepo = Repo(self.local_path)
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
         # checkout master branch
@@ -49,22 +52,24 @@ class GitClientSync:
             if expected_branch != str(branch):
                 print('Local branch {} and remote branch {} do not match. Skip'.format(branch, expected_branch))
                 continue
-            print(branch)
             branch.checkout()
+            git = self.gitrepo.git
             if self.force:
+                print(branch)
                 # force pull of the remote repo
-                git = self.gitrepo.git
                 git.reset('--hard', str(remote_branch))
                 print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
             else:
                 # just pull all updates
-                self.remote_gitrepo.pull()
+                out = git.pull(None, with_stdout=True)
+                print(out)
                 break
 
         # checkout a local branch for all remote refs not being tracked
         # remote refs in the shape origin/feature/my-remote/
         for remote_ref in self.remote_gitrepo.refs:
-            if not remote_ref in tracked_remotes:
+            name, repo = self.get_branch_name_and_repo_from_remote_path(str(remote_ref))
+            if not remote_ref in tracked_remotes and not name == 'HEAD':
                 print('Set up local tracking branch for {}'.format(str(remote_ref)))
                 self.create_local_branch_from_remote(remote_ref)
                 # remote ref does not have a local tracking branch
@@ -77,7 +82,7 @@ class GitClientSync:
         # get all branches that have a remote tracking branch, that is not part of the remote refs anymore
         for branch in self.gitrepo.heads:
             # do not delete master
-            if (str(branch) == 'master'):
+            if (str(branch) == 'master' or str(branch) == 'HEAD'):
                 continue
             remote_tracking = branch.tracking_branch()
             parts = str(remote_tracking).split('/')
@@ -122,34 +127,6 @@ class GitClientSync:
             print(error)
         print('')
 
-    def get_local_branches(self):
-        cmd = ['git', 'for-each-ref', '--format=%(refname:short)', 'refs/heads/']
-        output, errors = run(cmd, True)
-        output = output.strip()
-        if not output:
-            return []
-        return output.split('\n')
-
-    def get_remote_branches(self):
-        cmd = ['git', 'for-each-ref', '--format=%(refname:short)', 'refs/remotes/']
-        output, errors = run(cmd, True)
-        output = output.strip()
-        if not output:
-            return []
-        return output.split('\n')
-
-    def get_tracking_pairs(self):
-        cmd = ['git', 'for-each-ref', '--format=%(refname:short) %(push:short)', 'refs/heads/']
-        output, errors = run(cmd, True)
-        output = output.strip()
-        if not output:
-            return []
-        branches = []
-        lines = output.split('\n')
-        for line in lines:
-            branches += line.split(' ')
-        return branches
-
     def git_fetch(self, prune=False):
 
         try:
@@ -167,7 +144,6 @@ class GitClientSync:
     def change_to_local_repo(self):
         # first check if the local repo exists and is a git working space
         repo_exists = os.path.isdir(self.local_path)
-        local_path_base = os.path.basename(self.local_path)
         print('Change to Git project \'{0}\'.'.format(self.local_path_short))
         if os.path.isdir(self.local_path + '/.git'):
             ret_val = change_dir(self.local_path)
@@ -192,15 +168,12 @@ class GitClientSync:
                 print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code
             # clone git repo
-            git_clone = ['git', 'clone', '--origin', self.remote_reponame, self.remote_path, local_path_base]
+            repo = Repo.clone_from(self.remote_path, self.local_path, branch='master')
             print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_reponame, self.local_path))
-            ret_code, error = run(git_clone, False)
-            if ret_code == 0:
-                print('Success.')
-                ret_code = change_dir(self.local_path)
-            else:
-                print('Remote repo could not be clone because of an error:\n' + error)
-            return ret_code
+            if not repo:
+                print('Remote repo could not be clone because of an error:\n')
+                return 1
+        return 0
 
     def get_branch_name_and_repo_from_remote_path(self, remote_branch):
         remote_branch = remote_branch.strip()
