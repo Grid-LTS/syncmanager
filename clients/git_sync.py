@@ -1,5 +1,5 @@
 import re, os
-
+from git import Repo
 from ..util.system import run, change_dir, sanitize_path
 
 from . import ACTION_PULL, ACTION_PUSH
@@ -12,17 +12,19 @@ class GitClientSync:
     def set_config(self, config, force):
         self.local_path_short = config.get('source', None)
         self.local_path = sanitize_path(self.local_path_short)
-        self.local_repo = os.path.basename(self.local_path)
-        self.remote_repo = config.get('remote_repo', None)
+        self.local_reponame = os.path.basename(self.local_path)
+        self.remote_reponame = config.get('remote_repo', None)
         self.remote_path = config.get('url', None)
         self.settings = config.get('settings', None)
         self.force = force
 
     def apply(self):
         start_dir = os.getcwd()
-        ret_code = self.change_to_local_repo()
-        if ret_code != 0:
-            return
+        self.gitrepo = Repo(self.local_path)
+        self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
+        # checkout master branch
+        if hasattr(self.gitrepo.heads, 'master'):
+            self.gitrepo.heads.master.checkout()
         if (self.action == ACTION_PULL):
             self.sync_pull()
         elif (self.action == ACTION_PUSH):
@@ -30,62 +32,69 @@ class GitClientSync:
         change_dir(start_dir)
 
     def sync_pull(self):
-        # prune all local branches
+        # fetch and prune all branches in local repo
         code = self.git_fetch(True)
         # delete local branches with with the remote tracking branches 'gone',
-        # see https://stackoverflow.com/questions/7726949/remove-local-branches-no-longer-on-remote
         self.cleanup_orphaned_local_branches()
-        if code != 0:
-            print ('Cannot fetch remote brances.')
-            return
-        local_branches = self.get_local_branches()
-        remote_branches = self.get_remote_branches()
-        for remote_branch in remote_branches:
-            # remove the repository part
-            branch_base, repo = self.get_branch_name_and_repo_from_remote_path(remote_branch)
-            if branch_base == 'HEAD' or repo != self.remote_repo:
+        # only consider branches of the remote repo with a tracking relationship
+        tracked_remotes = []
+        for branch in self.gitrepo.heads:
+            remote_branch = branch.tracking_branch()
+            if not remote_branch:
                 continue
-            print(branch_base)
-            if branch_base in local_branches:
-                checkout_cmd = ['git', 'checkout', branch_base]
-                status, error = run(checkout_cmd, False)
-                if status != 0 and len(error) > 0:
-                    print (error)
-                    continue
-                if self.force:
-                    # force pull of the remote repo
-                    reset_cmd = ['git', 'reset', '--hard', remote_branch]
-                    print ('Force reset of local branch \'{0}\' to remote ref.'.format(branch_base))
-                    status, error = run(reset_cmd, False)
-                else:
-                    pull_cmd = ['git', 'pull', self.remote_repo, branch_base]
-                    output, error = run(pull_cmd, True)
-                    print (output + error)
+            expected_branch, repo = self.get_branch_name_and_repo_from_remote_path(str(remote_branch))
+            if repo != self.remote_reponame:
+                continue
+            tracked_remotes.append(remote_branch)
+            if expected_branch != str(branch):
+                print('Local branch {} and remote branch {} do not match. Skip'.format(branch, expected_branch))
+                continue
+            print(branch)
+            branch.checkout()
+            if self.force:
+                # force pull of the remote repo
+                git = self.gitrepo.git
+                git.reset('--hard', str(remote_branch))
+                print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
             else:
+                # just pull all updates
+                self.remote_gitrepo.pull()
+                break
+
+        # checkout a local branch for all remote refs not being tracked
+        # remote refs in the shape origin/feature/my-remote/
+        for remote_ref in self.remote_gitrepo.refs:
+            if not remote_ref in tracked_remotes:
+                print('Set up local tracking branch for {}'.format(str(remote_ref)))
+                self.create_local_branch_from_remote(remote_ref)
                 # remote ref does not have a local tracking branch
-                print('Set up local tracking branch')
-                checkout_local_cmd = ['git', 'checkout', '-b', '--porcelain', branch_base, remote_branch]
-                output, error = run(checkout_local_cmd, True)
-                print (output + error)
-        # return to master branch
-        checkout_master_cmd = ['git', 'checkout', 'master']
-        code, error = run(checkout_master_cmd, False)
+
+        # finally checkout master branch
+        self.gitrepo.heads.master.checkout()
         print('')
 
     def cleanup_orphaned_local_branches(self):
-        command = ['git', 'branch', '-vv']
-        branch_info, error = run(command, True)
-        branch_infos = branch_info.split('\n')
-        orphaned_branches = []
-        for branch_info in branch_infos:
-            result = re.search(': gone]', branch_info)
-            if result != None:
-                parts = branch_info.strip().split(' ')
-                orphaned_branches.append(parts[0].strip())
-        for orphaned_branch in orphaned_branches:
-            delete_cmd = ['git', 'branch', '-D', orphaned_branch]
-            print('Delete orphaned branch \'{0}\''.format(orphaned_branch))
-            code, error = run(delete_cmd)
+        # get all branches that have a remote tracking branch, that is not part of the remote refs anymore
+        for branch in self.gitrepo.heads:
+            # do not delete master
+            if (str(branch) == 'master'):
+                continue
+            remote_tracking = branch.tracking_branch()
+            parts = str(remote_tracking).split('/')
+            remote_repo = parts[0]
+            # do not consider if the tracking branch belongs to another remote repo
+            if remote_repo != str(self.remote_gitrepo):
+                continue
+            if remote_tracking and not remote_tracking in self.remote_gitrepo.refs:
+                print('Delete orphaned branch \'{0}\''.format(branch))
+                self.gitrepo.delete_head(branch)
+
+    def create_local_branch_from_remote(self, remote_branch):
+        local_branch, repo = self.get_branch_name_and_repo_from_remote_path(str(remote_branch))
+        if not str(repo) == str(self.remote_reponame):
+            return None
+        self.gitrepo.create_head(local_branch, remote_branch)  # create local branch from remote
+        getattr(self.gitrepo.heads, str(local_branch)).set_tracking_branch(remote_branch)
 
     def sync_push(self):
         code = self.git_fetch()
@@ -95,7 +104,7 @@ class GitClientSync:
             if len(branch_pair) == 1:
                 local_branch = branch_pair[1]
                 print('The push new local branch \'{0}\' to repo.'.format(local_branch))
-                push_upstream_cmd = ['git', 'push', '-u', self.remote_repo, local_branch, '--porcelain']
+                push_upstream_cmd = ['git', 'push', '-u', self.remote_reponame, local_branch, '--porcelain']
                 output, error = run(push_upstream_cmd, True)
                 output = output.strip()
                 print(output)
@@ -103,7 +112,7 @@ class GitClientSync:
         push_cmd = ['git', 'push']
         if self.force:
             push_cmd += ['-f']
-        push_cmd += ['--all', '--porcelain', '--repo=' + self.remote_repo]
+        push_cmd += ['--all', '--porcelain', '--repo=' + self.remote_reponame]
         output, error = run(push_cmd, True)
         output = output.strip()
         error = error.strip()
@@ -142,11 +151,18 @@ class GitClientSync:
         return branches
 
     def git_fetch(self, prune=False):
-        git_fetch = ['git', 'fetch', self.remote_repo]
-        if prune:
-            git_fetch += ['--prune']
-        ret_code, error = run(git_fetch, False)
-        return ret_code
+
+        try:
+            if prune:
+                fetch_iter = self.remote_gitrepo.fetch(prune=True)
+            else:
+                fetch_iter = self.remote_gitrepo.fetch()
+        except Exception as err:
+            print('Could not fetch from remote repo.')
+            return 1
+        for fetch_info in fetch_iter:
+            print("Updated %s to %s" % (fetch_info.ref, fetch_info.commit))
+        return 0
 
     def change_to_local_repo(self):
         # first check if the local repo exists and is a git working space
@@ -176,8 +192,8 @@ class GitClientSync:
                 print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code
             # clone git repo
-            git_clone = ['git', 'clone', '--origin', self.remote_repo, self.remote_path, local_path_base]
-            print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_repo, self.local_path))
+            git_clone = ['git', 'clone', '--origin', self.remote_reponame, self.remote_path, local_path_base]
+            print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_reponame, self.local_path))
             ret_code, error = run(git_clone, False)
             if ret_code == 0:
                 print('Success.')
