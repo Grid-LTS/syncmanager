@@ -21,13 +21,17 @@ class GitClientSync:
     def apply(self):
         start_dir = os.getcwd()
         code = self.change_to_local_repo()
-        if code !=0:
+        if code != 0:
             return
         self.gitrepo = Repo(self.local_path)
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
         # checkout master branch
         if hasattr(self.gitrepo.heads, 'master'):
             self.gitrepo.heads.master.checkout()
+        # fetch and prune all branches in local repo
+        code = self.git_fetch(True)
+        # delete local branches with with the remote tracking branches 'gone',
+        self.cleanup_orphaned_local_branches()
         if (self.action == ACTION_PULL):
             self.sync_pull()
         elif (self.action == ACTION_PUSH):
@@ -35,10 +39,6 @@ class GitClientSync:
         change_dir(start_dir)
 
     def sync_pull(self):
-        # fetch and prune all branches in local repo
-        code = self.git_fetch(True)
-        # delete local branches with with the remote tracking branches 'gone',
-        self.cleanup_orphaned_local_branches()
         # only consider branches of the remote repo with a tracking relationship
         tracked_remotes = []
         for branch in self.gitrepo.heads:
@@ -102,29 +102,31 @@ class GitClientSync:
         getattr(self.gitrepo.heads, str(local_branch)).set_tracking_branch(remote_branch)
 
     def sync_push(self):
-        code = self.git_fetch()
-        branch_pairs = self.get_remote_branches()
+        git = self.gitrepo.git
         # find all local branches which do not have a upstream tracking branch
-        for branch_pair in branch_pairs:
-            if len(branch_pair) == 1:
-                local_branch = branch_pair[1]
-                print('The push new local branch \'{0}\' to repo.'.format(local_branch))
-                push_upstream_cmd = ['git', 'push', '-u', self.remote_reponame, local_branch, '--porcelain']
-                output, error = run(push_upstream_cmd, True)
-                output = output.strip()
+        for branch in self.gitrepo.heads:
+            remote_branch = branch.tracking_branch()
+            if not remote_branch:
+                print('Push new local branch \'{0}\' to repo.'.format(str(branch)))
+                # use git directly, second argument is refspec
+                output = git.push(self.remote_gitrepo, '{}:{}'.format(str(branch), str(branch)), porcelain=True)
+                # alternatively
+                # push_info = self.remote_gitrepo.push(refspec='{}:{}'.format(str(branch), str(branch)))
+                # get the newly created remote branch
+                remote_branch = getattr(self.remote_gitrepo.refs, str(branch))
+                branch.set_tracking_branch(remote_branch)
+                # remove last line
+                output = output[:output.rfind('\n')]
                 print(output)
         # Finally push all branches with one command
-        push_cmd = ['git', 'push']
-        if self.force:
-            push_cmd += ['-f']
-        push_cmd += ['--all', '--porcelain', '--repo=' + self.remote_reponame]
-        output, error = run(push_cmd, True)
-        output = output.strip()
-        error = error.strip()
-        if len(output) > 0:
+        try:
+            if self.force:
+                output = git.push(self.remote_gitrepo, porcelain=True, force=True, all=True)
+            else:
+                output = git.push(self.remote_gitrepo, porcelain=True, all=True)
             print(output)
-        if len(error) > 0:
-            print(error)
+        except Exception as err:
+            print(err)
         print('')
 
     def git_fetch(self, prune=False):
