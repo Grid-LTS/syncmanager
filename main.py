@@ -3,7 +3,8 @@ import configparser
 import os
 
 from .util.readconfig import config_parse
-from .clients import SyncClientFactory, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, ACTION_SET_CONF_ALIASES
+from .clients import ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, ACTION_SET_CONF_ALIASES, ACTION_DELETE
+from .clients.sync_client import SyncClientFactory, DeletionRegistration
 
 
 def main():
@@ -11,25 +12,36 @@ def main():
       Parses arguments and initiates the respective sync clients
     """
 
-    modes = ['git','unison']
+    clients = ['git','unison']
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--conf", help="Specify file from which the sync config is loaded")
-    parser.add_argument("-f", "--force", action='store_true', default=False, help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
+    parser.add_argument("--conf", help="Specify file from which the sync config is loaded")
+    parser.add_argument("-f", "--force", action='store_true', default=False,
+                        help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
     parser.add_argument("--env",
                         help="Specify environment id, e.g. home, work. Default is written in the env variable DEV_ENV")
-    parser.add_argument("-m", "--mode", choices = modes, help = "Restrict syncing to a certain protocol")
-    parser.add_argument("action", choices=['push', 'pull', 'set-conf', 'set-config'], help="Action to perform")
+    parser.add_argument("-c", "--client", choices = clients, help = "Restrict syncing to a certain protocol")
+    sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
+    for act in ['push', 'pull', 'set-conf', 'set-config']:
+        sub_parser_std_action = sub_parser_action.add_parser(act)
+    sub_parser_delete = sub_parser_action.add_parser('delete')
+    # add another positional argument to specify the path or branch to delete
+    sub_parser_delete.add_argument('path', type=str)
     args = parser.parse_args()
-
     if args.action in [ACTION_PULL, ACTION_PUSH]:
         action = args.action
     elif args.action in ACTION_SET_CONF_ALIASES:
         action = ACTION_SET_CONF
+    elif args.action == ACTION_DELETE:
+        path = args.path
+        delete_action = DeletionRegistration(path)
+        code = delete_action.register_path()
+        exit(code)
     else:
         action = None
         print('Unknown command \'{0}\'. Abort.'.format(args.action))
         exit(1)
     force = args.force
+
     if __name__ == "__main__":
         properties_path = ""
     else:
@@ -45,11 +57,11 @@ def main():
     if os.path.isfile(properties_path):
         config.read(properties_path)
     else:
-        print ("Please create server-sync.properties file in the project root.")
+        print("Please create server-sync.properties file in the project root.")
         exit(1)
 
     if not config['config'].get('conf_dir', None):
-        print ("Please specify the path to the config files in serve-sync.properties.")
+        print("Please specify the path to the config files in serve-sync.properties.")
         exit(1)
     # loop through all *.conf files in the directory
     for root, dirs, filenames in os.walk(config['config'].get('conf_dir', None)):
