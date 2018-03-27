@@ -10,11 +10,14 @@ def main():
     """
       Parses arguments and initiates the respective sync clients
     """
+
+    modes = ['git','unison']
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--conf", help="Specify file from which the sync config is loaded")
     parser.add_argument("-f", "--force", action='store_true', default=False, help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
     parser.add_argument("--env",
                         help="Specify environment id, e.g. home, work. Default is written in the env variable DEV_ENV")
+    parser.add_argument("-m", "--mode", choices = modes, help = "Restrict syncing to a certain protocol")
     parser.add_argument("action", choices=['push', 'pull', 'set-conf', 'set-config'], help="Action to perform")
     args = parser.parse_args()
 
@@ -27,13 +30,16 @@ def main():
         print('Unknown command \'{0}\'. Abort.'.format(args.action))
         exit(1)
     force = args.force
-
-
     if __name__ == "__main__":
         properties_path = ""
     else:
         properties_path = "syncmanager"
     config = configparser.ConfigParser()
+    if args.mode:
+        modes_enabled = [args.mode]
+    else:
+        modes_enabled = modes
+    print(modes_enabled)
 
     properties_path += "/server-sync.properties"
     if os.path.isfile(properties_path):
@@ -45,13 +51,14 @@ def main():
     if not config['config'].get('conf_dir', None):
         print ("Please specify the path to the config files in serve-sync.properties.")
         exit(1)
-
     # loop through all *.conf files in the directory
     for root, dirs, filenames in os.walk(config['config'].get('conf_dir', None)):
         files = [fi for fi in filenames if fi.endswith(".conf")]
         for f in files:
             path = os.path.join(root, f)
             for mode, config in config_parse(path):
+                if not mode in modes_enabled:
+                    continue
                 client_factory = SyncClientFactory(mode, action)
                 client = client_factory.get_instance()
                 if client:
