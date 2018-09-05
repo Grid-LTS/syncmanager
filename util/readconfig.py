@@ -1,7 +1,4 @@
-import re, os
-
-DEV_ENV = os.environ.get('DEV_ENV', None)
-
+import re
 
 def config_parse(path):
     """
@@ -15,22 +12,14 @@ def config_parse(path):
     for line in conffile:
         line = line.strip()
         source, url, rest = parse_line(line)
+        # ignore empty line or comment
         if source == '' or source[0] == '#':
-            source, url, rest = parse_next_line(conffile)
+            continue
         if not source:
             raise StopIteration
         if url == '':
-            if source.startswith("env=") and DEV_ENV:
-                # check if env parameter is given
-                if len(source) > 4:
-                    envs = source[4:].split(', ')
-                else:
-                    envs = []
-                if DEV_ENV in envs:
-                    # continue to next line
-                    source, url, rest = parse_next_line(conffile)
-                else:
-                    raise StopIteration
+            if source.startswith("env="):
+                continue
             if source == '[git]':  # The equivalent if statement
                 mode = 'git'
             elif source == '[unison]':
@@ -38,7 +27,7 @@ def config_parse(path):
             else:
                 print('The sync client ' + source + ' is not supported.')
                 raise StopIteration
-            source, url, rest = parse_next_line(conffile)
+            continue
         config['source'] = source
         if mode == 'git':
             #split url in remote repo descriptor and url
@@ -51,6 +40,26 @@ def config_parse(path):
             raise StopIteration
         else:
             yield mode, config
+
+def environment_parse(path):
+    conffile = open(path, 'r')
+    for line in conffile:
+        line = line.strip()
+        source, url, rest = parse_line(line)
+        if source == '' or source[0] == '#':
+            continue
+        if url == '':
+            if not source.startswith("env="):
+                return []
+            # check if env parameter is given
+            if len(source) > 4:
+                sync_envs = source[4:].split(',')
+                if not sync_envs:
+                    sync_envs = source[4:].split(', ')
+                return sync_envs
+            else:
+                return []
+
 
 
 def parse_line(line):
