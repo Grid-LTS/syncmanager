@@ -67,9 +67,14 @@ def main():
         files = [fi for fi in filenames if fi.endswith(".conf")]
         for f in files:
             path = os.path.join(root, f)
+            only_once = False
             for client, config in config_parse(path):
                 if not client in clients_enabled:
+                    if not only_once:
+                        only_once = True
+                        print('Ignoring client ' + client + '.')
                     continue
+                only_once = False
                 client_factory = SyncClientFactory(client, action)
                 client_instance = client_factory.get_instance()
                 if client_instance:
