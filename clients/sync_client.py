@@ -1,7 +1,7 @@
 import os
 from git import Repo
 
-from . import ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, ACTION_SET_CONF_ALIASES, ACTION_DELETE
+from . import ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF
 
 from .git_settings import GitClientSettings
 from .git_sync import GitClientSync

@@ -1,4 +1,4 @@
-import re, os
+import os
 from git import Repo
 from ..util.system import run, change_dir, sanitize_path
 
