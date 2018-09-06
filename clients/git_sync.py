@@ -18,7 +18,7 @@ class GitClientSync:
         self.settings = config.get('settings', None)
         self.force = force
 
-    def apply(self):
+    def apply(self, **kwargs):
         start_dir = os.getcwd()
         code = self.change_to_local_repo()
         if code != 0:
@@ -28,16 +28,18 @@ class GitClientSync:
         # checkout master branch
         if hasattr(self.gitrepo.heads, 'master'):
             self.gitrepo.heads.master.checkout()
-        # fetch and prune all branches in local repo
-        code = self.git_fetch(True)
-        # delete local branches with with the remote tracking branches 'gone',
-        self.cleanup_orphaned_local_branches()
-        if (self.action == ACTION_PULL):
+        if self.action == ACTION_PULL or self.action == ACTION_PUSH:
+            # PULL and PUSH are the only actions that happen online, with an actual sync with the remote repo
+            # fetch and prune all branches in local repo
+            code = self.git_fetch(True)
+            # delete local branches with with the remote tracking branches 'gone',
+            self.cleanup_orphaned_local_branches()
+        if self.action == ACTION_PULL:
             self.sync_pull()
-        elif (self.action == ACTION_PUSH):
+        elif self.action == ACTION_PUSH:
             self.sync_push()
-        elif (self.action == ACTION_DELETE):
-            self.sync_push()
+        elif self.action == ACTION_DELETE:
+            self.delete_branch(**kwargs)
         change_dir(start_dir)
 
     def sync_pull(self):
@@ -80,8 +82,15 @@ class GitClientSync:
         self.gitrepo.heads.master.checkout()
         print('')
 
-    def delete_branch(self):
-        pass
+    def delete_branch(self, **kwargs):
+        path = kwargs.get('path', None)
+        if not path:
+            print('Error. No branch given.')
+            exit(1)
+        print('Deleting branch {}.'.format(path))
+        out = self.gitrepo.delete_head(path)
+        if out:
+            print(out)
 
     def cleanup_orphaned_local_branches(self):
         # get all branches that have a remote tracking branch, that is not part of the remote refs anymore
@@ -92,7 +101,7 @@ class GitClientSync:
             remote_tracking = branch.tracking_branch()
             parts = str(remote_tracking).split('/')
             remote_repo = parts[0]
-            # do not consider if the tracking branch belongs to another remote repo
+            # skip if the tracking branch belongs to another remote repo
             if remote_repo != str(self.remote_gitrepo):
                 continue
             if remote_tracking and not remote_tracking in self.remote_gitrepo.refs:

@@ -36,6 +36,13 @@ def main():
         delete_action.register_path()
         client = delete_action.mode
         configs = delete_action.configs
+        if not len(configs) > 0:
+            exit(1)
+        config = configs[0]
+        client_factory = SyncClientFactory(client, ACTION_DELETE)
+        client_instance = client_factory.get_instance()
+        client_instance.set_config(config, False)
+        client_instance.apply(path=path)
         # delete the local branches
         exit(0)
     else:
