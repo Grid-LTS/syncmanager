@@ -33,8 +33,11 @@ def main():
     elif args.action == ACTION_DELETE:
         path = args.path
         delete_action = DeletionRegistration(path)
-        code = delete_action.register_path()
-        exit(code)
+        delete_action.register_path()
+        client = delete_action.mode
+        configs = delete_action.configs
+        # delete the local branches
+        exit(0)
     else:
         action = None
         print('Unknown command \'{0}\'. Abort.'.format(args.action))

@@ -30,29 +30,52 @@ class DeletionRegistration:
         self.path = path
         clients_dir = os.path.dirname(os.path.realpath(__file__))
         self.registry_dir = os.path.dirname(clients_dir) + '/var'
-
-    def get_mode(self):
         # first check if directory is a git working tree
         self.dir = os.getcwd()
+
+    def get_mode(self):
         if os.path.isdir(self.dir + '/.git'):
             # first check if this branch exists
-            gitrepo = Repo(self.dir)
-            if not hasattr(gitrepo.heads, self.path):
-                return None
-            return 'git'
-        #to be implemented: Unison check
-        return None
+            self.gitrepo = Repo(self.dir)
+            if not hasattr(self.gitrepo.heads, self.path):
+                self.mode = None
+            self.mode = 'git'
+            return
+        # to be implemented: Unison check
+        self.mode = None
+
+    def get_config(self):
+        self.get_mode()
+        if not self.mode:
+            return None
+        configs = []
+        # get remote repo
+        if self.mode == 'git':
+            # fetch url of origin
+            if self.gitrepo.remotes:
+                for remote in self.gitrepo.remotes:
+                    config = {}
+                    config['source'] = self.dir
+                    config['url'] = iter(remote.urls)
+                    config['remote_repo'] = remote.name
+                    configs.append(config)
+        elif self.mode == 'unison':
+            pass
+            # to be implemented
+        self.configs = configs
 
     def register_path(self):
-        mode = self.get_mode()
-        if not mode:
-            return None
-        registry_file = self.registry_dir + '/' + mode + '.txt'
-        if mode == 'git':
-            f = open(registry_file,'+a')
-            entry = self.dir + '\t' + self.path
-            f.write(entry)
-            f.close()
+        self.get_config()
+        if self.mode == 'git':
+            for config in self.configs:
+                remote_repo_name = config.get('remote_repo', None)
+                if not remote_repo_name:
+                    continue
+                registry_file = self.registry_dir + '/' + self.mode + '.' + remote_repo_name + '.txt'
+                f = open(registry_file,'+a')
+                entry = self.dir + '\t' + self.path
+                f.write(entry)
+                f.close()
 
     def read_and_flush_registry(self, mode):
         registry_file = self.registry_dir + '/' + mode + '.txt'

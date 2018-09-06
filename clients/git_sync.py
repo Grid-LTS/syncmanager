@@ -2,7 +2,7 @@ import os
 from git import Repo
 from ..util.system import run, change_dir, sanitize_path
 
-from . import ACTION_PULL, ACTION_PUSH
+from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 
 
 class GitClientSync:
@@ -35,6 +35,8 @@ class GitClientSync:
         if (self.action == ACTION_PULL):
             self.sync_pull()
         elif (self.action == ACTION_PUSH):
+            self.sync_push()
+        elif (self.action == ACTION_DELETE):
             self.sync_push()
         change_dir(start_dir)
 
@@ -77,6 +79,9 @@ class GitClientSync:
         # finally checkout master branch
         self.gitrepo.heads.master.checkout()
         print('')
+
+    def delete_branch(self):
+        pass
 
     def cleanup_orphaned_local_branches(self):
         # get all branches that have a remote tracking branch, that is not part of the remote refs anymore
