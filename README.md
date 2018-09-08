@@ -26,6 +26,7 @@ source venv/bin/activate
 ### Usage
 All commands are run from the parent directory of the project directory.
 
+#### Synchronization with server
 for pulling changes from the server
 ```
 python3 -m syncmanager pull [ -f $conf-file ]
@@ -35,6 +36,15 @@ for pushing to the server
 python3 -m syncmanager push [ -f $conf-file ]
 ```
 
+#### Deletion of branches
+Branches should not be deleted with `git branch -d <branch>` since they will be recreated on the next sync with the server
+Instead use the syncmanager:
+```
+cd <your git repo>
+PYTHONPATH=<parent dir of syncmanager project> python3 -m syncmanager delete <branch name>
+```
+
+#### Setting configuration
 for setting the config (name + email address only possible for git repos)
 ```
 python3 -m syncmanager set-conf
