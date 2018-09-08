@@ -1,5 +1,5 @@
 import os
-from git import Repo
+from git import Repo, RemoteReference
 from ..util.system import run, change_dir, sanitize_path
 from .deletion_registration import DeletionRegistration
 
@@ -33,6 +33,7 @@ class GitClientSync:
             # PULL and PUSH are the only actions that happen online, with an actual sync with the remote repo
             # fetch and prune all branches in local repo
             code = self.git_fetch(True)
+            self.sync_deletion()
             # delete local branches with with the remote tracking branches 'gone',
             self.cleanup_orphaned_local_branches()
         if self.action == ACTION_PULL:
@@ -95,7 +96,22 @@ class GitClientSync:
 
     def sync_deletion(self):
         # deleted local branches will be removed on the remote
+        git = self.gitrepo.git
         deletion_registry = DeletionRegistration(mode='git')
+        entries = deletion_registry.read_and_flush_registry(self.remote_reponame)
+        entries_copy = entries[:]
+        for index, entry in enumerate(entries_copy):
+            if not self.local_path == entry[0]:
+                continue
+            branch_path = entry[1]
+            print('Branch {} is deleted in remote repository {}'.format(branch_path, self.remote_reponame))
+            remote_branch = getattr(self.remote_gitrepo.refs, branch_path )
+            if remote_branch:
+                git.push(self.remote_gitrepo, '--delete', str(branch_path), porcelain=True)
+                #self.remote_gitrepo.delete_head(branch_path)
+            del entries[index]
+        if len(entries) > 0:
+            deletion_registry.write_registry(self.remote_reponame, entries)
 
     def cleanup_orphaned_local_branches(self):
         # get all branches that have a remote tracking branch, that is not part of the remote refs anymore

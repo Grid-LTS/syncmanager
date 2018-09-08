@@ -53,7 +53,7 @@ class DeletionRegistration:
                     continue
                 registry_file = self.get_registry_file_path(remote_repo_name)
                 f = open(registry_file, 'a+')
-                entry = self.dir + '\t' + self.path
+                entry = self.dir + '\t' + self.path + '\n'
                 f.write(entry)
                 f.close()
 
@@ -64,9 +64,25 @@ class DeletionRegistration:
         registry_file = self.get_registry_file_path(repo_name)
         if not os.path.isfile(registry_file):
             return []
-        f = open(registry_file, 'w')
-        entries = f.readlines()
+        f = open(registry_file, 'r+')
+        entries = []
+        lines = f.readlines()
+        for line in lines:
+            entry = line.split('\t')
+            entry[0] = entry[0].strip()
+            entry[1] = entry[1].strip()
+            entries.append(entry)
         f.seek(0)
-        f.truncate()
         f.close()
+        os.remove(registry_file)
         return entries
+
+    def write_registry(self, repo_name, entries):
+        registry_file = self.get_registry_file_path(repo_name)
+        if len(entries) == 0:
+            return
+        f = open(registry_file, 'w+')
+        for entry in entries:
+            line = '\t'.join(entry) + '\n'
+            f.write(line)
+        f.close()
