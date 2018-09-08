@@ -2,9 +2,11 @@
 
 [config]
 conf_dir="<directory with conf files>"
+var_dir="<directory for operation files>"
 # working environment for which the files should be synced (e.g. 'home', 'work', 'special',...)
 # optional, can also be defined in environment variable with the same name
 SYNC_ENV="home"
+
 
 [ssh]
 ssh_host=myserver

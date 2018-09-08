@@ -1,7 +1,7 @@
 import re
 from git import Repo
 
-from ..util.system import run, change_dir, sanitize_path
+from ..util.system import sanitize_path
 
 
 class GitClientSettings:

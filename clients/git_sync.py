@@ -1,6 +1,7 @@
 import os
 from git import Repo
 from ..util.system import run, change_dir, sanitize_path
+from .deletion_registration import DeletionRegistration
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 
@@ -39,7 +40,7 @@ class GitClientSync:
         elif self.action == ACTION_PUSH:
             self.sync_push()
         elif self.action == ACTION_DELETE:
-            self.delete_branch(**kwargs)
+            self.delete_local_branch(**kwargs)
         change_dir(start_dir)
 
     def sync_pull(self):
@@ -82,7 +83,7 @@ class GitClientSync:
         self.gitrepo.heads.master.checkout()
         print('')
 
-    def delete_branch(self, **kwargs):
+    def delete_local_branch(self, **kwargs):
         path = kwargs.get('path', None)
         if not path:
             print('Error. No branch given.')
@@ -91,6 +92,10 @@ class GitClientSync:
         out = self.gitrepo.delete_head(path)
         if out:
             print(out)
+
+    def sync_deletion(self):
+        # deleted local branches will be removed on the remote
+        deletion_registry = DeletionRegistration(mode='git')
 
     def cleanup_orphaned_local_branches(self):
         # get all branches that have a remote tracking branch, that is not part of the remote refs anymore

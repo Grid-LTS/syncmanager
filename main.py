@@ -1,13 +1,22 @@
 import argparse
-import configparser
 import os
+from os.path import dirname
+import syncmanager.util.globalproperties as globalproperties
 
 from .util.readconfig import config_parse, environment_parse
+
 from .clients import ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, ACTION_SET_CONF_ALIASES, ACTION_DELETE
-from .clients.sync_client import SyncClientFactory, DeletionRegistration
+from .clients.sync_client import SyncClientFactory
+from .clients.deletion_registration import DeletionRegistration
 
 
 def main():
+    # initialize global properties
+
+    properties_path_prefix = dirname(__file__)
+    globalproperties.set_prefix(properties_path_prefix)
+    globalproperties.read_config()
+
     """
       Parses arguments and initiates the respective sync clients
     """
@@ -32,7 +41,7 @@ def main():
         action = ACTION_SET_CONF
     elif args.action == ACTION_DELETE:
         path = args.path
-        delete_action = DeletionRegistration(path)
+        delete_action = DeletionRegistration(path=path)
         delete_action.register_path()
         client = delete_action.mode
         configs = delete_action.configs
@@ -51,41 +60,20 @@ def main():
         exit(1)
     force = args.force
 
-    if __name__ == "__main__":
-        properties_path = ""
-    else:
-        properties_path = "syncmanager"
-    config = configparser.ConfigParser()
     if args.client:
         clients_enabled = [args.client]
     else:
         clients_enabled = clients
     print('Enabled clients: ' + ', '.join(clients_enabled))
 
-    properties_path += "/server-sync.properties"
-    if os.path.isfile(properties_path):
-        config.read(properties_path)
-    else:
-        print("Please create server-sync.properties file in the project root.")
-        exit(1)
-
-    if not config['config'].get('conf_dir', None):
-        print("Please specify the path to the config files in server-sync.properties.")
-        exit(1)
-
     # determine the environment which is synced
     if args.env:
         sync_env = args.env
     else:
-        if not os.environ.get('SYNC_ENV', None) and not config['config'].get('SYNC_ENV', None):
-            print("Please specify the environment with --env option or as SYNC_ENV in properties file.")
-            exit(1)
-        sync_env = config['config'].get('SYNC_ENV', None)
-        if not sync_env:
-            sync_env = os.environ.get('SYNC_ENV', None)
+        sync_env = globalproperties.sync_env
 
     # loop through all *.conf files in the directory
-    for root, dirs, filenames in os.walk(config['config'].get('conf_dir', None)):
+    for root, dirs, filenames in os.walk(globalproperties.conf_dir):
         files = [fi for fi in filenames if fi.endswith(".conf")]
         for f in files:
             path = os.path.join(root, f)
