@@ -20,7 +20,6 @@ def read_config():
     global var_dir
     properties_path = properties_path_prefix + "/server-sync.properties"
     config = configparser.ConfigParser()
-    print(properties_path)
     if os.path.isfile(properties_path):
         config.read(properties_path)
     else:

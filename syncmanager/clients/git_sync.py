@@ -103,12 +103,14 @@ class GitClientSync:
         for index, entry in enumerate(entries_copy):
             if not self.local_path == entry[0]:
                 continue
-            branch_path = entry[1]
-            print('Branch {} is deleted in remote repository {}'.format(branch_path, self.remote_reponame))
-            remote_branch = getattr(self.remote_gitrepo.refs, branch_path )
-            if remote_branch:
+            branch_path =  entry[1]
+            branch_path_full = self.remote_reponame + '/' + branch_path
+            remote_branches = [r.name for r in self.remote_gitrepo.refs]
+            if branch_path_full in remote_branches:
+                print('Branch {} is deleted in remote repository {}'.format(branch_path_full, self.remote_reponame))
                 git.push(self.remote_gitrepo, '--delete', str(branch_path), porcelain=True)
-                #self.remote_gitrepo.delete_head(branch_path)
+            else:
+                print ('Branch {} was removed in remote repository {}'.format(branch_path_full, self.remote_reponame))
             del entries[index]
         if len(entries) > 0:
             deletion_registry.write_registry(self.remote_reponame, entries)

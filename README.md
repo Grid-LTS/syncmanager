@@ -10,7 +10,13 @@ In case of Git **all** branches in for those projects, which are stated in the *
 ### Installation
 #### Local development
 
-##### with Pipenv
+##### 1. Install as local package
+* this will provide you the syncmanager command
+```
+pip install -e .[dev] --user
+```
+
+##### 2. with Pipenv
 * you need to have pipenv installed `pip3 install --user pipenv`
 * run
 ```
@@ -18,22 +24,32 @@ pipenv install
 pipenv shell
 ```
 
-##### with Virtualenv (deprecated)
-run setup script ./setup.sh
-source venv/bin/activate
+
+##### 3. with Virtualenv (deprecated)
+first install your platform's version of virtualenv
+
+run setup script
+`./setup.sh`
+running in virtual env
+`source venv/bin/activate`
 
 
 ### Usage
-All commands are run from the parent directory of the project directory.
+All commands assumed you have installed package locally with `pip install -e`.
+In case you want to run in from source, replace with:
+```
+cd <project root>
+python3 -m synchmanager <arguments>
+```
 
 #### Synchronization with server
 for pulling changes from the server
 ```
-python3 -m syncmanager pull [ -f $conf-file ]
+syncmanager pull [ -f $conf-file ]
 ```
 for pushing to the server
 ```
-python3 -m syncmanager push [ -f $conf-file ]
+syncmanager push [ -f $conf-file ]
 ```
 
 #### Deletion of branches
@@ -41,13 +57,13 @@ Branches should not be deleted with `git branch -d <branch>` since they will be 
 Instead use the syncmanager:
 ```
 cd <your git repo>
-PYTHONPATH=<parent dir of syncmanager project> python3 -m syncmanager delete <branch name>
+syncmanager delete <branch name>
 ```
 
 #### Setting configuration
 for setting the config (name + email address only possible for git repos)
 ```
-python3 -m syncmanager set-conf
+syncmanager set-conf
 ```
 
 ### Configuration
