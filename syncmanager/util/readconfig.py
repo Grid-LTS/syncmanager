@@ -16,6 +16,7 @@ def config_parse(path):
         if source == '' or source[0] == '#':
             continue
         if not source:
+            conffile.close()
             raise StopIteration
         if url == '':
             if source.startswith("env="):
@@ -26,6 +27,7 @@ def config_parse(path):
                 mode = 'unison'
             else:
                 print('The sync client ' + source + ' is not supported.')
+                conffile.close()
                 raise StopIteration
             continue
         config['source'] = source
@@ -37,9 +39,11 @@ def config_parse(path):
         config['settings'] = rest
         if not mode:
             print('No client specified in the config file \''+path+'\'. File is ignored')
+            conffile.close()
             raise StopIteration
         else:
             yield mode, config
+    conffile.close()
 
 def environment_parse(path):
     conffile = open(path, 'r')
@@ -50,15 +54,17 @@ def environment_parse(path):
             continue
         if url == '':
             if not source.startswith("env="):
+                conffile.close()
                 return []
             # check if env parameter is given
             if len(source) > 4:
                 sync_envs = source[4:].split(',')
                 if not sync_envs:
                     sync_envs = source[4:].split(', ')
+                conffile.close()
                 return sync_envs
-            else:
-                return []
+            conffile.close()
+            return []
 
 
 

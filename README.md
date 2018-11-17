@@ -35,7 +35,7 @@ running in virtual env
 
 
 ### Usage
-All commands assumed you have installed package locally with `pip install -e`.
+All commands assume that you have installed the package locally with `pip install -e .[dev] --user`.
 In case you want to run in from source, replace with:
 ```
 cd <project root>
@@ -53,7 +53,7 @@ syncmanager push [ -f $conf-file ]
 ```
 
 #### Deletion of branches
-Branches should not be deleted with `git branch -d <branch>` since they will be recreated on the next sync with the server
+Branches should not be deleted with `git branch -d <branch>` since they will be recreated on the next sync with the server.
 Instead use the syncmanager:
 ```
 cd <your git repo>

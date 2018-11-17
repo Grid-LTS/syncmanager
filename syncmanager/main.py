@@ -10,6 +10,27 @@ from .clients.sync_client import SyncClientFactory
 from .clients.deletion_registration import DeletionRegistration
 
 
+def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enabled):
+    for filename in filenames:
+        path = os.path.join(root, filename)
+        print(path)
+        sync_envs = environment_parse(path)
+        if len(sync_envs) > 0 and not sync_env in sync_envs:
+            continue
+        only_once = False
+        for client, config in config_parse(path):
+            if not client in clients_enabled:
+                if not only_once:
+                    only_once = True
+                    print('Ignoring client ' + client + '.')
+                continue
+            only_once = False
+            client_factory = SyncClientFactory(client, action)
+            client_instance = client_factory.get_instance()
+            if client_instance:
+                client_instance.set_config(config, force)
+                client_instance.apply()
+
 def main():
     # initialize global properties
 
@@ -75,22 +96,5 @@ def main():
     # loop through all *.conf files in the directory
     for root, dirs, filenames in os.walk(globalproperties.conf_dir):
         files = [fi for fi in filenames if fi.endswith(".conf")]
-        for f in files:
-            path = os.path.join(root, f)
-            print(path)
-            sync_envs = environment_parse(path)
-            if len(sync_envs) > 0 and not sync_env in sync_envs:
-                continue
-            only_once = False
-            for client, config in config_parse(path):
-                if not client in clients_enabled:
-                    if not only_once:
-                        only_once = True
-                        print('Ignoring client ' + client + '.')
-                    continue
-                only_once = False
-                client_factory = SyncClientFactory(client, action)
-                client_instance = client_factory.get_instance()
-                if client_instance:
-                    client_instance.set_config(config, force)
-                    client_instance.apply()
+        apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
+
