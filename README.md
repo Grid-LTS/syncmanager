@@ -16,7 +16,7 @@ In case of Git **all** branches in for those projects, which are stated in the *
 pip install -e .[dev] --user
 ```
 
-##### 2. with Pipenv
+##### 2. Install dependencies with Pipenv
 * you need to have pipenv installed `pip3 install --user pipenv`
 * run
 ```
@@ -24,23 +24,8 @@ pipenv install
 pipenv shell
 ```
 
-
-##### 3. with Virtualenv (deprecated)
-first install your platform's version of virtualenv
-
-run setup script
-`./setup.sh`
-running in virtual env
-`source venv/bin/activate`
-
-
 ### Usage
 All commands assume that you have installed the package locally with `pip install -e .[dev] --user`.
-In case you want to run in from source, replace with:
-```
-cd <project root>
-python3 -m synchmanager <arguments>
-```
 
 #### Synchronization with server
 for pulling changes from the server

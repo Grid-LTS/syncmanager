@@ -46,8 +46,6 @@ setup(
     #  package_data={
     #  },
 
-    #data_files=[('my_data', ['data/data_file'])],
-
     # executes the function `main` from this package when invoked:
     entry_points={
         'console_scripts': [
