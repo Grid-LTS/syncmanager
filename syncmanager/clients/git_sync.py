@@ -69,7 +69,6 @@ class GitClientSync:
                 # just pull all updates
                 out = git.pull(None, with_stdout=True)
                 print(out)
-                break
 
         # checkout a local branch for all remote refs not being tracked
         # remote refs in the shape origin/feature/my-remote/

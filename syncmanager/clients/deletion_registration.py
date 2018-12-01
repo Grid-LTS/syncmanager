@@ -9,7 +9,7 @@ class DeletionRegistration:
         self.path = kwargs.get('path', None)
         self.registry_dir = globalproperties.var_dir
         # first check if directory is a git working tree
-        self.dir = os.getcwd()
+        self.dir = kwargs.get('git_repo_path')
         self.configs = []
         self.mode = kwargs.get('mode', None)
 

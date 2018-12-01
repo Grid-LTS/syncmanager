@@ -1,3 +1,6 @@
 repos
 local.conf
 others.conf
+server-sync.properties
+var/*
+!var/.gitkeep

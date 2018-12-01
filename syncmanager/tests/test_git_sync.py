@@ -6,13 +6,15 @@ from pathlib import Path
 import shutil
 
 # Project files
-from syncmanager.main import apply_sync_conf_files
+from syncmanager.main import apply_sync_conf_files, register_local_branch_for_deletion
 from syncmanager.clients import ACTION_PULL, ACTION_PUSH
+import syncmanager.util.globalproperties as globalproperties
 
 
 class GitClientSyncTest(unittest.TestCase):
     test_dir = os.path.dirname(os.path.abspath(__file__))
-    repos_dir = test_dir + '/repos'
+    repos_dir = os.path.join(test_dir, 'repos')
+    var_dir_path = os.path.join(test_dir, 'var')
     # workspace and others_ws are different downstream clones of the same repo
     # these are called stations here, in reality they are on different computers
     origin_repo_path = os.path.join(repos_dir, 'origin_repo.git')
@@ -41,7 +43,20 @@ class GitClientSyncTest(unittest.TestCase):
             f = open(os.path.join(__class__.test_dir, conf_file_name), 'w')
             f.write(conf_file)
             f.close()
-        
+        # detemplatize server-sync properties
+        context = {
+            'config_files_path': __class__.test_dir,
+            'var_dir_path': __class__.var_dir_path
+        }
+        server_properties = TEMPLATE_ENVIRONMENT.get_template('server-sync.properties.j2').render(context)
+        f = open(os.path.join(__class__.test_dir, 'server-sync.properties'), 'w')
+        f.write(server_properties)
+        f.close()
+
+        # setup global properties file
+        globalproperties.set_prefix(__class__.test_dir)
+        globalproperties.read_config()
+
         if not os.path.exists(__class__.repos_dir):
             os.mkdir(__class__.repos_dir)
         # setup repos
@@ -58,9 +73,12 @@ class GitClientSyncTest(unittest.TestCase):
         __class__.others_repo = __class__.origin_repo.clone(__class__.others_repo_path)
 
     def test_push_sync(self):
-        """tests when a commit is issued at the one station, it is present at the other station after pulling
+        """
+        tests when a commit is issued at the one station, it is present at the other station after pulling
         """
         test_file_path = os.path.join(__class__.local_repo_path, 'next_file.txt')
+        # checkout master branch
+        __class__.local_repo.heads['master'].checkout()
         Path(test_file_path).touch()
         __class__.local_repo.index.add([test_file_path])
         commit_message = "New commit"
@@ -71,7 +89,31 @@ class GitClientSyncTest(unittest.TestCase):
         apply_sync_conf_files(__class__.test_dir, [__class__.others_conf_file_name], ACTION_PULL, False, '', ['git'])
         # test that the HEAD of the other repo points to the synced commit
         last_commit = __class__.others_repo.head.commit
-        self.assertEqual(last_commit.message,commit_message)
+        self.assertEqual(last_commit.message, commit_message)
+
+    def test_delete_branch(self):
+        pass
+        """
+        tests when deleting a branch in one local repo and syncing it with the remote repo, the branch will be deleted 
+        in other repo on next sync 
+        :return: None
+        """
+        # create branch
+        test_branch = 'feature/test'
+        __class__.local_repo.create_head(test_branch)
+        # sync with remote repo
+        apply_sync_conf_files(__class__.test_dir, [__class__.local_conf_file_name], ACTION_PUSH, False, '', ['git'])
+        apply_sync_conf_files(__class__.test_dir, [__class__.others_conf_file_name], ACTION_PULL, False, '', ['git'])
+        # confirm that branch exists in both remote repo and in other repo
+        self.assertTrue(getattr(__class__.origin_repo.heads, test_branch))
+        self.assertTrue(getattr(__class__.others_repo.heads, test_branch))
+        # delete the created branch and sync
+        register_local_branch_for_deletion(test_branch, __class__.local_repo_path)
+        self.assertTrue(os.path.exists(os.path.join(__class__.var_dir_path, 'git.origin.txt')))
+
+    def test_empty_sync(self):
+        apply_sync_conf_files(__class__.test_dir, [__class__.local_conf_file_name], ACTION_PUSH, False, '', ['git'])
+        apply_sync_conf_files(__class__.test_dir, [__class__.others_conf_file_name], ACTION_PULL, False, '', ['git'])
 
     @classmethod
     def tearDownClass(cls):

@@ -30,6 +30,20 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
             if client_instance:
                 client_instance.set_config(config, force)
                 client_instance.apply()
+                
+def register_local_branch_for_deletion(path, git_repo_path):
+    delete_action = DeletionRegistration(path=path, git_repo_path=git_repo_path)
+    delete_action.register_path()
+    client = delete_action.mode
+    configs = delete_action.configs
+    if not len(configs) > 0:
+        exit(1)
+    config = configs[0]
+    client_factory = SyncClientFactory(client, ACTION_DELETE)
+    client_instance = client_factory.get_instance()
+    client_instance.set_config(config, False)
+    # delete the local branches
+    client_instance.apply(path=path)
 
 def main():
     # initialize global properties
@@ -62,18 +76,8 @@ def main():
         action = ACTION_SET_CONF
     elif args.action == ACTION_DELETE:
         path = args.path
-        delete_action = DeletionRegistration(path=path)
-        delete_action.register_path()
-        client = delete_action.mode
-        configs = delete_action.configs
-        if not len(configs) > 0:
-            exit(1)
-        config = configs[0]
-        client_factory = SyncClientFactory(client, ACTION_DELETE)
-        client_instance = client_factory.get_instance()
-        client_instance.set_config(config, False)
-        client_instance.apply(path=path)
-        # delete the local branches
+        git_repo_path = os.getcwd()
+        register_local_branch_for_deletion(path, git_repo_path)
         exit(0)
     else:
         action = None

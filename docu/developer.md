@@ -28,5 +28,6 @@ python3 -m synchmanager <arguments>
 Execute tests
 ```
 cd <project-root>
+pipenv shell
 python3 -m unittest syncmanager/tests/test_git_sync.py
 ```
