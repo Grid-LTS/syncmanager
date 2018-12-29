@@ -40,11 +40,13 @@ class GitClientSettings:
         # if remote repo is not set, add it
         remote_repo = self.get_remote_repo()
         if remote_repo:
+            # corresponds to 'git remote set-url <target_repo> <repo url>
             with remote_repo.config_writer as cw:
                 cw.set("url", self.target_path)
                 cw.release()
         else:
-            remote_repo = self.repo.create_remote(self.target_repo, self.target_path)
+            # corresponds to 'git remote add <target_repo> <repo url>
+            self.repo.create_remote(self.target_repo, self.target_path)
 
     def parse_settings(self):
         if not self.settings:
@@ -60,7 +62,6 @@ class GitClientSettings:
 
     def get_remote_repo(self):
         try:
-            remote_repo = self.repo.remote(self.target_repo)
-            return remote_repo
+            return self.repo.remote(self.target_repo)
         except ValueError:
             return False

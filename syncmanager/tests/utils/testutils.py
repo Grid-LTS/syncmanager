@@ -19,6 +19,9 @@ others_repo_path = os.path.join(repos_dir, 'others_ws')
 local_conf_file_name = 'local.conf'
 others_conf_file_name = 'others.conf'
 
+test_user_name = 'Test User'
+test_user_email = 'dummy@test.com'
+
 TEMPLATE_ENVIRONMENT = Environment(
         autoescape=False,
         loader=FileSystemLoader(os.path.join(test_dir, 'templates')),
@@ -42,8 +45,8 @@ def setup_repos(local_conf_file_name):
         'local_path': local_repo_path,
         'others_path': others_repo_path,
         'origin_path': origin_repo_path,
-        'test_user_name': 'Test User',
-        'test_user_email': 'dummy@test.com'
+        'test_user_name': test_user_name,
+        'test_user_email': test_user_email
 
     }
     for sync_env in ['local', 'others']:
