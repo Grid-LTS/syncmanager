@@ -27,6 +27,7 @@ TEMPLATE_ENVIRONMENT = Environment(
         loader=FileSystemLoader(os.path.join(test_dir, 'templates')),
         trim_blocks=False)
 
+
 def detemplate_conf(sync_env, context):
     conf_file = TEMPLATE_ENVIRONMENT.get_template('{}.conf.j2'.format(sync_env)).render(context)
     conf_file_name = '{}.conf'.format(sync_env)
@@ -34,11 +35,13 @@ def detemplate_conf(sync_env, context):
     f.write(conf_file)
     f.close()
 
+
 def detemplate_properties(context):
     server_properties = TEMPLATE_ENVIRONMENT.get_template('server-sync.properties.j2').render(context)
     f = open(os.path.join(test_dir, 'server-sync.properties'), 'w')
     f.write(server_properties)
     f.close()
+
 
 def setup_repos(local_conf_file_name):
     context = {
