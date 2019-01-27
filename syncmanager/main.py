@@ -30,7 +30,8 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
             if client_instance:
                 client_instance.set_config(config, force)
                 client_instance.apply()
-                
+
+
 def register_local_branch_for_deletion(path, git_repo_path):
     delete_action = DeletionRegistration(path=path, git_repo_path=git_repo_path)
     delete_action.register_path()
@@ -44,6 +45,7 @@ def register_local_branch_for_deletion(path, git_repo_path):
     client_instance.set_config(config, False)
     # delete the local branches
     client_instance.apply(path=path)
+
 
 def main():
     # initialize global properties
@@ -101,4 +103,3 @@ def main():
     for root, dirs, filenames in os.walk(globalproperties.conf_dir):
         files = [fi for fi in filenames if fi.endswith(".conf")]
         apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
-

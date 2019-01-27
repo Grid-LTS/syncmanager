@@ -1,5 +1,5 @@
 import os
-from git import Repo, RemoteReference
+from git import Repo
 from ..util.system import run, change_dir, sanitize_path
 from .deletion_registration import DeletionRegistration
 
