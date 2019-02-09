@@ -5,13 +5,13 @@ from io import open
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(path.join(path.dirname(here), 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='syncmanager',
-    version='0.1.0',
-    description='For Managing multiple synchronizations via unison, git, ...',
+    name='syncmanagerapi',
+    version='0.2.0',
+    description='Provides Server for managing multiple synchronizations via unison, git, ...',
     long_description=long_description,
     # This field corresponds to the "Description-Content-Type" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#description-content-type-optional
@@ -26,13 +26,12 @@ setup(
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
     keywords='git unison',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    install_requires=['gitpython', 'pathlib','configparser'],
+    install_requires=['flask'],
     python_requires='>=3',
 
     extras_require={
@@ -40,16 +39,12 @@ setup(
             'setuptools>=35.0.1'
             'wheel>=0.29.0'
                 ],
-        #'test': ['coverage'],
     },
-
-    #  package_data={
-    #  },
 
     # executes the function `main` from this package when invoked:
     entry_points={
         'console_scripts': [
-            'syncmanager=syncmanager:main',
+            'syncmanagerapi=syncmanagerapi:main',
         ],
     }
 

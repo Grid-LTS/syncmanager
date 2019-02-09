@@ -1,7 +1,7 @@
 import argparse
 import os
 from os.path import dirname
-import syncmanager.util.globalproperties as globalproperties
+import syncmanagerclient.util.globalproperties as globalproperties
 
 from .util.readconfig import config_parse, environment_parse
 
