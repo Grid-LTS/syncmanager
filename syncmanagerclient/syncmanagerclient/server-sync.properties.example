@@ -7,7 +7,6 @@ var_dir="<directory for operation files>"
 # optional, can also be defined in environment variable with the same name
 SYNC_ENV="home"
 
-
 [ssh]
 ssh_host=myserver
 ssh_user=myusername

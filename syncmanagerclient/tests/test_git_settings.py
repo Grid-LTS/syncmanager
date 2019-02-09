@@ -3,8 +3,8 @@ import shutil
 import os
 
 from .utils.testutils import setup_repos, repos_dir, local_conf_file_name, test_dir, local_repo_path, origin_repo_path, detemplate_conf
-from syncmanager.main import apply_sync_conf_files
-from syncmanager.clients import ACTION_SET_CONF
+from ..syncmanagerclient.main import apply_sync_conf_files
+from ..syncmanagerclient.clients import ACTION_SET_CONF
 
 class GitClientSettingsTest(unittest.TestCase):
     origin_repo = None

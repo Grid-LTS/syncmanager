@@ -1,6 +1,6 @@
 import os
 from git import Repo
-import syncmanager.util.globalproperties as globalproperties
+import syncmanagerclient.util.globalproperties as globalproperties
 
 
 class DeletionRegistration:

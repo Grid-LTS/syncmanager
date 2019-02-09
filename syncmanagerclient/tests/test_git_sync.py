@@ -4,8 +4,8 @@ from pathlib import Path
 import shutil
 
 # Project files
-from syncmanager.main import apply_sync_conf_files, register_local_branch_for_deletion
-from syncmanager.clients import ACTION_PULL, ACTION_PUSH
+from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_for_deletion
+from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
 
 from .utils.testutils import setup_repos, test_dir, var_dir_path, repos_dir, local_repo_path, \
     others_repo_path, local_conf_file_name, others_conf_file_name

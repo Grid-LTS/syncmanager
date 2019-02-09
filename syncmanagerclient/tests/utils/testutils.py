@@ -4,9 +4,9 @@ import os
 from pathlib import Path
 
 # Project files
-from syncmanager.main import apply_sync_conf_files, register_local_branch_for_deletion
-from syncmanager.clients import ACTION_PULL, ACTION_PUSH
-import syncmanager.util.globalproperties as globalproperties
+from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_for_deletion
+from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
+import syncmanagerclient.util.globalproperties as globalproperties
 
 test_dir =  os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 var_dir_path = os.path.join(test_dir, 'var')
