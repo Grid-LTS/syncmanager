@@ -1,5 +1,6 @@
 #!/bin/bash
 
+USER=$(who am i | awk '{print $1}')
 SOURCE="${BASH_SOURCE[0]}"
 SOURCE="$(readlink -f "$SOURCE")"
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd -P )"
@@ -52,7 +53,7 @@ create_user() {
 }
 
 # check if user exists
-id -u $unix_user
+id -u $unix_user >> /dev/null
 
 if [ "$?" -ne 0 ]; then
     create_user $unix_user
@@ -71,15 +72,30 @@ pipenv run python deploy/create_files.py
 
 package_name="${PROJECT_DIR}/dist/syncmanagerapi-${VERSION}-py3-none-any.whl"
 
-sudo pip3 install --upgrade virtualenv
-sudo virtualenv -p $(which python3) $install_dir
-binaries=$install_dir/bin
-sudo $binaries/pip install --upgrade gunicorn
-sudo $binaries/pip install $package_name
+pip3 install --upgrade virtualenv
+if [ "$?" -ne 0 ]; then
+    python3 -m pip install --upgrade virtualenv    
+fi
+if [ "$?" -ne 0 ]; then
+    echo "Cannot install virtualenv package. Make sure you have pip3 installed."
+    echo "Using the system package for pip is recommended, e.g. sudo apt-get install python3-pip"
+    exit 1 
+fi
+
+venv_dir=${install_dir}/venv
+sudo rm -r $venv_dir
+sudo mkdir -p $venv_dir
+sudo chown $USER:$USER $venv_dir
+virtualenv -p $(which python3) $venv_dir
+binaries=$venv_dir/bin
+$binaries/pip install --upgrade gunicorn
+$binaries/pip install $package_name
+
+sudo chown root:root -R $venv_dir
 sudo mv deploy/syncmanagerapi.service /etc/systemd/system/
 
 sudo systemctl enable syncmanagerapi
-sudo systemctl status syncmanagerapi
+sudo systemctl status syncmanagerapi >> /dev/null
 if [ "$?" -eq 0 ]; then
     sudo systemctl restart syncmanagerapi
 else
