@@ -1,8 +1,12 @@
 from setuptools import setup, find_packages
 from os import path
+import sys
 from io import open
 
 here = path.abspath(path.dirname(__file__))
+sys.path.append(here)
+import properties
+
 
 # Get the long description from the README file
 with open(path.join(path.dirname(here), 'README.md'), encoding='utf-8') as f:
@@ -10,11 +14,9 @@ with open(path.join(path.dirname(here), 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='syncmanagerapi',
-    version='0.2.0',
+    version=properties.__version__,
     description='Provides Server for managing multiple synchronizations via unison, git, ...',
     long_description=long_description,
-    # This field corresponds to the "Description-Content-Type" metadata field:
-    # https://packaging.python.org/specifications/core-metadata/#description-content-type-optional
     long_description_content_type='text/markdown',
     url='https://github.com/Grid-LTS/syncmanager',
     author='Gerd Friemel',
@@ -31,6 +33,7 @@ setup(
     ],
     keywords='git unison',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    include_package_data=True,
     install_requires=['flask'],
     python_requires='>=3',
 

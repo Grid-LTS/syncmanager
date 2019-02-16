@@ -1,0 +1,4 @@
+server_port=5010
+unix_user=syncman
+install_dir=/opt/syncmanagerapi
+hostname= # if not given internal network address is taken
