@@ -50,6 +50,13 @@ create_user() {
     echo "no-login shell at $NO_LOGIN_SHELL"
     # this script has to be run as root
     sudo useradd -M --shell $NO_LOGIN_SHELL  -p '*' $unix_user
+    if [ ! -f /var/lib/AccountsService/users/$unix_user ]; then
+    cat <<- EOF | sudo tee /var/lib/AccountsService/users/$unix_user
+    [User]
+    SystemAccount=true
+EOF
+    fi
+    echo "If necessarym add the user ${unix_user} to the privileged unix group for syncing 'sudo usermod -aG myusers ${unix_user}'"
 }
 
 # check if user exists
@@ -101,3 +108,4 @@ if [ "$?" -eq 0 ]; then
 else
     sudo systemctl start syncmanagerapi
 fi
+sudo systemctl status syncmanagerapi
