@@ -19,7 +19,9 @@ def create_app(test_config=None):
         target_dir = data['target_dir']
         if not os.path.exists(target_dir):
             try:
+                oldmask = os.umask(0o002)
                 os.makedirs(target_dir)
+                os.umask(oldmask)
             except PermissionError:
                 raise InvalidRequest('No permissions to create resource {}'.format(target_dir), 'target_dir', 403)
         return Response(status=201)
