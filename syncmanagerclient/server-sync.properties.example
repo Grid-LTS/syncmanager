@@ -6,7 +6,9 @@ var_dir="<directory for operation files>"
 # working environment for which the files should be synced (e.g. 'home', 'work', 'special',...)
 # optional, can also be defined in environment variable with the same name
 SYNC_ENV="home"
-
+[server]
+api_host=myserver # hostname of syncing api
+port=5010 # port of syncing api
 [ssh]
+ssh_user=syncman # see properties as configured for syncmanagerapi
 ssh_host=myserver
-ssh_user=myusername

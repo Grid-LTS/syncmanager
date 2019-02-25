@@ -10,7 +10,7 @@ with open(path.join(path.dirname(here), 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='syncmanagerclient',
-    version='0.2.0',
+    version='0.1.0',
     description='For Managing multiple synchronizations via unison, git, ...',
     long_description=long_description,
     # This field corresponds to the "Description-Content-Type" metadata field:

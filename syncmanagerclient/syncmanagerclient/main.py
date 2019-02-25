@@ -50,7 +50,7 @@ def register_local_branch_for_deletion(path, git_repo_path):
 def main():
     # initialize global properties
 
-    properties_path_prefix = dirname(__file__)
+    properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
     globalproperties.set_prefix(properties_path_prefix)
     globalproperties.read_config()
 
