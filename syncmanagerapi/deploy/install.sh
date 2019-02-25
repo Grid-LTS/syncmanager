@@ -37,19 +37,13 @@ if [ -z "$install_dir" ]; then
 fi
 
 create_user() {
- unix_user=$1
- echo "Create unix user ${unix_user}."
-    if [ -f /sbin/nologin ]; then
-        NO_LOGIN_SHELL=/sbin/nologin
-    elif [ -f /usr/sbin/nologin ]; then
-        NO_LOGIN_SHELL=/usr/sbin/nologin
-    else
-        echo "Cannot find nologin shell"
-        exit 1
+    unix_user=$1
+    echo "Create unix user ${unix_user}."
+    if [ -z "$SHELL" ]; then
+       SHELL=/bin/sh
     fi
-    echo "no-login shell at $NO_LOGIN_SHELL"
-    # this script has to be run as root
-    sudo useradd -M --shell $NO_LOGIN_SHELL  -p '*' $unix_user
+    echo "Creating user with shell $SHELL"
+    sudo useradd -M --shell $SHELL  -p '*' $unix_user
     if [ ! -f /var/lib/AccountsService/users/$unix_user ]; then
     cat <<- EOF | sudo tee /var/lib/AccountsService/users/$unix_user
     [User]
