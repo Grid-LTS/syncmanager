@@ -68,8 +68,6 @@ pipenv install
 pipenv run python setup.py bdist_wheel
 VERSION=$(pipenv run python -c 'from properties import __version__; print(__version__)')
 echo "Created project with version $VERSION"
-# create systemd file
-pipenv run python deploy/create_files.py
 
 package_name="${PROJECT_DIR}/dist/syncmanagerapi-${VERSION}-py3-none-any.whl"
 
@@ -93,7 +91,26 @@ $binaries/pip install --upgrade gunicorn
 $binaries/pip install $package_name
 
 sudo chown root:root -R $venv_dir
+
+# create systemd file
+pipenv run python deploy/create_files.py syncmanagerapi.service
+
 sudo mv deploy/syncmanagerapi.service /etc/systemd/system/
+# Install database if does not exist
+stty -echo
+printf "MySQL password for user ${db_root_user}: "
+read db_password
+stty echo
+
+sudo mkdir $install_dir/conf > /dev/null 2>&1
+if ! sudo mysql -u $db_root_user -P $db_port -p$db_password -e "use ${db_schema_name}" > /dev/null 2>&1; then
+    echo "Initialize database for syncmanagerapi."
+    runtime_conf=$(exec pipenv run python deploy/create_files.py init_db.sql)
+    sudo mysql -u $db_root_user -h $db_host -P $db_port -p$db_password < deploy/init_db.sql
+    echo "db_user=${db_user}" | sudo tee $install_dir/conf/vars.conf > /dev/null
+    echo $runtime_conf | sudo tee -a $install_dir/conf/vars.conf > /dev/null
+    rm deploy/init_db.sql
+fi
 
 sudo systemctl enable syncmanagerapi
 sudo systemctl status syncmanagerapi >> /dev/null

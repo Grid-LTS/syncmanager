@@ -1,0 +1,16 @@
+-- create schema
+CREATE SCHEMA IF NOT EXISTS `{{ db_schema_name }}` DEFAULT CHARSET=utf8 DEFAULT COLLATE=utf8_general_ci;
+
+-- create users
+CREATE USER IF NOT EXISTS '{{ db_user }}'@'%' IDENTIFIED BY '{{ db_user_password }}';
+
+GRANT
+  DELETE, EXECUTE, INSERT, SELECT, SHOW VIEW, UPDATE,
+  CREATE, ALTER, REFERENCES, INDEX, CREATE VIEW, CREATE ROUTINE, ALTER ROUTINE, EVENT, DROP, TRIGGER,
+  LOCK TABLES, CREATE TEMPORARY TABLES
+ON {{ db_schema_name }}.* TO '{{ db_user }}'@'%';
+
+-- passwords never expire
+ALTER USER '{{ db_user }}'@'%' PASSWORD EXPIRE NEVER;
+FLUSH PRIVILEGES;
+
