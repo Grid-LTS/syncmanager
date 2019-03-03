@@ -22,43 +22,46 @@ else
   exit 1 
 fi
 
-if [ -z "$server_port" ]; then
+if [ -z "$SERVER_PORT" ]; then
     echo "Property server_port not set"
     exit 1
 fi
 
-if [ -z "$unix_user" ]; then
-    echo "Property unix_user not set"
+if [ -z "$UNIX_USER" ]; then
+    echo "Property UNIX_USER not set"
     exit 1
 fi
-if [ -z "$install_dir" ]; then
-    echo "Property install_dir not set"
+if [ -z "$INSTALL_DIR" ]; then
+    echo "Property INSTALL_DIR not set"
     exit 1
 fi
 
 create_user() {
-    unix_user=$1
-    echo "Create unix user ${unix_user}."
+    UNIX_USER=$1
+    echo "Create unix user ${UNIX_USER}."
     if [ -z "$SHELL" ]; then
        SHELL=/bin/sh
     fi
     echo "Creating user with shell $SHELL"
-    sudo useradd -M --shell $SHELL  -p '*' $unix_user
-    if [ ! -f /var/lib/AccountsService/users/$unix_user ]; then
-    cat <<- EOF | sudo tee /var/lib/AccountsService/users/$unix_user
-    [User]
-    SystemAccount=true
+    sudo useradd -M --shell $SHELL  -p '*' $UNIX_USER
+    if [ ! -f /var/lib/AccountsService/users/$UNIX_USER ]; then
+    cat <<- EOF | sudo tee /var/lib/AccountsService/users/$UNIX_USER
+[User]
+SystemAccount=true
 EOF
     fi
-    echo "If necessarym add the user ${unix_user} to the privileged unix group for syncing 'sudo usermod -aG myusers ${unix_user}'"
+    echo "If necessarym add the user ${UNIX_USER} to the privileged unix group for syncing 'sudo usermod -aG myusers ${UNIX_USER}'"
 }
 
 # check if user exists
-id -u $unix_user >> /dev/null
+id -u $UNIX_USER >> /dev/null
 
 if [ "$?" -ne 0 ]; then
-    create_user $unix_user
+    create_user $UNIX_USER
 fi
+# install system dependencies
+sudo apt-get -y install libmysqlclient-dev
+
 
 # build project
 cd $PROJECT_DIR
@@ -81,7 +84,7 @@ if [ "$?" -ne 0 ]; then
     exit 1 
 fi
 
-venv_dir=${install_dir}/venv
+venv_dir=${INSTALL_DIR}/venv
 sudo rm -r $venv_dir
 sudo mkdir -p $venv_dir
 sudo chown $USER:$USER $venv_dir
@@ -98,19 +101,22 @@ pipenv run python deploy/create_files.py syncmanagerapi.service
 sudo mv deploy/syncmanagerapi.service /etc/systemd/system/
 # Install database if does not exist
 stty -echo
-printf "MySQL password for user ${db_root_user}: "
+printf "MySQL password for user ${DB_ROOT_USER}: "
 read db_password
 stty echo
 
-sudo mkdir $install_dir/conf > /dev/null 2>&1
-if ! sudo mysql -u $db_root_user -P $db_port -p$db_password -e "use ${db_schema_name}" > /dev/null 2>&1; then
+sudo mkdir $INSTALL_DIR/conf > /dev/null 2>&1
+vars_file=$INSTALL_DIR/conf/vars.conf
+if ! sudo mysql -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "use ${DB_SCHEMA_NAME}" > /dev/null 2>&1; then
     echo "Initialize database for syncmanagerapi."
-    runtime_conf=$(exec pipenv run python deploy/create_files.py init_db.sql)
-    sudo mysql -u $db_root_user -h $db_host -P $db_port -p$db_password < deploy/init_db.sql
-    echo "db_user=${db_user}" | sudo tee $install_dir/conf/vars.conf > /dev/null
-    echo $runtime_conf | sudo tee -a $install_dir/conf/vars.conf > /dev/null
+    runtime_conf=$(pipenv run python deploy/create_files.py init_db.sql)
+    sudo mysql -u $DB_ROOT_USER -h $DB_HOST -P $DB_PORT -p$db_password < deploy/init_db.sql
+    echo $runtime_conf | sudo tee $vars_file > /dev/null
+    sudo chown -R $UNIX_USER:$UNIX_USER $INSTALL_DIR/conf
+    sudo chmod -R 600 $INSTALL_DIR/conf 
     rm deploy/init_db.sql
 fi
+
 
 sudo systemctl enable syncmanagerapi
 sudo systemctl status syncmanagerapi >> /dev/null
