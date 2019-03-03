@@ -11,6 +11,8 @@ gunicorn = "*"
 wheel = "*"
 configparser = "*"
 jinja2 = "*"
+flask-sqlalchemy = "*"
+mysqlclient = "*"
 
 [requires]
 python_version = "3"

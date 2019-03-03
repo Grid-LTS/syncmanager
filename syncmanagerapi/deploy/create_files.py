@@ -22,11 +22,11 @@ if os.path.isfile(properties_path):
         if sys.argv[1] == 'syncmanagerapi.service':
             systemd_service_file = sys.argv[1]
             context = {
-                'unix_user': config['default_section'].get('unix_user','syncman'),
-                'unix_group': config['default_section'].get('unix_user','syncman'),
-                'install_dir' : config['default_section'].get('install_dir','/opt/syncmanagerapi'),
-                'server_port' : config['default_section'].get('server_port','5010'),
-                'hostname': config['default_section'].get('hostname', socket.gethostname())
+                'unix_user': config['default_section'].get('UNIX_USER','syncman'),
+                'unix_group': config['default_section'].get('UNIX_USER','syncman'),
+                'install_dir' : config['default_section'].get('INSTALL_DIR','/opt/syncmanagerapi'),
+                'server_port' : config['default_section'].get('SERVER_PORT','5010'),
+                'hostname': config['default_section'].get('HOSTNAME', socket.gethostname())
             }
             conf_file = TEMPLATE_ENVIRONMENT.get_template('{}.j2'.format(systemd_service_file)).render(context)
             f = open(os.path.join(deploy_dir, systemd_service_file), 'w')
@@ -36,18 +36,18 @@ if os.path.isfile(properties_path):
         # generate database init script
         if sys.argv[1] == 'init_db.sql':
             init_db_file = sys.argv[1]
-            db_user_name = config['default_section'].get('db_user','syncmanager')
+            db_user_name = config['default_section'].get('DB_USER','syncmanager')
             # password must be provided, in future this should be replaced by a retrieval from a password vault
-            passw = getpass.getpass("Provide password for Mysql user {}:".format(db_user_name))
+            passw = getpass.getpass("Set password for Mysql user {}:".format(db_user_name))
             context = {
-                'db_schema_name' : config['default_section'].get('db_schema_name','syncmanerapi'),
+                'db_schema_name' : config['default_section'].get('DB_SCHEMA_NAME','syncmanerapi'),
                 'db_user' :  db_user_name,
-                'db_password' : passw
+                'db_user_password' : passw
             }
 
             conf_file = TEMPLATE_ENVIRONMENT.get_template('{}.j2'.format(init_db_file)).render(context)
             f = open(os.path.join(deploy_dir, init_db_file), 'w')
             f.write(conf_file)
             f.close()
-            print("db_password={}".format(passw))
+            print("DB_PASSWORD={}".format(passw))
 
