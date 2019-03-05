@@ -13,6 +13,8 @@ configparser = "*"
 jinja2 = "*"
 flask-sqlalchemy = "*"
 mysqlclient = "*"
+passlib = "*"
+bcrypt = "*"
 
 [requires]
 python_version = "3"
