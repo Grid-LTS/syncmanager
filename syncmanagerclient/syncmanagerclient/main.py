@@ -99,7 +99,12 @@ def main():
     else:
         sync_env = globalproperties.sync_env
 
-    # loop through all *.conf files in the directory
-    for root, dirs, filenames in os.walk(globalproperties.conf_dir):
-        files = [fi for fi in filenames if fi.endswith(".conf")]
-        apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
+    if args.conf:
+        if not os.path.exists(args.conf):
+            print("File {} does not exist".format(args.conf))
+        apply_sync_conf_files(os.path.dirname(args.conf), [args.conf], action, force, sync_env, clients_enabled)
+    else:
+        # loop through all *.conf files in the directory
+        for root, dirs, filenames in os.walk(globalproperties.conf_dir):
+            files = [fi for fi in filenames if fi.endswith(".conf")]
+            apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
