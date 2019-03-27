@@ -38,7 +38,7 @@ if os.path.isfile(properties_path):
             init_db_file = sys.argv[1]
             db_user_name = config['default_section'].get('DB_USER','syncmanager')
             # password must be provided, in future this should be replaced by a retrieval from a password vault
-            passw = getpass.getpass("Set password for Mysql user {}:".format(db_user_name))
+            passw = getpass.getpass("Provide password for Mysql user {}:".format(db_user_name))
             context = {
                 'db_schema_name' : config['default_section'].get('DB_SCHEMA_NAME','syncmanerapi'),
                 'db_user' :  db_user_name,
@@ -50,4 +50,3 @@ if os.path.isfile(properties_path):
             f.write(conf_file)
             f.close()
             print("DB_PASSWORD={}".format(passw))
-

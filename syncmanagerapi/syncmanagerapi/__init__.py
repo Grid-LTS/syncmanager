@@ -3,6 +3,7 @@ import os
 import MySQLdb
 
 from .settings import read_properties_file
+from .utils import generate_password
 
 
 def create_app(test_config=None):
@@ -30,6 +31,9 @@ def create_app(test_config=None):
             except PermissionError:
                 raise InvalidRequest('No permissions to create resource {}'.format(target_dir), 'target_dir', 403)
         return Response(status=201)
+
+    from .admin import admin as admin_blueprint
+    app.register_blueprint(admin_blueprint, url_prefix='/rest/admin')
 
     with app.app_context():
         from .cli import create_admin_command

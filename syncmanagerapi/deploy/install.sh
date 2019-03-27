@@ -99,9 +99,9 @@ sudo chown root:root -R $venv_dir
 pipenv run python deploy/create_files.py syncmanagerapi.service
 
 sudo mv deploy/syncmanagerapi.service /etc/systemd/system/
-# Install database if does not exist
+
 stty -echo
-printf "MySQL password for user ${DB_ROOT_USER}: "
+printf "MySQL password for admin user ${DB_ROOT_USER}: "
 read db_password
 stty echo
 
@@ -109,13 +109,27 @@ sudo mkdir $INSTALL_DIR/conf > /dev/null 2>&1
 vars_file=$INSTALL_DIR/conf/vars.conf
 if ! sudo mysql -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "use ${DB_SCHEMA_NAME}" > /dev/null 2>&1; then
     echo "Initialize database for syncmanagerapi."
-    runtime_conf=$(pipenv run python deploy/create_files.py init_db.sql)
-    sudo mysql -u $DB_ROOT_USER -h $DB_HOST -P $DB_PORT -p$db_password < deploy/init_db.sql
-    echo $runtime_conf | sudo tee $vars_file > /dev/null
-    sudo chown -R $UNIX_USER:$UNIX_USER $INSTALL_DIR/conf
-    sudo chmod -R 600 $INSTALL_DIR/conf 
-    rm deploy/init_db.sql
 fi
+    
+query=$(sudo mysql -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "SELECT 1 FROM mysql.user WHERE user = '${DB_USER}'")
+    
+if [ -n "$query" ]; then
+    printf "MySQL user ${DB_USER} exists. Should the user be deleted?(Y, any other key for No)"
+    read confirm
+    
+    if [ $confirm='Y' ] ||  [ $confirm='yes' ]; then
+        sudo mysql -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "DROP USER IF EXISTS ${DB_USER}"
+    fi
+fi
+# read Mysql password of the DB_USER, so that it can be stored in properties file 
+runtime_conf=$(pipenv run python deploy/create_files.py init_db.sql)
+
+# Install database if does not exist
+sudo mysql -u $DB_ROOT_USER -h $DB_HOST -P $DB_PORT -p$db_password < deploy/init_db.sql
+echo $runtime_conf | sudo tee $vars_file > /dev/null
+sudo chown -R $UNIX_USER:$UNIX_USER $INSTALL_DIR/conf
+sudo chmod -R 600 $INSTALL_DIR/conf 
+rm deploy/init_db.sql
 
 
 sudo systemctl enable syncmanagerapi
