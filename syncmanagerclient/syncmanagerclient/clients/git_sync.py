@@ -1,5 +1,5 @@
 import os
-from git import Repo
+from git import Repo, GitCommandError
 from ..util.system import run, change_dir, sanitize_path
 from .deletion_registration import DeletionRegistration
 
@@ -89,7 +89,11 @@ class GitClientSync:
             print('Error. No branch given.')
             exit(1)
         print('Deleting branch {}.'.format(path))
-        out = self.gitrepo.delete_head(path)
+        try:
+            out = self.gitrepo.delete_head(path)
+        except GitCommandError as e:
+            print('Branch cannot be deleted now, and will be deleted on next synchronization.')
+            return
         if out:
             print(out)
 
@@ -109,7 +113,11 @@ class GitClientSync:
                 print('Branch {} is deleted in remote repository {}'.format(branch_path_full, self.remote_reponame))
                 git.push(self.remote_gitrepo, '--delete', str(branch_path), porcelain=True)
             else:
-                print ('Branch {} was removed in remote repository {}'.format(branch_path_full, self.remote_reponame))
+                print ('Branch {} was already removed in remote repository {}'.format(branch_path_full, self.remote_reponame))
+            if hasattr(self.gitrepo.heads, str(branch_path)):
+                # Delete local working branch if still existing
+                out = self.gitrepo.delete_head(branch_path)
+                print(out)
             del entries[index]
         if len(entries) > 0:
             deletion_registry.write_registry(self.remote_reponame, entries)
@@ -135,7 +143,8 @@ class GitClientSync:
         if not str(repo) == str(self.remote_reponame):
             return None
         self.gitrepo.create_head(local_branch, remote_branch)  # create local branch from remote
-        getattr(self.gitrepo.heads, str(local_branch)).set_tracking_branch(remote_branch)
+        if hasattr(self.gitrepo.heads, str(local_branch)):
+            getattr(self.gitrepo.heads, str(local_branch)).set_tracking_branch(remote_branch)
 
     def sync_push(self):
         git = self.gitrepo.git
@@ -149,8 +158,9 @@ class GitClientSync:
                 # alternatively
                 # push_info = self.remote_gitrepo.push(refspec='{}:{}'.format(str(branch), str(branch)))
                 # get the newly created remote branch
-                remote_branch = getattr(self.remote_gitrepo.refs, str(branch))
-                branch.set_tracking_branch(remote_branch)
+                if hasattr(self.remote_gitrepo.refs, str(branch)):
+                    remote_branch = getattr(self.remote_gitrepo.refs, str(branch))
+                    branch.set_tracking_branch(remote_branch)
                 # remove last line
                 output = output[:output.rfind('\n')]
                 print(output)
