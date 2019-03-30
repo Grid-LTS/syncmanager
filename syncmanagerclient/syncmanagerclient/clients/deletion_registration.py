@@ -1,4 +1,5 @@
 import os
+import re
 from git import Repo
 import syncmanagerclient.util.globalproperties as globalproperties
 
@@ -68,6 +69,11 @@ class DeletionRegistration:
         entries = []
         lines = f.readlines()
         for line in lines:
+            # replace spaces with tab, in case tab has been replaced by space in the meantime
+            line = re.sub(' +', '\t', line)
+            line = line.strip()
+            if not line:
+                continue
             entry = line.split('\t')
             entry[0] = entry[0].strip()
             entry[1] = entry[1].strip()
