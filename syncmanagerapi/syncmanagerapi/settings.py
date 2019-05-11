@@ -1,5 +1,6 @@
 import os
 import sys
+
 import configparser
 
 top_package_dir = os.path.dirname(os.path.abspath(__file__))

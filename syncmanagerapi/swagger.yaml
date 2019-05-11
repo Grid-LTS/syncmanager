@@ -1,0 +1,33 @@
+swagger: "2.0"
+info:
+  description: Swagger specification for syncmanager api
+  version: "1.0.0"
+  title: Swagger REST Article
+consumes:
+  - "application/json"
+produces:
+  - "application/json"
+
+basePath: "/api"
+
+paths:
+  /syncdir:
+    post:
+      operationId: "syncmanagerapi.client.fs.create_syncdir"
+      tags:
+        - "File system"
+      summary: "Creates directory for synchronization of files"
+      description: ""
+      responses:
+        204:
+          description: "Successfully created sync directory"
+  /admin/user:
+    post:
+      operationId: "syncmanagerapi.admin.controller.create_standard_user"
+      tags:
+        - "Admin interface"
+      summary: "Creates standard user syncing files."
+      description: ""
+      responses:
+        200:
+          description: "Successfully created user"

@@ -1,9 +1,7 @@
 from flask import request, Response, json
-from . import admin
 
 
-@admin.route('/user', methods=['POST'])
-def parse_request():
+def create_standard_user():
     from ..error import InvalidRequest
     from ..utils import generate_password
     from ..model import User, Roles
