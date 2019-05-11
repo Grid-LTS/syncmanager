@@ -1,39 +1,26 @@
-from flask import Flask, request, Response
-import os
+from flask import jsonify
 import MySQLdb
+import connexion
 
-from .settings import read_properties_file
+from .settings import read_properties_file, project_dir
 from .utils import generate_password
+from .error import InvalidRequest 
 
 
 def create_app(test_config=None):
-    app = Flask(__name__, instance_relative_config=True)
+    # Create the application instance
+    application = connexion.App(__name__, specification_dir=project_dir)
+    # Read the swagger.yml file to configure the endpoints
+    application.add_api('swagger.yaml')
+    app = application.app
     app.config.from_mapping(**read_properties_file())
 
     # import all modules that need app context
-    with app.app_context():
-        from .error import InvalidRequest
-
-    @app.route('/rest/syncdir', methods=['POST'])
-    def parse_request():
-        body = request.data
-        if not body:
-            raise InvalidRequest('Provide target directory path \'target_dir\' payload', 'target_dir')
-        data = request.get_json(force=True)
-        if not data['target_dir']:
-            raise InvalidRequest('Provide target directory path \'target_dir\' payload', 'target_dir')
-        target_dir = data['target_dir']
-        if not os.path.exists(target_dir):
-            try:
-                oldmask = os.umask(0o002)
-                os.makedirs(target_dir)
-                os.umask(oldmask)
-            except PermissionError:
-                raise InvalidRequest('No permissions to create resource {}'.format(target_dir), 'target_dir', 403)
-        return Response(status=201)
-
-    from .admin import admin as admin_blueprint
-    app.register_blueprint(admin_blueprint, url_prefix='/rest/admin')
+    @app.errorhandler(InvalidRequest)
+    def handle_invalid_usage(error):
+        response = jsonify(error.get_response_info())
+        response.status_code = error.status_code
+        return response
 
     with app.app_context():
         from .cli import create_admin_command

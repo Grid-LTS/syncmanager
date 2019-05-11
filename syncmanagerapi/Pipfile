@@ -15,6 +15,7 @@ flask-sqlalchemy = "*"
 mysqlclient = "*"
 passlib = "*"
 bcrypt = "*"
+connexion = {extras = ["swagger-ui"],version = "*"}
 
 [requires]
 python_version = "3"

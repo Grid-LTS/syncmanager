@@ -1,6 +1,3 @@
-from flask import jsonify, current_app
-
-
 class InvalidRequest(Exception):
     status_code = 400
 
@@ -18,8 +15,4 @@ class InvalidRequest(Exception):
         return rv
 
 
-@current_app.errorhandler(InvalidRequest)
-def handle_invalid_usage(error):
-    response = jsonify(error.get_response_info())
-    response.status_code = error.status_code
-    return response
+

@@ -40,3 +40,9 @@ python -m unittest tests/test_git_sync.py
 cd syncmanagerapi
 python3 -m syncmanagerapi 
 ```
+* create admin user (only CLI)
+```
+cd syncmanagerapi
+export FLASK_APP=syncmanagerapi 
+flask admin-create --name <name> --password <password>
+```
