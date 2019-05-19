@@ -6,16 +6,11 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-flask = "*"
 gunicorn = "*"
 wheel = "*"
-configparser = "*"
 jinja2 = "*"
-flask-sqlalchemy = "*"
-mysqlclient = "*"
-passlib = "*"
-bcrypt = "*"
-connexion = {extras = ["swagger-ui"],version = "*"}
+connexion = {extras = ["swagger-ui"], version = "*"}
+syncmanagerapi = {editable = true,path = "."}
 
 [requires]
 python_version = "3"
