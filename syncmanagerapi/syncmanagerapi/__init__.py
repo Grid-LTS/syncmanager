@@ -1,23 +1,34 @@
+import os
 from flask import jsonify
 import MySQLdb
 import connexion
 
-from .settings import read_properties_file, project_dir
+from .settings import read_properties_file
 from .utils import generate_password
 from .error import InvalidRequest 
+from .authorization import InvalidAuthorizationException
 
 
 def create_app(test_config=None):
     # Create the application instance
-    application = connexion.App(__name__, specification_dir=project_dir)
+    application = connexion.App(__name__, specification_dir=os.path.dirname(os.path.abspath(__file__)))
     # Read the swagger.yml file to configure the endpoints
     application.add_api('swagger.yaml')
     app = application.app
     app.config.from_mapping(**read_properties_file())
+    app.config['BASIC_AUTH_FORCE'] = True
+
+    with app.app_context():
+        from .authentication import SyncBasicAuth
+        basic_auth = SyncBasicAuth(app)
 
     # import all modules that need app context
     @app.errorhandler(InvalidRequest)
     def handle_invalid_usage(error):
+        return handleError(error)
+
+    @app.errorhandler(InvalidAuthorizationException)
+    def handle_authentication_error(error):
         response = jsonify(error.get_response_info())
         response.status_code = error.status_code
         return response
@@ -38,6 +49,11 @@ def initialize_database(app):
         if not cur.fetchall():
             database.init_schema()
         db.close()
+
+def handleError(error):
+    response = jsonify(error.get_response_info())
+    response.status_code = error.status_code
+    return response
 
 
 def main():

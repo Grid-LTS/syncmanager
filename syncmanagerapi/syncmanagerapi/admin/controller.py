@@ -1,11 +1,16 @@
-from flask import request, Response, json
+from flask import current_app, request, Response, json
+
+from ..authorization import Roles
 
 
 def create_standard_user():
     from ..error import InvalidRequest
     from ..utils import generate_password
-    from ..model import User, Roles
-
+    from ..model import User
+    # check that user has ADMIN privileges
+    with current_app.app_context():
+        from ..decorators import requires_auth_roles
+        requires_auth_roles(Roles.ADMIN)
     body = request.data
     if not body:
         raise InvalidRequest('Empty body', 'username')

@@ -3,10 +3,6 @@ import uuid
 
 from .database import db
 
-class Roles:
-    ADMIN = 'ADMIN'
-    DEFAULT = 'DEFAULT'
-
 
 class User(db.Model):
     id = db.Column(db.String(36), primary_key=True)
@@ -26,11 +22,24 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     @staticmethod
+    def user_by_id(_username):
+        return User.query.filter_by(username=_username).first()
+
+    @staticmethod
     def add_user(_username, _role, _password):
         _id = uuid.uuid4()
         new_user = User(id=_id, username=_username, role=_role, password=_password)
         db.session.add(new_user)
         db.session.commit()
+
+    @staticmethod
+    def has_role(username, role):
+        user = User.user_by_id(username)
+        if not user:
+            return False
+        if user.role == role:
+            return True
+        return False
 
     def __repr__(self):
         return '<User %r>' % self.username
