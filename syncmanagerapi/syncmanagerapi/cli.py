@@ -1,8 +1,10 @@
 import click
 from flask.cli import with_appcontext
 
-from .model import User, Roles
+from .authorization import Roles
+from .model import User
 from .utils import generate_password
+
 
 # register CLI command
 @click.command('admin-create')
