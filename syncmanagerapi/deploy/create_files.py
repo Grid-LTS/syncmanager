@@ -21,10 +21,11 @@ if os.path.isfile(properties_path):
         config.read_string(config_string)
         if sys.argv[1] == 'syncmanagerapi.service':
             systemd_service_file = sys.argv[1]
+            install_dir = config['default_section'].get('INSTALL_DIR','/opt/syncmanagerapi')
             context = {
                 'unix_user': config['default_section'].get('UNIX_USER','syncman'),
                 'unix_group': config['default_section'].get('UNIX_USER','syncman'),
-                'install_dir' : config['default_section'].get('INSTALL_DIR','/opt/syncmanagerapi'),
+                'install_dir' : install_dir,
                 'server_port' : config['default_section'].get('SERVER_PORT','5010'),
                 'hostname': config['default_section'].get('HOSTNAME', socket.gethostname())
             }

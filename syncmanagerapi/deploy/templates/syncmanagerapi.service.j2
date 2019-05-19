@@ -6,6 +6,7 @@ After=network.target
 User= {{ unix_user }}
 Group={{ unix_group }}
 WorkingDirectory={{ install_dir }}
+Environment="SYNCMANAGER_SERVER_CONF={{ install_dir }}/conf"
 ExecStart={{ install_dir }}/venv/bin/gunicorn --bind={{ hostname }}:{{ server_port }} syncmanagerapi.wsgi:app
 
 [Install]
