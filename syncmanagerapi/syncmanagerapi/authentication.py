@@ -13,7 +13,7 @@ class SyncBasicAuth(BasicAuth):
         """
             authentication: validates users password
         """
-        self.user = User.user_by_id(username)
+        self.user = User.user_by_username(username)
         if not self.user:
             return False
         if not self.user.verify_password(password):

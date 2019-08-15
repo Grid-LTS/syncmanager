@@ -9,8 +9,11 @@ verify_ssl = true
 gunicorn = "*"
 wheel = "*"
 jinja2 = "*"
-connexion = {extras = ["swagger-ui"], version = "*"}
+connexion = {extras = ["swagger-ui"],version = "*"}
 syncmanagerapi = {editable = true,path = "."}
+flask-marshmallow = "*"
+marshmallow-sqlalchemy = "*"
+marshmallow = "*"
 
 [requires]
 python_version = "3"

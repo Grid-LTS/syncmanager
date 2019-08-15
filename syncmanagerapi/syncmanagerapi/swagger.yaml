@@ -21,6 +21,16 @@ paths:
       responses:
         204:
           description: "Successfully created sync directory"
+  /git/repos:
+    post:
+      operationId: "syncmanagerapi.git.api.create_repo"
+      tags:
+      - "File system"
+      summary: "Creates bare git repository"
+      description: ""
+      responses:
+        204:
+          description: "Successfully created git repository"
   /admin/user:
     post:
       operationId: "syncmanagerapi.admin.controller.create_standard_user"

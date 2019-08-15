@@ -35,7 +35,8 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     package_data={'syncmanagerapi': ['swagger.yaml']},
     include_package_data=True,
-    install_requires=['configparser','connexion','flask','flask-sqlalchemy','flask-basicauth', 'mysqlclient'],
+    install_requires=['configparser','connexion','flask','flask-marshmallow','flask-sqlalchemy','flask-basicauth',
+                      'marshmallow','marshmallow-sqlalchemy', 'mysqlclient'],
     python_requires='>=3',
 
     extras_require={
