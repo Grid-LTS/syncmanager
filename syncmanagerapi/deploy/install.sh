@@ -1,6 +1,6 @@
 #!/bin/bash
 
-USER=$(who am i | awk '{print $1}')
+USER=$(whoami | awk '{print $1}')
 SOURCE="${BASH_SOURCE[0]}"
 SOURCE="$(readlink -f "$SOURCE")"
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd -P )"

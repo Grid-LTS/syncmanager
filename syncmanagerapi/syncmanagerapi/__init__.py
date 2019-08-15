@@ -1,11 +1,12 @@
 import os
 from flask import jsonify
+
 import MySQLdb
 import connexion
 
 from .settings import read_properties_file
 from .utils import generate_password
-from .error import InvalidRequest 
+from .error import InvalidRequest
 from .authorization import InvalidAuthorizationException
 
 
@@ -42,13 +43,22 @@ def create_app(test_config=None):
 def initialize_database(app):
     with app.app_context():
         from . import database
+        from .git.model import GitRepo
         db = MySQLdb.connect(host=app.config['DB_HOST'], user=app.config['DB_USER'],
                              passwd=app.config['DB_PASSWORD'], db=app.config['DB_SCHEMA_NAME'])
         cur = db.cursor()
         cur.execute("SHOW TABLES")
-        if not cur.fetchall():
+        tables = ['user', 'git_repos']
+        for existing_table in cur.fetchall():
+            try:
+                ind = tables.index(existing_table[0])
+                del tables[ind]
+            except ValueError:
+                pass
+        if len(tables) > 0:
             database.init_schema()
         db.close()
+
 
 def handleError(error):
     response = jsonify(error.get_response_info())

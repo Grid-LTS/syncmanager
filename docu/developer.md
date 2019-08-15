@@ -35,12 +35,19 @@ python -m unittest tests/test_git_sync.py
 ```
 
 ## Server
+
+### installation
+* necessary both in DEV and PROD since both require MySQL database
+```bash
+deploy/install.sh
+```
+
 * start in test mode
 ```
 cd syncmanagerapi
 python3 -m syncmanagerapi 
 ```
-* create admin user (only CLI)
+* create admin user (only possible via CLI)
 on dev
 ```
 cd syncmanagerapi
