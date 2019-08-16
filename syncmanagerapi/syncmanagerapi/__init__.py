@@ -43,12 +43,12 @@ def create_app(test_config=None):
 def initialize_database(app):
     with app.app_context():
         from . import database
-        from .git.model import GitRepo
+        from .git.model import GitRepo, UserGitReposAssoc
         db = MySQLdb.connect(host=app.config['DB_HOST'], user=app.config['DB_USER'],
                              passwd=app.config['DB_PASSWORD'], db=app.config['DB_SCHEMA_NAME'])
         cur = db.cursor()
         cur.execute("SHOW TABLES")
-        tables = ['user', 'git_repos']
+        tables = ['user', 'git_repos','user_git_repos']
         for existing_table in cur.fetchall():
             try:
                 ind = tables.index(existing_table[0])

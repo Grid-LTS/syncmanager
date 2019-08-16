@@ -25,12 +25,21 @@ paths:
     post:
       operationId: "syncmanagerapi.git.api.create_repo"
       tags:
-      - "File system"
+      - "Git"
       summary: "Creates bare git repository"
       description: ""
       responses:
         204:
           description: "Successfully created git repository"
+    get:
+      operationId: "syncmanagerapi.git.api.get_repos"
+      tags:
+      - "Git"
+      summary: "Returns all associated Git repositories"
+      description: ""
+      responses:
+        200:
+          description: "List of Git repositories"
   /admin/user:
     post:
       operationId: "syncmanagerapi.admin.controller.create_standard_user"
