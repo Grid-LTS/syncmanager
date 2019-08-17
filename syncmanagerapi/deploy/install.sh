@@ -7,7 +7,6 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd -P )"
 PROJECT_DIR="$( dirname "$DIR" )"
 
 if [ -f "$PROJECT_DIR/application.properties" ]; then
-  echo "" >> "$PROJECT_DIR/application.properties"
   while IFS== read -r VAR1 VAR2
   do
     if [[ "$VAR1" == \#* || "$VAR2" == "" ]]; then
@@ -39,18 +38,47 @@ fi
 create_user() {
     UNIX_USER=$1
     echo "Create unix user ${UNIX_USER}."
-    if [ -z "$SHELL" ]; then
-       SHELL=/bin/sh
+    unix_password=$(openssl rand -base64 12)
+    unix_password_encrypt=$(openssl passwd -crypt "$unix_password")
+    USERS_SHELL=$(command -v rbash)
+    if [ ! "$?" -eq 0 ]; then
+        echo "Please install rbash on your system"
+        exit 1
     fi
-    echo "Creating user with shell $SHELL"
-    sudo useradd -M --shell $SHELL  -p '*' $UNIX_USER
+    sudo useradd -m --shell $USERS_SHELL -p "$unix_password_encrypt" $UNIX_USER
+    if [ ! "$?" -eq 0 ]; then
+        echo "Could not create user ${UNIX_USER}"
+        exit 1
+    else
+        echo "The unix user has password: ${unix_password}"
+    fi
     if [ ! -f /var/lib/AccountsService/users/$UNIX_USER ]; then
     cat <<- EOF | sudo tee /var/lib/AccountsService/users/$UNIX_USER
 [User]
 SystemAccount=true
 EOF
     fi
-    #echo "If necessary add the user ${UNIX_USER} to the privileged unix group for syncing 'sudo usermod -aG myusers ${UNIX_USER}'"
+    if [ ! -d /home/$UNIX_USER ]; then
+        echo "The unix user ${UNIX_USER} has no home directory. Something went wrong."
+        exit 1
+    fi
+    USER_BIN_DIR=/home/$UNIX_USER/usr/bin
+    sudo mkdir -p $USER_BIN_DIR
+    # Create profile
+    sudo touch /home/$UNIX_USER/.bashrc
+    echo "export PATH=/home/${UNIX_USER}/usr/bin" | sudo tee -a /home/$UNIX_USER/.bashrc
+    for i in .bash_login .bash_profile .bash_logout .bash_profile .profile; 
+    do 
+        sudo cp /home/$UNIX_USER/.bashrc /home/$UNIX_USER/$i; 
+    done
+    UNISON_BIN=$(command -v unison)
+    if [ "$?" -eq 0 ]; then
+        sudo ln -s $UNISON_BIN $USER_BIN_DIR/unison
+    else
+        echo "Unison is not available on the server."
+    fi
+    sudo chmod -R 750 /home/$UNIX_USER
+    sudo chown -R $UNIX_USER:$UNIX_USER /home/$UNIX_USER
 }
 
 # check if user exists
@@ -175,3 +203,7 @@ else
     sudo systemctl start syncmanagerapi
 fi
 sudo systemctl status syncmanagerapi
+
+if [ -n "$unix_password" ]; then
+    echo "The unix user has password $unix_password"
+fi
