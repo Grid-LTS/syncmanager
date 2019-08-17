@@ -134,10 +134,19 @@ echo "DB_USER=${DB_USER}" | sudo tee -a $vars_file > /dev/null
 echo "DB_SCHEMA_NAME=${DB_SCHEMA_NAME}" | sudo tee -a $vars_file > /dev/null
 echo "DB_HOST=${DB_HOST}"  | sudo tee -a $vars_file > /dev/null
 echo "DB_PORT=${DB_PORT}"  | sudo tee -a $vars_file > /dev/null
+echo "FS_ROOT=${FS_ROOT}" | sudo tee -a $vars_file > /dev/null
 sudo chown -R $UNIX_USER:$UNIX_USER $INSTALL_DIR/conf
 sudo chmod -R 700 $INSTALL_DIR/conf 
 rm deploy/init_db.sql
 
+# create root folder for file system
+if [ ! -d $FS_ROOT ]; then
+    sudo mkdir $FS_ROOT
+    echo "Created directory ${FS_ROOT}."
+fi
+sudo mkdir $FS_ROOT/git
+sudo chown :$UNIX_USER -R $FS_ROOT
+sudo chmod 770 -R $FS_ROOT
 
 sudo systemctl enable syncmanagerapi
 sudo systemctl status syncmanagerapi >> /dev/null
