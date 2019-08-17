@@ -11,6 +11,11 @@ from .authorization import InvalidAuthorizationException
 
 
 def create_app(test_config=None):
+    """
+    entry point for wsgi process and Flask CLI commands 
+    :param test_config: 
+    :return: Flask instance
+    """
     # Create the application instance
     application = connexion.App(__name__, specification_dir=os.path.dirname(os.path.abspath(__file__)))
     # Read the swagger.yml file to configure the endpoints
@@ -26,7 +31,7 @@ def create_app(test_config=None):
     # import all modules that need app context
     @app.errorhandler(InvalidRequest)
     def handle_invalid_usage(error):
-        return handleError(error)
+        return handle_error(error)
 
     @app.errorhandler(InvalidAuthorizationException)
     def handle_authentication_error(error):
@@ -37,6 +42,8 @@ def create_app(test_config=None):
     with app.app_context():
         from .cli import create_admin_command
         app.cli.add_command(create_admin_command)
+    # initialize database tables
+    initialize_database(app)
     return app
 
 
@@ -60,7 +67,7 @@ def initialize_database(app):
         db.close()
 
 
-def handleError(error):
+def handle_error(error):
     response = jsonify(error.get_response_info())
     response.status_code = error.status_code
     return response
@@ -68,5 +75,4 @@ def handleError(error):
 
 def main():
     app = create_app()
-    initialize_database(app)
     app.run(debug=True)
