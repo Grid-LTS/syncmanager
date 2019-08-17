@@ -50,7 +50,7 @@ create_user() {
 SystemAccount=true
 EOF
     fi
-    echo "If necessarym add the user ${UNIX_USER} to the privileged unix group for syncing 'sudo usermod -aG myusers ${UNIX_USER}'"
+    #echo "If necessary add the user ${UNIX_USER} to the privileged unix group for syncing 'sudo usermod -aG myusers ${UNIX_USER}'"
 }
 
 # check if user exists
@@ -76,14 +76,17 @@ echo "Created project with version $VERSION"
 
 package_name="${PROJECT_DIR}/dist/syncmanagerapi-${VERSION}-py3-none-any.whl"
 
-pip3 install --upgrade virtualenv
-if [ "$?" -ne 0 ]; then
-    python3 -m pip install --upgrade virtualenv    
-fi
-if [ "$?" -ne 0 ]; then
-    echo "Cannot install virtualenv package. Make sure you have pip3 installed."
-    echo "Using the system package for pip is recommended, e.g. sudo apt-get install python3-pip"
-    exit 1 
+command -v virtualenv > /dev/null
+if [ ! "$?" -eq 0 ]; then
+    pip3 install --upgrade virtualenv
+    if [ "$?" -ne 0 ]; then
+        python3 -m pip install --upgrade virtualenv
+        if [ "$?" -ne 0 ]; then
+            echo "Cannot install virtualenv package. Make sure you have pip3 installed."
+            echo "Using the system package for pip is recommended, e.g. sudo apt-get install python3-pip"
+            exit 1
+        fi
+    fi
 fi
 
 venv_dir=${INSTALL_DIR}/venv
