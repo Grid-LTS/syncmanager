@@ -42,6 +42,16 @@ python -m unittest tests/test_git_sync.py
 deploy/install.sh
 ```
 
+#### Known issues
+pip installs packages like virtualenv, only if not existing. 
+In case these packages are already installed, make sure they are up-to-date: 
+```bash
+# user specific installed
+pip3 install --upgrade virtualenv --user
+# system-wide
+sudo pip3 install --upgrade virtualenv
+```
+
 * start in test mode
 ```
 cd syncmanagerapi
