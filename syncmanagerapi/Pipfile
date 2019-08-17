@@ -14,6 +14,7 @@ syncmanagerapi = {editable = true,path = "."}
 flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 marshmallow = "*"
+gitpython = "*"
 
 [requires]
 python_version = "3"
