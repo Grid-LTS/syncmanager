@@ -148,6 +148,22 @@ sudo mkdir $FS_ROOT/git
 sudo chown :$UNIX_USER -R $FS_ROOT
 sudo chmod 770 -R $FS_ROOT
 
+echo "Do you want to create then initial administrative user? Leave prompt empty to skip."
+read -p "Enter admin username: " admin_name
+
+if [ -n "$admin_name" ]; then
+    echo -n "Enter admin password: "
+    read -s admin_pw
+    
+    source $INSTALL_DIR/venv/bin/activate
+    export SYNCMANAGER_SERVER_CONF=$INSTALL_DIR/conf
+    export FLASK_APP=syncmanagerapi
+    flask admin-create --name $admin_name --password $admin_pw
+    if [ "$?" -eq 0 ]; then
+        echo "Created admin user ${admin_name}"
+    fi
+fi
+
 sudo systemctl enable syncmanagerapi
 sudo systemctl status syncmanagerapi >> /dev/null
 if [ "$?" -eq 0 ]; then
