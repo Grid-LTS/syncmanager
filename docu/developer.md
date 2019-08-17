@@ -66,8 +66,5 @@ flask admin-create --name <name> --password <password>
 ```
 on prod:
 ```bash
-source $INSTALL_DIR/venv/bin/activate
-export SYNCMANAGER_SERVER_CONF=$INSTALL_DIR/conf
-export FLASK_APP=syncmanagerapi
-flask admin-create --name <name> --password <password>
+sudo deploy/create_admin.sh
 ```
