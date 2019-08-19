@@ -33,7 +33,7 @@ class SyncDirRegistration:
 
     def register(self, sync_env):
         api_service = ApiService(self.mode, sync_env)
-        existing_repos = api_service.list_repos_by_client_id(full=True)
+        existing_repos = api_service.list_repos_by_client_env(full=True)
         for repo in existing_repos:
             p = pathlib.Path(repo['git_repo']['server_path_rel'])
             print(f"{p.relative_to(*p.parts[:1])}")
@@ -51,7 +51,15 @@ class SyncDirRegistration:
             except ValueError:
                 pass
         repo_name = input('Enter name of bare repository (optional): ')
+        all_envs = input("Should all environments sync this repo? 'Y/y/yes' or 'No' for other input ")
+        if all_envs in ['Y', 'y', 'yes']:
+            all_sync_env = True
+        else:
+            all_sync_env = False
         response = api_service.create_remote_repository(self.local_path_short, server_path_rel,
-                                                        repo_name, remote_name, sync_env)
-        remote_url = f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{response['remote_repo_path']}"
-        self.gitrepo.create_remote(remote_name, remote_url)
+                                                        repo_name, remote_name, all_sync_env)
+        if response['is_new_reference']:
+            remote_url = f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{response['remote_repo_path']}"
+            self.gitrepo.create_remote(remote_name, remote_url)
+        else:
+            print(f"Bare repo at path {response['remote_repo_path']} is already registered as remote.")
