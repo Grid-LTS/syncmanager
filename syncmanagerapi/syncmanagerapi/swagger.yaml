@@ -31,12 +31,24 @@ paths:
       responses:
         204:
           description: "Successfully created git repository"
+  /git/repos/{client_id}:  
     get:
       operationId: "syncmanagerapi.git.api.get_repos"
       tags:
       - "Git"
       summary: "Returns all associated Git repositories"
       description: ""
+      parameters:
+      - name: client_id
+        in: path
+        description: Id of the synchronization client
+        type: string
+        required: true
+      - name: full_info
+        description: whether to provide full repo information.
+        in: query
+        type: boolean
+        required: false
       responses:
         200:
           description: "List of Git repositories"

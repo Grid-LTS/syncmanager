@@ -223,6 +223,7 @@ class GitClientSync:
                 return 1
         return 0
 
+
     def get_branch_name_and_repo_from_remote_path(self, remote_branch):
         remote_branch = remote_branch.strip()
         parts = remote_branch.split('/')

@@ -6,6 +6,11 @@ properties_path_prefix = ''
 conf_dir = ''
 sync_env = ''
 var_dir = ''
+api_base_url = ''
+api_user = ''
+api_pw = ''
+ssh_user = ''
+ssh_host = ''
 
 
 def set_prefix(prefix):
@@ -18,6 +23,11 @@ def read_config():
     global conf_dir
     global sync_env
     global var_dir
+    global api_base_url
+    global api_user
+    global api_pw
+    global ssh_user
+    global ssh_host
     properties_path = properties_path_prefix + "/server-sync.properties"
     config = configparser.ConfigParser()
     if os.path.isfile(properties_path):
@@ -36,8 +46,14 @@ def read_config():
 
     # determine sync environment
     if not os.environ.get('SYNC_ENV', None) and not config['config'].get('SYNC_ENV', None):
-        print("Please specify the environment with --env option or as SYNC_ENV in properties file.")
-        exit(1)
+        print("Please specify the environment with --env option or as SYNC_ENV in properties file. Using 'defualt")
+        config['config'].set('SYNC_ENV', 'default')
     sync_env = config['config'].get('SYNC_ENV', None)
     if not sync_env:
         sync_env = os.environ.get('SYNC_ENV', None)
+    api_base_url = f"http://{config['server'].get('API_HOST','')}:{config['server'].get('API_PORT','5010')}/api"
+    api_user = config['server'].get('API_USER','')
+    api_pw = config['server'].get('API_PW','')
+    ssh_user = config['ssh'].get('SSH_USER',None)
+    ssh_host = config['ssh'].get('SSH_HOST', None)
+

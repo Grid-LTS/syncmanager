@@ -1,13 +1,21 @@
 import argparse
 import os
 from os.path import dirname
+
 import syncmanagerclient.util.globalproperties as globalproperties
 
 from .util.readconfig import config_parse, environment_parse
 
-from .clients import ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, ACTION_SET_CONF_ALIASES, ACTION_DELETE
+from .clients import ACTION_ADD_REMOTE, ACTION_ADD_REMOTE_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
+    ACTION_SET_CONF_ALIASES, ACTION_DELETE
 from .clients.sync_client import SyncClientFactory
 from .clients.deletion_registration import DeletionRegistration
+from .clients.sync_dir_registration import SyncDirRegistration
+
+# initialize global properties
+properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
+globalproperties.set_prefix(properties_path_prefix)
+globalproperties.read_config()
 
 
 def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enabled):
@@ -33,7 +41,7 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
 
 
 def register_local_branch_for_deletion(path, git_repo_path):
-    delete_action = DeletionRegistration(path=path, git_repo_path=git_repo_path)
+    delete_action = DeletionRegistration(branch_path=path, git_repo_path=git_repo_path)
     delete_action.register_path()
     client = delete_action.mode
     configs = delete_action.configs
@@ -47,16 +55,7 @@ def register_local_branch_for_deletion(path, git_repo_path):
     client_instance.apply(path=path)
 
 
-def main():
-    # initialize global properties
-
-    properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
-    globalproperties.set_prefix(properties_path_prefix)
-    globalproperties.read_config()
-
-    """
-      Parses arguments and initiates the respective sync clients
-    """
+def minimal():
     clients = ['git', 'unison']
     parser = argparse.ArgumentParser()
     parser.add_argument("--conf", help="Specify file from which the sync config is loaded")
@@ -108,3 +107,54 @@ def main():
         for root, dirs, filenames in os.walk(globalproperties.conf_dir):
             files = [fi for fi in filenames if fi.endswith(".conf")]
             apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
+
+
+def main():
+    """
+      Parses arguments and initiates the respective sync clients
+    """
+    clients = ['git', 'unison']
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--force", action='store_true', default=False,
+                        help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
+    parser.add_argument("--env",
+                        help="Specify environment id, e.g. home, work. Default is written in the env variable $SYNC_ENV or in the properties file.")
+    parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
+    sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
+    for act in ['push', 'pull', 'set-conf', 'set-config', 'add-remote']:
+        sub_parser_std_action = sub_parser_action.add_parser(act)
+    sub_parser_delete = sub_parser_action.add_parser('delete')
+    # add another positional argument to specify the path or branch to delete
+    sub_parser_delete.add_argument('path', type=str)
+    args = parser.parse_args()
+
+    # determine the environment which is synced
+    if args.env:
+        sync_env = args.env
+    else:
+        sync_env = globalproperties.sync_env
+
+    if args.action in [ACTION_PULL, ACTION_PUSH]:
+        action = args.action
+    elif args.action in ACTION_SET_CONF_ALIASES:
+        action = ACTION_SET_CONF
+    elif args.action in ACTION_ADD_REMOTE_ALIASES:
+        local_path = os.getcwd()
+        new_sync_dir = SyncDirRegistration(local_path=local_path)
+        new_sync_dir.register(sync_env=sync_env)
+        exit(0)
+    elif args.action == ACTION_DELETE:
+        path = args.path
+        git_repo_path = os.getcwd()
+        register_local_branch_for_deletion(path, git_repo_path)
+        exit(0)
+    else:
+        print('Unknown command \'{0}\'. Abort.'.format(args.action))
+        exit(1)
+    force = args.force
+
+    if args.client:
+        clients_enabled = [args.client]
+    else:
+        clients_enabled = clients
+    print('Enabled clients: ' + ', '.join(clients_enabled))
