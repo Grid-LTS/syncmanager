@@ -13,10 +13,16 @@ from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
 from .clients.sync_env_registration import SyncEnvRegistration
 
-# initialize global properties
-properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
-globalproperties.set_prefix(properties_path_prefix)
-globalproperties.read_config()
+
+def init_global_properties(_stage='dev'):
+    if os.environ.get('SYNCMANAGER_STAGE'):
+        stage = os.environ.get('SYNCMANAGER_STAGE')
+    else:
+        stage = _stage
+    # initialize global properties
+    properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
+    globalproperties.set_prefix(properties_path_prefix)
+    globalproperties.read_config(stage)
 
 
 def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enabled):
@@ -56,14 +62,21 @@ def register_local_branch_for_deletion(path, git_repo_path):
     client_instance.apply(path=path)
 
 
+staging_envs = ['dev', 'test', 'prod']
+clients = ['git', 'unison']
+
+
 def minimal():
-    clients = ['git', 'unison']
+    global clients
+    global staging_envs
     parser = argparse.ArgumentParser()
     parser.add_argument("--conf", help="Specify file from which the sync config is loaded")
     parser.add_argument("-f", "--force", action='store_true', default=False,
                         help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
     parser.add_argument("--env",
                         help="Specify environment id, e.g. home, work. Default is written in the env variable $SYNC_ENV or in the properties file.")
+    parser.add_argument("--stage", choices=staging_envs, default="prod",
+                        help="Specify staging environment to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in ['push', 'pull', 'set-conf', 'set-config']:
@@ -72,6 +85,7 @@ def minimal():
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
     args = parser.parse_args()
+    init_global_properties(args.stage)
     if args.action in [ACTION_PULL, ACTION_PUSH]:
         action = args.action
     elif args.action in ACTION_SET_CONF_ALIASES:
@@ -114,12 +128,16 @@ def main():
     """
       Parses arguments and initiates the respective sync clients
     """
-    clients = ['git', 'unison']
+    global clients
+    global staging_envs
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--force", action='store_true', default=False,
                         help="Flag for forcing sync in case of conflicts, remote or local data is overwritten")
     parser.add_argument("--env",
-                        help="Specify environment id, e.g. home, work. Default is written in the env variable $SYNC_ENV or in the properties file.")
+                        help="Specify environment id, e.g. home, work. Default is written in the env variable " +
+                             "$SYNC_ENV or in the properties file.")
+    parser.add_argument("--stage", choices=staging_envs, default="prod",
+                        help="Specify staging environment to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in ['push', 'pull', 'set-conf', 'set-config', 'add-remote', 'add-env']:
@@ -128,13 +146,13 @@ def main():
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
     args = parser.parse_args()
-
+    init_global_properties(args.stage)
     # determine the environment which is synced
     if args.env:
         sync_env = args.env
     else:
         sync_env = globalproperties.sync_env
-
+    
     if args.action in [ACTION_PULL, ACTION_PUSH]:
         action = args.action
     elif args.action in ACTION_SET_CONF_ALIASES:

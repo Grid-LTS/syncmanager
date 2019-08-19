@@ -18,7 +18,7 @@ def set_prefix(prefix):
     properties_path_prefix = prefix
 
 
-def read_config():
+def read_config(stage):
     global properties_path_prefix
     global conf_dir
     global sync_env
@@ -28,12 +28,16 @@ def read_config():
     global api_pw
     global ssh_user
     global ssh_host
-    properties_path = properties_path_prefix + "/server-sync.properties"
+    if stage == 'prod':
+        properties_file_name = "server-sync.properties"
+    else:
+        properties_file_name = f"server-sync.{stage}.properties"
+    properties_path = os.path.join(properties_path_prefix, properties_file_name)
     config = configparser.ConfigParser()
     if os.path.isfile(properties_path):
         config.read(properties_path)
     else:
-        print("Please create server-sync.properties file in the project root.")
+        print(f"Please create {properties_file_name} file in the project root.")
         exit(1)
     conf_dir = config['config'].get('conf_dir', None)
     if not conf_dir:
@@ -52,8 +56,7 @@ def read_config():
     if not sync_env:
         sync_env = os.environ.get('SYNC_ENV', None)
     api_base_url = f"http://{config['server'].get('API_HOST','')}:{config['server'].get('API_PORT','5010')}/api"
-    api_user = config['server'].get('API_USER','')
-    api_pw = config['server'].get('API_PW','')
-    ssh_user = config['ssh'].get('SSH_USER',None)
+    api_user = config['server'].get('API_USER', '')
+    api_pw = config['server'].get('API_PW', '')
+    ssh_user = config['ssh'].get('SSH_USER', None)
     ssh_host = config['ssh'].get('SSH_HOST', None)
-
