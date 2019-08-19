@@ -8,5 +8,6 @@ pathlib = "*"
 configparser = "*"
 GitPython = "*"
 Jinja2 = "*"
+requests = "*"
 
 [dev-packages]

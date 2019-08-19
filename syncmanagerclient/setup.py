@@ -19,7 +19,7 @@ setup(
     url='https://github.com/Grid-LTS/syncmanager',
     author='Gerd Friemel',
     author_email='gerd.friemel@gmail.com',
-    license = 'MIT',
+    license='MIT',
     # For a list of valid classifiers, see https://pypi.org/classifiers/
     classifiers=[
         'Development Status :: 3 - Alpha',
@@ -32,15 +32,15 @@ setup(
     ],
     keywords='git unison',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    install_requires=['gitpython', 'pathlib','configparser'],
+    install_requires=['gitpython', 'pathlib', 'configparser', 'requests'],
     python_requires='>=3',
 
     extras_require={
         'dev': [
             'setuptools>=35.0.1'
             'wheel>=0.29.0'
-                ],
-        #'test': ['coverage'],
+        ],
+        # 'test': ['coverage'],
     },
 
     #  package_data={
@@ -50,6 +50,7 @@ setup(
     entry_points={
         'console_scripts': [
             'syncmanager=syncmanagerclient:main',
+            'syncmanager_min=syncmanagerclient:minimal',
         ],
     }
 

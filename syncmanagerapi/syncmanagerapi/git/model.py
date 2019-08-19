@@ -25,8 +25,9 @@ class GitRepo(db.Model):
     def git_repo_by_id(_id):
         return GitRepo.query.filter_by(id=_id)
 
-    def add(self, _local_path_rel, _client_id='default'):
-        return GitRepo.persist_git_repo(self, _local_path_rel=_local_path_rel, _client_id=_client_id)
+    def add(self, _local_path_rel, _remote_name, _client_id='default'):
+        return GitRepo.persist_git_repo(self, _local_path_rel=_local_path_rel, _remote_name=_remote_name,
+                                        _client_id=_client_id)
 
     @staticmethod
     def add_git_repo(_server_path_rel, _user_id, _local_path_rel, _client_id='default'):
@@ -34,7 +35,7 @@ class GitRepo(db.Model):
         return GitRepo.persist_git_repo(git_repo, _local_path_rel=_local_path_rel, _client_id=_client_id)
 
     @staticmethod
-    def persist_git_repo(git_repo_obj, _local_path_rel, _client_id='default'):
+    def persist_git_repo(git_repo_obj, _local_path_rel, _remote_name, _client_id='default'):
         result = GitRepo.query.outerjoin(UserGitReposAssoc) \
             .filter(GitRepo.server_path_rel == git_repo_obj.server_path_rel) \
             .filter(UserGitReposAssoc.user_id == git_repo_obj.user_id) \
@@ -45,6 +46,7 @@ class GitRepo(db.Model):
             git_repo_obj.id = _id
             user_gitrepo_assoc = UserGitReposAssoc(id=_assoc_id, user_id=git_repo_obj.user_id,
                                                    local_path_rel=_local_path_rel,
+                                                   remote_name=_remote_name,
                                                    client_id=_client_id)
             git_repo_obj.userinfo.append(user_gitrepo_assoc)
             db.session.add(git_repo_obj)
@@ -69,6 +71,7 @@ class UserGitReposAssoc(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('user.id'))
     repo_id = db.Column(db.String(36), db.ForeignKey('git_repos.id'))
     local_path_rel = db.Column(db.Text(), nullable=False)
+    remote_name = db.Column(db.String(100), nullable=False)  # name of remote
     client_id = db.Column(db.String(100), nullable=False)  # identifies users machine
     git_repo = db.relationship(GitRepo, backref="userinfo")
     user = db.relationship(User, backref="gitrepos")
@@ -92,11 +95,19 @@ class UserGitReposAssoc(db.Model):
         db.session.commit()
         return new_gitrep_assoc
 
+    @staticmethod
+    def get_user_repos_by_client_id(_user_id, _client_id):
+        return UserGitReposAssoc.query.filter_by(user_id=_user_id, client_id=_client_id).all()
+
 
 class UserGitReposAssocSchema(ma.ModelSchema):
     class Meta:
         model = UserGitReposAssoc
         sqla_session = db.session
+
+
+class UserGitReposAssocFullSchema(UserGitReposAssocSchema):
+    git_repo = fields.Nested(GitRepoSchema, default={}, many=False)
 
 
 class GitRepoFullSchema(ma.ModelSchema):

@@ -7,7 +7,7 @@ import syncmanagerclient.util.globalproperties as globalproperties
 class DeletionRegistration:
 
     def __init__(self, **kwargs):
-        self.path = kwargs.get('path', None)
+        self.branch_path = kwargs.get('branch_path', None)
         self.registry_dir = globalproperties.var_dir
         # first check if directory is a git working tree
         self.dir = kwargs.get('git_repo_path')
@@ -18,8 +18,8 @@ class DeletionRegistration:
         if os.path.isdir(self.dir + '/.git'):
             # first check if this branch exists
             self.gitrepo = Repo(self.dir)
-            if not hasattr(self.gitrepo.heads, self.path):
-                print('There is no local branch ' + self.path)
+            if not hasattr(self.gitrepo.heads, self.branch_path):
+                print('There is no local branch ' + self.branch_path)
                 self.mode = None
                 return
             self.mode = 'git'
@@ -54,7 +54,7 @@ class DeletionRegistration:
                     continue
                 registry_file = self.get_registry_file_path(remote_repo_name)
                 f = open(registry_file, 'a+')
-                entry = self.dir + '\t' + self.path + '\n'
+                entry = self.dir + '\t' + self.branch_path + '\n'
                 f.write(entry)
                 f.close()
 
