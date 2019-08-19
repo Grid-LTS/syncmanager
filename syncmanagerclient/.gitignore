@@ -1,4 +1,4 @@
 ### Project
-server-sync.properties
+*.properties
 venv
 Pipfile.lock

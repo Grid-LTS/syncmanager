@@ -37,8 +37,8 @@ def detemplate_conf(sync_env, context):
 
 
 def detemplate_properties(context):
-    server_properties = TEMPLATE_ENVIRONMENT.get_template('server-sync.properties.j2').render(context)
-    f = open(os.path.join(test_dir, 'server-sync.properties'), 'w')
+    server_properties = TEMPLATE_ENVIRONMENT.get_template('server-sync.test.properties.j2').render(context)
+    f = open(os.path.join(os.path.dirname(test_dir), 'server-sync.test.properties'), 'w')
     f.write(server_properties)
     f.close()
 
@@ -61,8 +61,8 @@ def setup_repos(local_conf_file_name):
     }
     detemplate_properties(context)
     # setup global properties file
-    globalproperties.set_prefix(test_dir)
-    globalproperties.read_config()
+    globalproperties.set_prefix(os.path.dirname(test_dir))
+    globalproperties.read_config('test')
     repos_dir = os.path.join(test_dir, 'repos')
     if not os.path.exists(repos_dir):
         os.mkdir(repos_dir)

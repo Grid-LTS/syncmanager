@@ -61,5 +61,6 @@ class SyncDirRegistration:
         if response['is_new_reference']:
             remote_url = f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{response['remote_repo_path']}"
             self.gitrepo.create_remote(remote_name, remote_url)
+            print(f"Bare repo at path {response['remote_repo_path']} is registered as remote {repo_name}.")
         else:
             print(f"Bare repo at path {response['remote_repo_path']} is already registered as remote.")
