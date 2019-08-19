@@ -6,11 +6,12 @@ import syncmanagerclient.util.globalproperties as globalproperties
 
 from .util.readconfig import config_parse, environment_parse
 
-from .clients import ACTION_ADD_REMOTE, ACTION_ADD_REMOTE_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
+from .clients import ACTION_ADD_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
     ACTION_SET_CONF_ALIASES, ACTION_DELETE
 from .clients.sync_client import SyncClientFactory
 from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
+from .clients.sync_env_registration import SyncEnvRegistration
 
 # initialize global properties
 properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
@@ -121,7 +122,7 @@ def main():
                         help="Specify environment id, e.g. home, work. Default is written in the env variable $SYNC_ENV or in the properties file.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
-    for act in ['push', 'pull', 'set-conf', 'set-config', 'add-remote']:
+    for act in ['push', 'pull', 'set-conf', 'set-config', 'add-remote', 'add-env']:
         sub_parser_std_action = sub_parser_action.add_parser(act)
     sub_parser_delete = sub_parser_action.add_parser('delete')
     # add another positional argument to specify the path or branch to delete
@@ -142,6 +143,10 @@ def main():
         local_path = os.getcwd()
         new_sync_dir = SyncDirRegistration(local_path=local_path)
         new_sync_dir.register(sync_env=sync_env)
+        exit(0)
+    elif args.action in ACTION_ADD_ENV_ALIASES:
+        new_sync_env = SyncEnvRegistration()
+        new_sync_env.register()
         exit(0)
     elif args.action == ACTION_DELETE:
         path = args.path

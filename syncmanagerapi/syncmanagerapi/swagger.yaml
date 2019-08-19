@@ -13,7 +13,7 @@ basePath: "/api"
 paths:
   /syncdir:
     post:
-      operationId: "syncmanagerapi.client.fs.create_syncdir"
+      operationId: "syncmanagerapi.client.api.create_syncdir"
       tags:
         - "File system"
       summary: "Creates directory for synchronization of files"
@@ -21,6 +21,16 @@ paths:
       responses:
         204:
           description: "Successfully created sync directory"
+  /clientenv:
+    post:
+      operationId: "syncmanagerapi.client.api.add_client_env"
+      tags:
+      - "Client config"
+      summary: "Adds environment descriptor for client side control of syncronization"
+      description: ""
+      responses:
+        204:
+          description: "Successfully added client environment entry"
   /git/repos:
     post:
       operationId: "syncmanagerapi.git.api.create_repo"
@@ -31,7 +41,7 @@ paths:
       responses:
         204:
           description: "Successfully created git repository"
-  /git/repos/{client_id}:  
+  /git/repos/{client_env}:  
     get:
       operationId: "syncmanagerapi.git.api.get_repos"
       tags:
@@ -39,9 +49,9 @@ paths:
       summary: "Returns all associated Git repositories"
       description: ""
       parameters:
-      - name: client_id
+      - name: client_env
         in: path
-        description: Id of the synchronization client
+        description: env descriptor of the synchronization client
         type: string
         required: true
       - name: full_info

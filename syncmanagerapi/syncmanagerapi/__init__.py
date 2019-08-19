@@ -55,7 +55,7 @@ def initialize_database(app):
                              passwd=app.config['DB_PASSWORD'], db=app.config['DB_SCHEMA_NAME'])
         cur = db.cursor()
         cur.execute("SHOW TABLES")
-        tables = ['user', 'git_repos','user_git_repos']
+        tables = ['user', 'user_client_env', 'git_repos', 'user_git_repos', 'user_gitrepo_clientenv']
         for existing_table in cur.fetchall():
             try:
                 ind = tables.index(existing_table[0])

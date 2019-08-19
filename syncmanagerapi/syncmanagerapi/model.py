@@ -46,3 +46,26 @@ class User(db.Model):
 
     def __repr__(self):
         return '<User %r>' % self.username
+
+
+class ClientEnv(db.Model):
+    __tablename__ = "user_client_env"
+
+    id = db.Column(db.String(36), primary_key=True)
+    env_name = db.Column(db.String(100), nullable=False)
+    created = db.Column(db.DateTime, default=datetime.utcnow())
+    user_id = db.Column(db.String(36), db.ForeignKey('user.id'))
+
+    user = db.relationship(User, backref="client_envs")
+
+    @staticmethod
+    def add_client_env(_user_id, _env_name):
+        client_env_entity = ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
+            .one_or_none()
+        if not client_env_entity:
+            _id = uuid.uuid4()
+            client_env_entity = ClientEnv(id=_id, user_id=_user_id, env_name=_env_name)
+            db.session.add(client_env_entity)
+            db.session.commit()
+        return client_env_entity
+

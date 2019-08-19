@@ -20,3 +20,20 @@ def create_syncdir():
         except PermissionError:
             raise InvalidRequest('No permissions to create resource {}'.format(target_dir), 'target_dir', 403)
     return Response(status=204)
+
+
+def add_client_env():
+    from ..decorators import requires_auth
+    from ..model import User, ClientEnv
+    requires_auth()
+    auth = request.authorization
+    user = User.user_by_username(auth['username'])
+    body = request.data
+    if not body:
+        raise InvalidRequest('Provide descriptor for the client environment', 'client_env_name')
+    data = request.get_json(force=True)
+    if not data['client_env_name']:
+        raise InvalidRequest('Provide descriptor for the client environment', 'client_env_name')
+    client_env_name = data['client_env_name']
+    ClientEnv.add_client_env(_user_id=user.id, _env_name=client_env_name)
+    return Response(status=204)
