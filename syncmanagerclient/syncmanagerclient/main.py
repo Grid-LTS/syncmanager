@@ -12,6 +12,7 @@ from .clients.sync_client import SyncClientFactory
 from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
 from .clients.sync_env_registration import SyncEnvRegistration
+from .clients.api import ApiService
 
 
 def init_global_properties(_stage='dev'):
@@ -40,11 +41,15 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
                     print('Ignoring client ' + client + '.')
                 continue
             only_once = False
-            client_factory = SyncClientFactory(client, action)
-            client_instance = client_factory.get_instance()
-            if client_instance:
-                client_instance.set_config(config, force)
-                client_instance.apply()
+            sync_with_remote_repo(action, client, config, force)
+
+
+def sync_with_remote_repo(action, client, config, force):
+    client_factory = SyncClientFactory(client, action)
+    client_instance = client_factory.get_instance()
+    if client_instance:
+        client_instance.set_config(config, force)
+        client_instance.apply()
 
 
 def register_local_branch_for_deletion(path, git_repo_path):
@@ -63,7 +68,7 @@ def register_local_branch_for_deletion(path, git_repo_path):
 
 
 staging_envs = ['dev', 'test', 'prod']
-clients = ['git', 'unison']
+clients = ['git']
 
 
 def minimal():
@@ -181,3 +186,14 @@ def main():
     else:
         clients_enabled = clients
     print('Enabled clients: ' + ', '.join(clients_enabled))
+    for mode in clients_enabled:
+        api_service = ApiService(mode, sync_env)
+        remote_repos = api_service.list_repos_by_client_env(full=True)
+        for remote_repo in remote_repos:
+            config = {
+                'source': remote_repo['local_path_rel'],
+                'remote_repo': remote_repo['remote_name'],
+                 'url' : remote_repo['git_repo']['server_path_absolute']
+            }
+            sync_with_remote_repo(action, mode, config, force)
+        

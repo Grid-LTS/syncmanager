@@ -3,6 +3,7 @@ import os.path as osp
 import uuid
 
 from ..database import db, ma
+from .git import GitRepoFs
 from ..model import User, ClientEnv
 from ..error import DataInconsistencyException
 from marshmallow import fields
@@ -14,12 +15,16 @@ class GitRepo(db.Model):
     server_path_rel = db.Column(db.Text(), nullable=False)
     created = db.Column(db.DateTime, default=datetime.utcnow())
     updated = db.Column(db.DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow())
-    persisted = None 
     user_id = None
 
     def __init__(self, server_path_rel, user_id):
         self.server_path_rel = GitRepo.get_server_path_rel(server_path_rel, user_id)
         self.user_id = user_id
+
+    @property
+    def server_path_absolute(self):
+        return GitRepoFs.get_bare_repo_fs_path(self.server_path_rel)
+
 
     @staticmethod
     def get_server_path_rel(server_path_rel, user_id):
@@ -82,6 +87,8 @@ class GitRepoSchema(ma.ModelSchema):
     class Meta:
         model = GitRepo
         sqla_session = db.session
+
+    server_path_absolute = fields.String()
 
 
 # identifies the user's client environments

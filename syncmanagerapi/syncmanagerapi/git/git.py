@@ -11,8 +11,7 @@ class GitRepoFs:
 
     def __init__(self, gitrepo_entity):
         self.gitrepo_entity = gitrepo_entity
-        fs_root_dir = current_app.config['FS_ROOT']
-        self.gitrepo_path = osp.join(osp.join(fs_root_dir, 'git'), gitrepo_entity.server_path_rel)
+        self.gitrepo_path = GitRepoFs.get_bare_repo_fs_path(gitrepo_entity.server_path_rel)
 
     def create_bare_repo(self):
         # first check if directory exists
@@ -30,3 +29,8 @@ class GitRepoFs:
             return True
         Repo.init(self.gitrepo_path, bare=True)
         return True
+
+    @staticmethod
+    def get_bare_repo_fs_path(server_path_relative):
+        fs_root_dir = current_app.config['FS_ROOT']
+        return osp.join(osp.join(fs_root_dir, 'git'), server_path_relative)

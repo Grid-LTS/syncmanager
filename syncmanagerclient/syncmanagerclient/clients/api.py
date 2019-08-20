@@ -13,7 +13,17 @@ class ApiService:
     def list_repos_by_client_env(self, full=False):
         url = f"{self.base_api_url}/repos/{self.sync_env}"
         query_payload = {'full_info': full}
-        return req.get(url, params=query_payload, auth=self.auth).json()
+        response = req.get(url, params=query_payload, auth=self.auth)
+        if response.status_code == 404:
+            print(f"The sync environment '{self.sync_env}' is not registered on the server.")
+            exit(1)
+        if response.status_code >= 400 and response.status_code !=404:
+            print(f"{response.text}")
+            exit(1)
+        if not response.json():
+            return []
+        return response.json()
+ 
 
     def create_remote_repository(self, local_path, server_parent_path_relative, repo_name, remote_name,
                                  all_client_envs=False):
