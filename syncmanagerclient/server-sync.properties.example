@@ -7,8 +7,10 @@ var_dir="<directory for operation files>"
 # optional, can also be defined in environment variable with the same name
 SYNC_ENV="home"
 [server]
-api_host=myserver # hostname of syncing api
-port=5010 # port of syncing api
+API_HOST=myserver # hostname of syncing api
+API_PORT=5010 # port of syncing api
+API_USER=John
+API_PW=secret
 [ssh]
-ssh_user=syncman # see properties as configured for syncmanagerapi
-ssh_host=myserver
+SSH_USER=syncmanager # see properties as configured for syncmanagerapi
+SSH_HOST=myserver
