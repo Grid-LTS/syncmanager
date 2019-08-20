@@ -93,9 +93,9 @@ sudo apt-get -y install libmysqlclient-dev
 
 # build project
 cd $PROJECT_DIR
-
+rm -rf build
 # remove old build artefacts
-rm -r dist
+rm -rf dist
 pip3 install --user pipenv
 pipenv install
 pipenv run python setup.py bdist_wheel
@@ -130,8 +130,6 @@ sudo chown root:root -R $venv_dir
 
 # create systemd file
 pipenv run python deploy/create_files.py syncmanagerapi.service
-
-sudo mv deploy/syncmanagerapi.service /etc/systemd/system/
 
 stty -echo
 printf "MySQL password for admin user ${DB_ROOT_USER}: "
@@ -179,6 +177,7 @@ sudo mkdir $FS_ROOT/git
 sudo chown :$UNIX_USER -R $FS_ROOT
 sudo chmod 770 -R $FS_ROOT
 
+sudo mv deploy/syncmanagerapi.service /etc/systemd/system/
 sudo systemctl enable syncmanagerapi
 sudo systemctl status syncmanagerapi >> /dev/null
 if [ "$?" -eq 0 ]; then
@@ -193,3 +192,8 @@ sudo -E deploy/create_admin.sh
 if [ -n "$unix_password" ]; then
     echo "The unix user has password $unix_password"
 fi
+
+echo "Cleanup dist/"
+rm -rf dist
+echo "Cleanup build/"
+rm -rf build

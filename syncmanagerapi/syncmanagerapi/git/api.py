@@ -1,6 +1,7 @@
 import os.path as osp
+
 from .git import GitRepoFs
-from flask import current_app, request, Response
+from flask import current_app, jsonify, request, Response
 from ..error import InvalidRequest
 
 
@@ -58,16 +59,25 @@ def create_repo():
     if not new_reference:
         # check that users client env is included
         gitrepo_clientinfo = UserGitReposAssoc.query_gitrepo_assoc_by_user_id(_user_id=user.id)
-        referenced_client_env_ids = [client_env.id for client_env in gitrepo_clientinfo.client_envs]
-        # missing_client_envs = [client_env for client_env in desired_client_env_entities \
-        #        if not client_env.id in referenced_client_env_ids]
-        new_reference = not client_env_entity.id in referenced_client_env_ids
-        if new_reference:
-            gitrepo_clientinfo.client_envs.append(client_env_entity)
-            db.session.add(gitrepo_clientinfo)
-            db.session.commit()
+        if gitrepo_clientinfo:
+            referenced_client_env_ids = [client_env.id for client_env in gitrepo_clientinfo.client_envs]
+            # missing_client_envs = [client_env for client_env in desired_client_env_entities \
+            #        if not client_env.id in referenced_client_env_ids]
+            new_reference = not client_env_entity.id in referenced_client_env_ids
+            if new_reference:
+                gitrepo_clientinfo.client_envs.append(client_env_entity)
+                db.session.add(gitrepo_clientinfo)
+                db.session.commit()
+                print("No new reference has been created. The existing local reference at " +
+                      f"{gitrepo_clientinfo.local_path_rel} with remote " +
+                      f"{remote_name} has been added to your current environment.")
+            else:
+                print(
+                    "No new reference has been created. The existing local reference at " +
+                    f"{gitrepo_clientinfo.local_path_rel} with remote " +
+                    f"{remote_name} is already includes this remote repo.")
     gitrepo_schema = GitRepoSchema()
-    response = gitrepo_schema.dump(gitrepo_entity).data
+    response = gitrepo_schema.dump(gitrepo_entity)
     response['remote_repo_path'] = fs_git_repo.gitrepo_path
     response['is_new_reference'] = new_reference
     # ToDo distinguish status codes: new created or already existing
@@ -76,14 +86,20 @@ def create_repo():
 
 def get_repos(client_env, full_info=False):
     from .model import UserGitReposAssoc, UserGitReposAssocSchema, UserGitReposAssocFullSchema
-    from ..model import User
+    from ..model import User, ClientEnv
     from ..decorators import requires_auth
     requires_auth()
     auth = request.authorization
     user = User.user_by_username(auth['username'])
+    client_env_entity = ClientEnv.get_client_env(_user_id=user.id, _env_name=client_env)
+    if not client_env_entity:
+        message = f"The client environment {client_env} does not exist for your user."
+        raise InvalidRequest(message=message, field='client_env', status_code=404)
     if full_info:
         user_gitrepo_assoc_schema = UserGitReposAssocFullSchema(many=True)
     else:
         user_gitrepo_assoc_schema = UserGitReposAssocSchema(many=True)
     repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _client_env_name=client_env)
-    return user_gitrepo_assoc_schema.dump(repos).data
+    if not repos:
+        return jsonify([])
+    return user_gitrepo_assoc_schema.dump(repos)

@@ -69,3 +69,9 @@ class ClientEnv(db.Model):
             db.session.commit()
         return client_env_entity
 
+    @staticmethod
+    def get_client_env(_user_id, _env_name):
+        return ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
+            .first()
+
+
