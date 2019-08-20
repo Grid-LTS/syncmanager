@@ -193,7 +193,7 @@ def main():
             config = {
                 'source': remote_repo['local_path_rel'],
                 'remote_repo': remote_repo['remote_name'],
-                 'url' : remote_repo['git_repo']['server_path_absolute']
+                 'url' : SyncDirRegistration.get_remote_url(remote_repo['git_repo']['server_path_absolute'])
             }
             sync_with_remote_repo(action, mode, config, force)
         

@@ -40,7 +40,7 @@ class SyncDirRegistration:
         server_path_rel = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
         remote_name = ''
         is_overwrite = False
-        while not remote_name or not is_overwrite:
+        while not remote_name:
             remote_name = input('Name of remote repo (default: origin): ').strip()
             if not remote_name:
                 remote_name = 'origin'
@@ -50,9 +50,9 @@ class SyncDirRegistration:
                 confirm = input(f"Overwrite url of remote '{remote_name}'?. 'Y/y/yes' or other input for 'no': ").strip()
                 if confirm in ['Y', 'y', 'yes']:
                     is_overwrite = True
+                    break;
                 else:
                     remote_name = ''
-                    is_overwrite = False
                 print("\n")
             except ValueError:
                 pass
@@ -65,7 +65,7 @@ class SyncDirRegistration:
         response = api_service.create_remote_repository(self.local_path_short, server_path_rel,
                                                         repo_name, remote_name, all_sync_env)
         if response['is_new_reference']:
-            remote_url = f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{response['remote_repo_path']}"
+            remote_url = SyncDirRegistration.get_remote_url(response['remote_repo_path'])
             if is_overwrite:
                 remote = self.gitrepo.remote(remote_name)
                 remote.set_url(remote_url)
@@ -75,3 +75,7 @@ class SyncDirRegistration:
                 print(f"Bare repo at path {response['remote_repo_path']} is registered as remote {remote_name}.")
         else:
             print(f"Bare repo at path {response['remote_repo_path']} is already registered as remote.")
+
+    @staticmethod
+    def get_remote_url(remote_repo_path):
+        return f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{remote_repo_path}"
