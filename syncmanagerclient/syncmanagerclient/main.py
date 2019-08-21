@@ -8,11 +8,10 @@ from .util.readconfig import config_parse, environment_parse
 
 from .clients import ACTION_ADD_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
     ACTION_SET_CONF_ALIASES, ACTION_DELETE
-from .clients.sync_client import SyncClientFactory
+from .clients.sync_client import SyncClient
 from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
 from .clients.sync_env_registration import SyncEnvRegistration
-from .clients.api import ApiService
 
 
 def init_global_properties(_stage='dev'):
@@ -41,15 +40,8 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
                     print('Ignoring client ' + client + '.')
                 continue
             only_once = False
-            sync_with_remote_repo(action, client, config, force)
-
-
-def sync_with_remote_repo(action, client, config, force):
-    client_factory = SyncClientFactory(client, action)
-    client_instance = client_factory.get_instance()
-    if client_instance:
-        client_instance.set_config(config, force)
-        client_instance.apply()
+            sync_client = SyncClient(client, action, sync_env, force)
+            sync_client.sync_with_remote_repo(config)
 
 
 def register_local_branch_for_deletion(path, git_repo_path):
@@ -60,7 +52,7 @@ def register_local_branch_for_deletion(path, git_repo_path):
     if not len(configs) > 0:
         exit(1)
     config = configs[0]
-    client_factory = SyncClientFactory(client, ACTION_DELETE)
+    client_factory = SyncClient(client, ACTION_DELETE)
     client_instance = client_factory.get_instance()
     client_instance.set_config(config, False)
     # delete the local branches
@@ -144,8 +136,9 @@ def main():
     parser.add_argument("--stage", choices=staging_envs, default="prod",
                         help="Specify staging environment to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
+    parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
-    for act in ['push', 'pull', 'set-conf', 'set-config', 'add-remote', 'add-env']:
+    for act in ['push', 'pull', 'add-remote', 'add-env']:
         sub_parser_std_action = sub_parser_action.add_parser(act)
     sub_parser_delete = sub_parser_action.add_parser('delete')
     # add another positional argument to specify the path or branch to delete
@@ -157,11 +150,12 @@ def main():
         sync_env = args.env
     else:
         sync_env = globalproperties.sync_env
-    
+
     if args.action in [ACTION_PULL, ACTION_PUSH]:
         action = args.action
-    elif args.action in ACTION_SET_CONF_ALIASES:
-        action = ACTION_SET_CONF
+    # Todo save git config on server
+    # elif args.action in ACTION_SET_CONF_ALIASES:
+    #    action = ACTION_SET_CONF
     elif args.action in ACTION_ADD_REMOTE_ALIASES:
         local_path = os.getcwd()
         new_sync_dir = SyncDirRegistration(local_path=local_path)
@@ -187,13 +181,5 @@ def main():
         clients_enabled = clients
     print('Enabled clients: ' + ', '.join(clients_enabled))
     for mode in clients_enabled:
-        api_service = ApiService(mode, sync_env)
-        remote_repos = api_service.list_repos_by_client_env(full=True)
-        for remote_repo in remote_repos:
-            config = {
-                'source': remote_repo['local_path_rel'],
-                'remote_repo': remote_repo['remote_name'],
-                 'url' : SyncDirRegistration.get_remote_url(remote_repo['git_repo']['server_path_absolute'])
-            }
-            sync_with_remote_repo(action, mode, config, force)
-        
+        sync_client = SyncClient(mode, action, sync_env, force, args.namespace)
+        sync_client.get_and_sync_repos()

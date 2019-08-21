@@ -47,13 +47,14 @@ class SyncDirRegistration:
             try:
                 self.gitrepo.remote(remote_name)
                 print(f"Remote repository with identifier {remote_name} already exists.")
-                confirm = input(f"Overwrite url of remote '{remote_name}'?. 'Y/y/yes' or other input for 'no': ").strip()
+                confirm = input(
+                    f"Overwrite url of remote '{remote_name}'?. 'Y/y/yes' or other input for 'no': ").strip()
                 if confirm in ['Y', 'y', 'yes']:
                     is_overwrite = True
                     break;
                 else:
                     remote_name = ''
-                print("\n")
+                print("")
             except ValueError:
                 pass
         repo_name = input('Enter name of bare repository (optional): ').strip()

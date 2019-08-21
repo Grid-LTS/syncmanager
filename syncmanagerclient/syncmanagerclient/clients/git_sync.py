@@ -2,6 +2,7 @@ import os
 from git import Repo, GitCommandError
 from ..util.system import run, change_dir, sanitize_path
 from .deletion_registration import DeletionRegistration
+from .error import GitSyncError, GitErrorItem
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 
@@ -9,6 +10,7 @@ from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 class GitClientSync:
     def __init__(self, action):
         self.action = action
+        self.errors = []
 
     def set_config(self, config, force):
         self.local_path_short = config.get('source', None)
@@ -30,7 +32,8 @@ class GitClientSync:
         if hasattr(self.gitrepo.heads, 'master'):
             self.gitrepo.heads.master.checkout()
         if self.action == ACTION_PULL or self.action == ACTION_PUSH:
-            # PULL and PUSH are the only actions that happen online, with an actual sync with the remote repo
+            # PULL and PUSH are the only actions that happen online, meaning wan actual sync with the remote repo
+
             # fetch and prune all branches in local repo
             code = self.git_fetch(True)
             self.sync_deletion()
@@ -58,7 +61,14 @@ class GitClientSync:
             if expected_branch != str(branch):
                 print('Local branch {} and remote branch {} do not match. Skip'.format(branch, expected_branch))
                 continue
-            branch.checkout()
+            try:
+                branch.checkout()
+            except GitCommandError as err:
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, str(branch))
+                )
+                print(str(err))
+                continue
             git = self.gitrepo.git
             if self.force:
                 print(branch)
@@ -66,9 +76,16 @@ class GitClientSync:
                 git.reset('--hard', str(remote_branch))
                 print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
             else:
-                # just pull all updates
-                out = git.pull(None, with_stdout=True)
-                print(out)
+                try:
+                    # just pull all updates
+                    out = git.pull(None, with_stdout=True)
+                    print(out)
+                except GitCommandError as err:
+                    self.errors.append(
+                        GitErrorItem(self.local_path_short, err, str(branch))
+                    )
+                    print(f"ERROR: {str(err)}")
+                    continue
 
         # checkout a local branch for all remote refs not being tracked
         # remote refs in the shape origin/feature/my-remote/
@@ -80,7 +97,16 @@ class GitClientSync:
                 # remote ref does not have a local tracking branch
 
         # finally checkout master branch
-        self.gitrepo.heads.master.checkout()
+        if len(self.gitrepo.heads) > 0:
+            self.gitrepo.heads.master.checkout()
+        else:
+            message = 'No master branch available. Did you make an initial commit?'
+            error = GitSyncError(message)
+
+            self.errors.append(
+                GitErrorItem(self.local_path_short, error, 'master')
+            )
+            print(message)
         print('')
 
     def delete_local_branch(self, **kwargs):
@@ -106,14 +132,15 @@ class GitClientSync:
         for index, entry in enumerate(entries_copy):
             if not self.local_path == entry[0]:
                 continue
-            branch_path =  entry[1]
+            branch_path = entry[1]
             branch_path_full = self.remote_reponame + '/' + branch_path
             remote_branches = [r.name for r in self.remote_gitrepo.refs]
             if branch_path_full in remote_branches:
                 print('Branch {} is deleted in remote repository {}'.format(branch_path_full, self.remote_reponame))
                 git.push(self.remote_gitrepo, '--delete', str(branch_path), porcelain=True)
             else:
-                print ('Branch {} was already removed in remote repository {}'.format(branch_path_full, self.remote_reponame))
+                print('Branch {} was already removed in remote repository {}'.format(branch_path_full,
+                                                                                     self.remote_reponame))
             if hasattr(self.gitrepo.heads, str(branch_path)):
                 # Delete local working branch if still existing
                 out = self.gitrepo.delete_head(branch_path)
@@ -172,7 +199,9 @@ class GitClientSync:
                 output = git.push(self.remote_gitrepo, porcelain=True, all=True)
             print(output)
         except Exception as err:
-            print(err)
+            self.errors.append(
+                GitErrorItem(self.local_path_short, err, 'git push --all')
+            )
         print('')
 
     def git_fetch(self, prune=False):
@@ -183,7 +212,11 @@ class GitClientSync:
             else:
                 fetch_iter = self.remote_gitrepo.fetch()
         except Exception as err:
-            print('Could not fetch from remote repo.')
+            message = 'Could not fetch from remote repo.'
+            self.errors.append(
+                GitErrorItem(self.local_path_short, err, message)
+            )
+            print(message)
             return 1
         for fetch_info in fetch_iter:
             print("Updated %s to %s" % (fetch_info.ref, fetch_info.commit))
@@ -222,7 +255,6 @@ class GitClientSync:
                 print('Remote repo could not be clone because of an error:\n')
                 return 1
         return 0
-
 
     def get_branch_name_and_repo_from_remote_path(self, remote_branch):
         remote_branch = remote_branch.strip()
