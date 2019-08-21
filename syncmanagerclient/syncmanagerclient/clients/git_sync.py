@@ -28,6 +28,7 @@ class GitClientSync:
             return
         self.gitrepo = Repo(self.local_path)
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
+        self.consistency_check()
         # checkout master branch
         if hasattr(self.gitrepo.heads, 'master'):
             self.gitrepo.heads.master.checkout()
@@ -249,8 +250,15 @@ class GitClientSync:
                 print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code
             # clone git repo
-            repo = Repo.clone_from(self.remote_path, self.local_path, branch='master')
-            print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_reponame, self.local_path))
+            try:
+                repo = Repo.clone_from(self.remote_path, self.local_path, branch='master')
+                print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_reponame, self.local_path))
+            except GitCommandError as err:
+                repo = None
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, 'git clone')
+                )
+                print(f"ERROR: {str(err)}")
             if not repo:
                 print('Remote repo could not be clone because of an error:\n')
                 return 1
@@ -260,3 +268,13 @@ class GitClientSync:
         remote_branch = remote_branch.strip()
         parts = remote_branch.split('/')
         return '/'.join(parts[1:]), parts[0]
+
+    def consistency_check(self):
+        url = next(self.remote_gitrepo.urls)
+        if url != self.remote_path:
+            print(f"The Git url of remote repo '{self.remote_reponame}' differs from the server url.")
+            print(f"The Git url: {url}")
+            print(f"Server url: {self.remote_path}")
+            confirm = input(f"Overwrite Git url? 'Y/y/yes' or any other input for No: ").strip()
+            if confirm in ['Y', 'y', 'yes']:
+                self.remote_gitrepo.set_url(self.remote_path)
