@@ -192,6 +192,14 @@ class GitClientSync:
                 # remove last line
                 output = output[:output.rfind('\n')]
                 print(output)
+        # first merge with upstream branches
+        # this will only merge if no conflicts present
+        try:
+            self.remote_gitrepo.pull(rebase=True)
+        except Exception as err:
+            self.errors.append(
+                GitErrorItem(self.local_path_short, err, 'git pull --rebase')
+            )
         # Finally push all branches with one command
         try:
             if self.force:
@@ -233,7 +241,12 @@ class GitClientSync:
                 print('Cannot change to repository \'{0}\'.'.format(self.local_path))
             return ret_val
         elif repo_exists:
-            print('The repository \'{0}\' exists, but is not a git repository'.format(self.local_path))
+            message = f"The repository '{self.local_path}' exists, but is not a git repository"
+            error = GitSyncError(message)
+            self.errors.append(
+                GitErrorItem(self.local_path_short, error, "git clone")
+            )
+            print(message)
             return 1
         else:
             # local repo does not exist and must be cloned

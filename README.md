@@ -13,7 +13,7 @@ In case of Git **all** branches in for those projects, which are stated in the *
 ##### 1. Install as local package
 * this will provide you the syncmanager command
 ```
-pip install -e .[dev] --user
+pip3 install -e .[dev] --user
 ```
 
 ##### 2. Install dependencies with Pipenv

@@ -58,7 +58,8 @@ def create_repo():
                                        _client_envs=desired_client_env_entities)
     if not new_reference:
         # check that users client env is included
-        gitrepo_clientinfo = UserGitReposAssoc.query_gitrepo_assoc_by_user_id(_user_id=user.id)
+        gitrepo_clientinfo = UserGitReposAssoc.query_gitrepo_assoc_by_user_id_and_repo_id(_user_id=user.id,
+                                                                                          _repo_id=gitrepo_entity.id)
         if gitrepo_clientinfo:
             referenced_client_env_ids = [client_env.id for client_env in gitrepo_clientinfo.client_envs]
             # missing_client_envs = [client_env for client_env in desired_client_env_entities \
