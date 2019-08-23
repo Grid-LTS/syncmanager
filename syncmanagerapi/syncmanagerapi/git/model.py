@@ -25,7 +25,6 @@ class GitRepo(db.Model):
     def server_path_absolute(self):
         return GitRepoFs.get_bare_repo_fs_path(self.server_path_rel)
 
-
     @staticmethod
     def get_server_path_rel(server_path_rel, user_id):
         if server_path_rel[-4:] != '.git':
@@ -41,8 +40,9 @@ class GitRepo(db.Model):
         return GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
 
     def add(self, _local_path_rel, _remote_name, _client_envs):
-        result, new_reference = GitRepo.persist_git_repo(self, _local_path_rel=_local_path_rel, _remote_name=_remote_name,
-                                        _client_envs=_client_envs)
+        result, new_reference = GitRepo.persist_git_repo(self, _local_path_rel=_local_path_rel,
+                                                         _remote_name=_remote_name,
+                                                         _client_envs=_client_envs)
         return new_reference
 
     @staticmethod
@@ -112,7 +112,7 @@ class UserGitReposAssoc(db.Model):
     user = db.relationship(User, backref="gitrepos")
     client_envs = db.relationship(ClientEnv,
                                   secondary=user_clientenv_gitrepo_table)
-     
+
     @staticmethod
     def add_user_gitrepo_assoc(_user_id, _repo_id, _local_path_rel, _client_envs):
         """
@@ -136,8 +136,8 @@ class UserGitReposAssoc(db.Model):
         return new_gitrep_assoc
 
     @staticmethod
-    def query_gitrepo_assoc_by_user_id(_user_id):
-        return UserGitReposAssoc.query.filter_by(user_id=_user_id).first()
+    def query_gitrepo_assoc_by_user_id_and_repo_id(_user_id, _repo_id):
+        return UserGitReposAssoc.query.filter_by(user_id=_user_id, repo_id=_repo_id).first()
 
     @staticmethod
     def get_user_repos_by_client_env_name(_user_id, _client_env_name):
