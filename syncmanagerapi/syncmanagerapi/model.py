@@ -74,4 +74,3 @@ class ClientEnv(db.Model):
         return ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
             .first()
 
-
