@@ -40,7 +40,7 @@ class GitRepo(db.Model):
         return GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
 
     def add(self, _local_path_rel, _remote_name, _client_envs):
-        result, new_reference = GitRepo.persist_git_repo(self, _local_path_rel=_local_path_rel,
+        git_repo, new_reference = GitRepo.persist_git_repo(self, _local_path_rel=_local_path_rel,
                                                          _remote_name=_remote_name,
                                                          _client_envs=_client_envs)
         return new_reference
@@ -59,7 +59,10 @@ class GitRepo(db.Model):
             .filter(GitRepo.server_path_rel == git_repo_obj.server_path_rel) \
             .filter(UserGitReposAssoc.user_id == git_repo_obj.user_id) \
             .one_or_none()
-        # if the repo is referenced by an association, it is not again referenced in order to avoid conflicts 
+        # if the repo is referenced by an association, it is not again referenced in order to avoid conflicts
+        # therefore no filtering by _local_path_rel since this would dismiss other local references
+        # no filtering by client_env: client env just multiplies the reference on the to a different machine but does
+        # not imply a unique new reference in which we are interested in
         if not result:
             if not _client_envs:
                 raise DataInconsistencyException('No client env given')
@@ -136,13 +139,19 @@ class UserGitReposAssoc(db.Model):
         return new_gitrep_assoc
 
     @staticmethod
-    def query_gitrepo_assoc_by_user_id_and_repo_id(_user_id, _repo_id):
-        return UserGitReposAssoc.query.filter_by(user_id=_user_id, repo_id=_repo_id).first()
+    def query_gitrepo_assoc_by_user_id_and_repo_id_and_local_path(_user_id, _repo_id, _local_path_rel):
+        return UserGitReposAssoc.query.filter_by(user_id=_user_id, repo_id=_repo_id,
+                                                 local_path_rel=_local_path_rel).first()
 
     @staticmethod
     def get_user_repos_by_client_env_name(_user_id, _client_env_name):
         return UserGitReposAssoc.query.join(UserGitReposAssoc.client_envs).filter_by(user_id=_user_id) \
             .filter(ClientEnv.env_name == _client_env_name).all()
+
+    @staticmethod
+    def get_user_repos(_user_id):
+        return UserGitReposAssoc.query.add_columns(ClientEnv.env_name).join(UserGitReposAssoc.client_envs) \
+            .filter_by(user_id=_user_id).all()
 
 
 class UserGitReposAssocSchema(ma.ModelSchema):

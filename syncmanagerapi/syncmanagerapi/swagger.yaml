@@ -41,9 +41,24 @@ paths:
       responses:
         204:
           description: "Successfully created git repository"
-  /git/repos/{client_env}:  
     get:
       operationId: "syncmanagerapi.git.api.get_repos"
+      tags:
+      - "Git"
+      summary: "Returns all associated Git repositories for all environments of the user"
+      description: ""
+      parameters:
+      - name: full_info
+        description: whether to provide full repo information.
+        in: query
+        type: boolean
+        required: false
+      responses:
+        200:
+          description: "List of Git repositories"      
+  /git/repos/{client_env}:  
+    get:
+      operationId: "syncmanagerapi.git.api.get_repos_by_clientenv"
       tags:
       - "Git"
       summary: "Returns all associated Git repositories"
