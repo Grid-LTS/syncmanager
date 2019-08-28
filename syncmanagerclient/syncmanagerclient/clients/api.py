@@ -12,7 +12,7 @@ class ApiService:
         self.auth = globalproperties.api_user, globalproperties.api_pw
 
     def list_repos_by_client_env(self, full=False):
-        url = f"{self.base_api_url}/repos/{self.sync_env}"
+        url = f"{self.get_repos_url}/{self.sync_env}"
         return self.list_repos(url, full)
 
     def list_repos_all_client_envs(self, full=False):
@@ -20,7 +20,6 @@ class ApiService:
         return self.list_repos(url, full)
 
     def list_repos(self, url, full=False):
-        url = f"{self.base_api_url}/repos"
         query_payload = {'full_info': full}
         response = req.get(url, params=query_payload, auth=self.auth)
         if response.status_code == 404:
@@ -44,7 +43,7 @@ class ApiService:
         if server_parent_path_relative:
             body['server_parent_dir_relative'] = server_parent_path_relative
         if repo_name:
-            body['repo_name'] = repo_name
+            body['server_repo_name'] = repo_name
         if all_client_envs:
             body['all_client_envs'] = all_client_envs
         # create repo
