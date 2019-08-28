@@ -32,15 +32,6 @@ paths:
         204:
           description: "Successfully added client environment entry"
   /git/repos:
-    post:
-      operationId: "syncmanagerapi.git.api.create_repo"
-      tags:
-      - "Git"
-      summary: "Creates bare git repository"
-      description: ""
-      responses:
-        204:
-          description: "Successfully created git repository"
     get:
       operationId: "syncmanagerapi.git.api.get_repos"
       tags:
@@ -55,7 +46,16 @@ paths:
         required: false
       responses:
         200:
-          description: "List of Git repositories"      
+          description: "List of Git repositories"
+    post:
+      operationId: "syncmanagerapi.git.api.create_repo"
+      tags:
+      - "Git"
+      summary: "Creates bare git repository"
+      description: ""
+      responses:
+        204:
+          description: "Successfully created git repository"
   /git/repos/{client_env}:  
     get:
       operationId: "syncmanagerapi.git.api.get_repos_by_clientenv"

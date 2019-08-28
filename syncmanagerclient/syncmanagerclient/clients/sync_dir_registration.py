@@ -34,6 +34,9 @@ class SyncDirRegistration:
     def register(self, sync_env):
         api_service = ApiService(self.mode, sync_env)
         existing_repos_all = api_service.list_repos_all_client_envs(full=True)
+        if not sync_env in existing_repos_all:
+            print(f"You have no environment with name '{sync_env}' configured.")
+            exit(1)
         existing_repos_env = existing_repos_all[sync_env]
         del existing_repos_all[sync_env]
         existing_repos_env_ids = []

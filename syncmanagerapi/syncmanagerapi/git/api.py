@@ -43,6 +43,8 @@ def create_repo():
         if client_env.env_name == client_env_name:
             client_env_entity = client_env
             break
+    if not client_env_entity:
+        raise InvalidRequest(f"User has no environment with name '{client_env_name}' configured.", 'client_env')
     if data.get('all_client_envs', False):
         desired_client_env_entities = user.client_envs
     else:
@@ -66,10 +68,14 @@ def create_repo():
         for user_info in gitrepo_entity.userinfo:
             if user_info.local_path_rel == local_path:
                 git_user_repo_assoc = user_info
+            else:
+                continue
             referenced_envs = [env.env_name for env in user_info.client_envs]
             if client_env_name in referenced_envs:
                 is_env_referenced = True
                 git_user_repo_assoc_ref = user_info
+                # existing reference found, abort lookup
+                break
         if not is_env_referenced:
             if git_user_repo_assoc:
                 git_user_repo_assoc.client_envs.append(client_env_entity)
@@ -82,6 +88,7 @@ def create_repo():
                 id = uuid.uuid4()
                 git_user_repo_assoc = UserGitReposAssoc(id=id, user_id=user.id, repo_id=gitrepo_entity.id,
                                                         remote_name=remote_name, local_path_rel=local_path)
+                git_user_repo_assoc.client_envs.append(client_env_entity)
                 gitrepo_entity.userinfo.append(git_user_repo_assoc)
                 db.session.add(gitrepo_entity)
                 db.session.commit()
