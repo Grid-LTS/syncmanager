@@ -6,7 +6,7 @@ import syncmanagerclient.util.globalproperties as globalproperties
 
 from .util.readconfig import config_parse, environment_parse
 
-from .clients import ACTION_ADD_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
+from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
     ACTION_SET_CONF_ALIASES, ACTION_DELETE
 from .clients.sync_client import SyncClient
 from .clients.deletion_registration import DeletionRegistration
@@ -138,7 +138,7 @@ def main():
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
-    for act in ['push', 'pull', 'add-remote', 'add-env']:
+    for act in ['push', 'pull', 'set-remote', 'add-env']:
         sub_parser_std_action = sub_parser_action.add_parser(act)
     sub_parser_delete = sub_parser_action.add_parser('delete')
     # add another positional argument to specify the path or branch to delete
@@ -156,10 +156,10 @@ def main():
     # Todo save git config on server
     # elif args.action in ACTION_SET_CONF_ALIASES:
     #    action = ACTION_SET_CONF
-    elif args.action in ACTION_ADD_REMOTE_ALIASES:
+    elif args.action in ACTION_SET_REMOTE_ALIASES:
         local_path = os.getcwd()
-        new_sync_dir = SyncDirRegistration(local_path=local_path)
-        new_sync_dir.register(sync_env=sync_env)
+        new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env)
+        new_sync_dir.register()
         exit(0)
     elif args.action in ACTION_ADD_ENV_ALIASES:
         new_sync_env = SyncEnvRegistration()

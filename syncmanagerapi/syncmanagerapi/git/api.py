@@ -50,22 +50,23 @@ def create_repo():
     else:
         desired_client_env_entities = [client_env_entity]
     server_path_rel = osp.join(server_parent_dir_rel, repo_name)
-    gitrepo_entity = GitRepo.load_by_server_path(_server_path_rel=GitRepo.get_server_path_rel(server_path_rel, user.id))
-    if not gitrepo_entity:
-        gitrepo_entity = GitRepo(server_path_rel=server_path_rel, user_id=user.id)
+    git_repo_entity = GitRepo.load_by_server_path(
+        _server_path_rel=GitRepo.get_server_path_rel(server_path_rel, user.id))
+    if not git_repo_entity:
+        git_repo_entity = GitRepo(server_path_rel=server_path_rel, user_id=user.id)
     else:
-        gitrepo_entity.user_id = user.id
+        git_repo_entity.user_id = user.id
         # only on initial creation of the repo can all client environments be referenced
         desired_client_env_entities = [client_env_entity]
-    fs_git_repo = GitRepoFs(gitrepo_entity)
+    fs_git_repo = GitRepoFs(git_repo_entity)
     fs_git_repo.create_bare_repo()
-    new_reference = gitrepo_entity.add(_local_path_rel=local_path, _remote_name=remote_name,
-                                       _client_envs=desired_client_env_entities)
+    new_reference = git_repo_entity.add(_local_path_rel=local_path, _remote_name=remote_name,
+                                        _client_envs=desired_client_env_entities)
     if not new_reference:
         is_env_referenced = False
         git_user_repo_assoc = None
         git_user_repo_assoc_ref = None
-        for user_info in gitrepo_entity.userinfo:
+        for user_info in git_repo_entity.userinfo:
             if user_info.local_path_rel == local_path:
                 git_user_repo_assoc = user_info
             else:
@@ -86,11 +87,11 @@ def create_repo():
                       f"{git_user_repo_assoc.remote_name} has been added to your current environment.")
             else:
                 id = uuid.uuid4()
-                git_user_repo_assoc = UserGitReposAssoc(id=id, user_id=user.id, repo_id=gitrepo_entity.id,
+                git_user_repo_assoc = UserGitReposAssoc(id=id, user_id=user.id, repo_id=git_repo_entity.id,
                                                         remote_name=remote_name, local_path_rel=local_path)
                 git_user_repo_assoc.client_envs.append(client_env_entity)
-                gitrepo_entity.userinfo.append(git_user_repo_assoc)
-                db.session.add(gitrepo_entity)
+                git_repo_entity.userinfo.append(git_user_repo_assoc)
+                db.session.add(git_repo_entity)
                 db.session.commit()
             remote_name = git_user_repo_assoc.remote_name
             # a new reference has been created on the server for this environment, so client git config must be updated
@@ -100,12 +101,63 @@ def create_repo():
                   f"{git_user_repo_assoc_ref.local_path_rel} with remote " +
                   f"{git_user_repo_assoc_ref.remote_name} is already includes this remote repo.")
     gitrepo_schema = GitRepoSchema()
-    response = gitrepo_schema.dump(gitrepo_entity)
+    response = gitrepo_schema.dump(git_repo_entity)
     response['remote_repo_path'] = fs_git_repo.gitrepo_path
     response['remote_name'] = remote_name
     response['is_new_reference'] = new_reference
     # ToDo distinguish status codes: new created or already existing
     return response
+
+
+def update_repo_for_clientenv(repo_id, client_env):
+    from .model import GitRepo, UserGitReposAssoc, GitRepoFullSchema
+    from ..model import User
+    from ..decorators import requires_auth
+    from ..database import db
+    requires_auth()
+    auth = request.authorization
+    user = User.user_by_username(auth['username'])
+    data = request.get_json(force=True)
+    git_repo_entity = GitRepo.get_repo_by_id(repo_id)
+    # find the reference to git repo for this user
+    git_user_repo_assoc = None
+    for ind, user_info in enumerate(git_repo_entity.userinfo):
+        referenced_envs = [env.env_name for env in user_info.client_envs]
+        if client_env in referenced_envs:
+            git_user_repo_assoc = user_info
+            client_env_index = referenced_envs.index(client_env)
+            # existing reference found, abort lookup
+            break
+    if not git_user_repo_assoc:
+        raise InvalidRequest(f"The repo is not referenced in the given environment {client_env}", 'client_env', 404)
+    if 'local_path' in data and data['local_path']:
+        if git_user_repo_assoc.local_path_rel != data['local_path']:
+            if len(git_user_repo_assoc.client_envs) > 1:
+                client_env_entity = git_user_repo_assoc.client_envs.pop(client_env_index)
+                new_git_user_repo_assoc = find_git_user_repo_assoc_ref_by_local_path(git_repo_entity.userinfo,
+                                                                                     data['local_path'])
+                if not new_git_user_repo_assoc:
+                    id = uuid.uuid4()
+                    new_git_user_repo_assoc = UserGitReposAssoc(id=id, user_id=user.id, repo_id=git_repo_entity.id,
+                                                                remote_name=git_user_repo_assoc.remote_name,
+                                                                local_path_rel=data['local_path'])
+                    new_git_user_repo_assoc.client_envs.append(client_env_entity)
+                    db.session.add(new_git_user_repo_assoc)
+            else:
+                # Todo improve: delete git_user_repo_assoc if new local_path is already accommodated by another reference
+                git_user_repo_assoc.local_path_rel = data['local_path']
+            db.session.add(git_user_repo_assoc)
+            db.session.commit()
+        # else nothing changed
+    user_gitrepo_schema = GitRepoFullSchema(many=False)
+    return user_gitrepo_schema.dump(git_repo_entity)
+
+
+def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):
+    for user_info in user_infos:
+        if user_info.local_path_rel == local_path:
+            return user_info
+    return None
 
 
 def get_repos(full_info=False):
