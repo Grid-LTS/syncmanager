@@ -4,7 +4,7 @@ import uuid
 
 from ..database import db, ma
 from .git import GitRepoFs
-from ..model import User, ClientEnv
+from ..model import User, ClientEnv, ClientEnvSchema
 from ..error import DataInconsistencyException
 from marshmallow import fields
 
@@ -32,8 +32,8 @@ class GitRepo(db.Model):
         return osp.join(user_id, server_path_rel)
 
     @staticmethod
-    def git_repo_by_id(_id):
-        return GitRepo.query.filter_by(id=_id)
+    def get_repo_by_id(_id):
+        return GitRepo.query.filter_by(id=_id).one_or_none()
 
     @staticmethod
     def load_by_server_path(_server_path_rel):
@@ -162,11 +162,11 @@ class UserGitReposAssocSchema(ma.ModelSchema):
 
 class UserGitReposAssocFullSchema(UserGitReposAssocSchema):
     git_repo = fields.Nested(GitRepoSchema, default={}, many=False)
-
+    client_envs = fields.Nested(ClientEnvSchema, default=[], many=True)
 
 class GitRepoFullSchema(ma.ModelSchema):
     class Meta:
         model = GitRepo
         sqla_session = db.session
 
-    userinfo = fields.Nested(UserGitReposAssocSchema, default=[], many=True)
+    userinfo = fields.Nested(UserGitReposAssocFullSchema, default=[], many=True)

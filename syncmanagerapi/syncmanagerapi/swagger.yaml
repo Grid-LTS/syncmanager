@@ -77,6 +77,28 @@ paths:
       responses:
         200:
           description: "List of Git repositories"
+  /git/repos/{repo_id}/{client_env}:
+    put:
+      operationId: "syncmanagerapi.git.api.update_repo_for_clientenv"
+      tags:
+      - "Git"
+      summary: "Updates the server repository"
+      description: ""
+      parameters:
+      - name: repo_id
+        in: path
+        description: identifier for the server repository
+        type: string
+        required: true
+      - name: client_env
+        in: path
+        description: env descriptor of the synchronization client
+        type: string
+        required: true
+      responses:
+        200:
+          description: "Returns updated server repo reference"
+      
   /admin/user:
     post:
       operationId: "syncmanagerapi.admin.controller.create_standard_user"

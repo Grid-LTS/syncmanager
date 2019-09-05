@@ -2,7 +2,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 
-from .database import db
+from .database import db, ma
 
 
 class User(db.Model):
@@ -74,3 +74,8 @@ class ClientEnv(db.Model):
         return ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
             .first()
 
+class ClientEnvSchema(ma.ModelSchema):
+    class Meta:
+        model = ClientEnv
+        sqla_session = db.session
+    

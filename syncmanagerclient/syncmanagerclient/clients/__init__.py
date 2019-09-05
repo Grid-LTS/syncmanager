@@ -1,5 +1,5 @@
-ACTION_ADD_REMOTE = 'add_remote'
-ACTION_ADD_REMOTE_ALIASES = ['add_remote', 'add-remote']
+ACTION_SET_REMOTE = 'set_remote'
+ACTION_SET_REMOTE_ALIASES = ['set_remote', 'set-remote']
 ACTION_ADD_ENV_ALIASES = ['add_env', 'add-env']
 ACTION_PUSH = 'push'
 ACTION_PULL = 'pull'

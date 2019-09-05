@@ -48,7 +48,18 @@ class ApiService:
             body['all_client_envs'] = all_client_envs
         # create repo
         url = f"{self.base_api_url}/repos"
-        return req.post(url, data=json.dumps(body), auth=self.auth).json()
+        return req.post(url, json=body, auth=self.auth).json()
+
+    def update_server_repo_reference(self, server_repo_id, local_path):
+        body = {
+            'local_path': local_path
+        }
+        url = f"{self.base_api_url}/repos/{server_repo_id}/{self.sync_env}"
+        response = req.put(url, json=body, auth=self.auth)
+        ApiService.check_response(response, 200)
+        git_repo = response.json()
+        server_repo_ref = ApiService.retrieve_repo_reference(git_repo['userinfo'], self.sync_env)
+        return git_repo, server_repo_ref
 
     def add_client_env(self, client_env_name):
         body = {
@@ -56,3 +67,19 @@ class ApiService:
         }
         url = f"{globalproperties.api_base_url}/clientenv"
         return req.post(url, data=json.dumps(body), auth=self.auth)
+
+    @staticmethod
+    def check_response(response, desired_status_code):
+        if response.status_code != desired_status_code:
+            print(f"Error in processing. Received status {response.status_code} from server.")
+
+    @staticmethod
+    def retrieve_repo_reference(user_info, sync_env):
+        for user_info in user_info:
+            referenced_envs = [env['env_name'] for env in user_info['client_envs']]
+            if sync_env in referenced_envs:
+                server_repo_ref = user_info
+                # existing reference found, abort lookup
+                return server_repo_ref
+        return None
+                
