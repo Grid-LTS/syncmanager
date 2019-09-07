@@ -288,6 +288,5 @@ class GitClientSync:
             print(f"The Git url of remote repo '{self.remote_reponame}' differs from the server url.")
             print(f"The Git url: {url}")
             print(f"Server url: {self.remote_path}")
-            confirm = input(f"Overwrite Git url? 'Y/y/yes' or any other input for No: ").strip()
-            if confirm in ['Y', 'y', 'yes']:
-                self.remote_gitrepo.set_url(self.remote_path)
+            self.remote_gitrepo.set_url(self.remote_path)
+                

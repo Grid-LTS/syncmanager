@@ -4,7 +4,7 @@ from os.path import dirname
 
 import syncmanagerclient.util.globalproperties as globalproperties
 
-from .util.readconfig import config_parse, environment_parse
+from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
     ACTION_SET_CONF_ALIASES, ACTION_DELETE
@@ -33,7 +33,8 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
         if len(sync_envs) > 0 and not sync_env in sync_envs:
             continue
         only_once = False
-        for client, config in config_parse(path):
+        config_parser = ConfigParser(path)
+        for client, config in config_parser.parse():
             if not client in clients_enabled:
                 if not only_once:
                     only_once = True
@@ -60,10 +61,10 @@ def register_local_branch_for_deletion(path, git_repo_path):
 
 
 staging_envs = ['dev', 'test', 'prod']
-clients = ['git']
+clients = ['git','unison']
 
 
-def minimal():
+def legacy():
     global clients
     global staging_envs
     parser = argparse.ArgumentParser()
@@ -110,10 +111,18 @@ def minimal():
     else:
         sync_env = globalproperties.sync_env
 
+    
     if args.conf:
-        if not os.path.exists(args.conf):
+        if not os.path.dirname(args.conf):
+            conf_file_root = globalproperties.conf_dir
+            conf_file_path = os.path.join(globalproperties.conf_dir, args.conf)
+        else:
+            conf_file_root = os.path.dirname(args.conf)
+            conf_file_path = args.conf
+        if not os.path.exists(conf_file_path):
             print("File {} does not exist".format(args.conf))
-        apply_sync_conf_files(os.path.dirname(args.conf), [args.conf], action, force, sync_env, clients_enabled)
+            exit(1)
+        apply_sync_conf_files(conf_file_root, [args.conf], action, force, sync_env, clients_enabled)
     else:
         # loop through all *.conf files in the directory
         for root, dirs, filenames in os.walk(globalproperties.conf_dir):

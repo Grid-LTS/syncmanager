@@ -41,7 +41,6 @@ class GitClientSyncTest(unittest.TestCase):
         self.assertEqual(last_commit.message, commit_message)
 
     def test_delete_branch(self):
-        pass
         """
         tests when deleting a branch in one local repo and syncing it with the remote repo, the branch will be deleted 
         in other repo on next sync 
