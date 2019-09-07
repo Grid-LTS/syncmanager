@@ -5,6 +5,10 @@ from ..util.system import sanitize_path
 
 
 class GitClientSettings:
+
+    def __init__(self):
+        self.errors = []
+
     def set_config(self, config, *args):
         self.source_path_short = config.get('source', None)
         self.source_path = sanitize_path(self.source_path_short)

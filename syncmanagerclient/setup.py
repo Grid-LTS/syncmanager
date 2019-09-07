@@ -50,7 +50,7 @@ setup(
     entry_points={
         'console_scripts': [
             'syncmanager=syncmanagerclient:main',
-            'syncmanager_min=syncmanagerclient:minimal',
+            'syncmanager-legacy=syncmanagerclient:legacy',
         ],
     }
 

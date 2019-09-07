@@ -10,6 +10,7 @@ class UnisonClientSync:
 
     def __init__(self, action):
         self.action = action
+        self.errors = []
 
     def set_config(self, config, force):
         self.local_path = system.sanitize_path(config.get('source', None))
@@ -25,7 +26,7 @@ class UnisonClientSync:
             print(e)
             return
         print('Unison syncing of {}'.format(self.local_path))
-        
+
     @staticmethod
     def parse_settings(settings_string):
         settings_string = settings_string.strip()
@@ -42,14 +43,14 @@ class UnisonClientSync:
             template += '.prf'
         return {"template": template}
 
-    def load_template_file(self,filename):
+    def load_template_file(self, filename):
         template_dir = os.path.join(globalproperties.conf_dir, 'unison-templates')
         template_file = os.path.join(template_dir, filename)
         exists = False
         if os.path.exists(template_file):
-            exists=True
+            exists = True
         else:
-            template_dir = os.path.join(os.path.join(globalproperties.properties_path_prefix, 'templates'),'unison')
+            template_dir = os.path.join(os.path.join(globalproperties.properties_path_prefix, 'templates'), 'unison')
             # load one of built in templates
             template_file = os.path.join(template_dir, filename)
             if os.path.exists(template_file):
@@ -75,4 +76,3 @@ class UnisonClientSync:
             os.makedirs(__class__.unison_dir)
         if not os.path.exists(self.local_path):
             os.makedirs(self.local_path)
-        

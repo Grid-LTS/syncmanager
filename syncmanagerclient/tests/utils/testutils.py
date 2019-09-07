@@ -1,6 +1,7 @@
 from jinja2 import Environment, FileSystemLoader
 from git import Repo
 import os
+import shutil
 from pathlib import Path
 
 # Project files
@@ -64,6 +65,7 @@ def setup_repos(local_conf_file_name):
     globalproperties.set_prefix(os.path.dirname(test_dir))
     globalproperties.read_config('test')
     repos_dir = os.path.join(test_dir, 'repos')
+    shutil.rmtree(repos_dir, ignore_errors=True)
     if not os.path.exists(repos_dir):
         os.mkdir(repos_dir)
         # setup repos
