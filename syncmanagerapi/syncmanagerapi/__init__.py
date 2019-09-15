@@ -1,13 +1,18 @@
 import os
 from flask import jsonify
 
-import MySQLdb
 import connexion
 
-from .settings import read_properties_file
+from .settings import read_properties_file, project_dir
 from .utils import generate_password
 from .error import InvalidRequest
 from .authorization import InvalidAuthorizationException
+
+from dotenv import load_dotenv
+
+dotenv_path = os.path.join(project_dir, '.env')  # Path to .env file
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
 
 
 def create_app(test_config=None):
@@ -21,7 +26,7 @@ def create_app(test_config=None):
     # Read the swagger.yml file to configure the endpoints
     application.add_api('swagger.yaml')
     app = application.app
-    app.config.from_mapping(**read_properties_file())
+    app.config.from_mapping(**read_properties_file(environment=app.env))
     app.config['BASIC_AUTH_FORCE'] = True
 
     with app.app_context():
@@ -50,11 +55,13 @@ def create_app(test_config=None):
 def initialize_database(app):
     with app.app_context():
         from . import database
-        from .git.model import GitRepo, UserGitReposAssoc
-        db = MySQLdb.connect(host=app.config['DB_HOST'], user=app.config['DB_USER'],
-                             passwd=app.config['DB_PASSWORD'], db=app.config['DB_SCHEMA_NAME'])
+        db, db_type = database.get_database_connection()
         cur = db.cursor()
-        cur.execute("SHOW TABLES")
+        if db_type == "sqlite":
+            query = "SELECT name FROM sqlite_master WHERE type='table';"
+        else:
+            query = "SHOW TABLES"
+        cur.execute(query)
         tables = ['user', 'user_client_env', 'git_repos', 'user_git_repos', 'user_gitrepo_clientenv']
         for existing_table in cur.fetchall():
             try:

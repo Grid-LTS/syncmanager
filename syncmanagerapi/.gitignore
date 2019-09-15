@@ -1,4 +1,7 @@
 venv/
+**/.env
+application.prod.properties
+local
 
 *.pyc
 __pycache__/

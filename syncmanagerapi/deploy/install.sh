@@ -6,7 +6,9 @@ SOURCE="$(readlink -f "$SOURCE")"
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd -P )"
 PROJECT_DIR="$( dirname "$DIR" )"
 
-if [ -f "$PROJECT_DIR/application.properties" ]; then
+PROPERTIES_FILE_NAME=application.prod.properties
+
+if [ -f "$PROJECT_DIR/$PROPERTIES_FILE_NAME" ]; then
   while IFS== read -r VAR1 VAR2
   do
     if [[ "$VAR1" == \#* || "$VAR2" == "" ]]; then
@@ -15,9 +17,9 @@ if [ -f "$PROJECT_DIR/application.properties" ]; then
     if [ -n "$VAR2" ]; then
       export "$VAR1=$VAR2"
     fi
-  done < "$PROJECT_DIR/application.properties"
+  done < "$PROJECT_DIR/$PROPERTIES_FILE_NAME"
 else
-  echo "Create an application.properties file in the project root ${PROJECT_DIR}!"
+  echo "Create an ${PROPERTIES_FILE_NAME} file in the project root ${PROJECT_DIR}!"
   exit 1 
 fi
 
@@ -98,9 +100,14 @@ rm -rf build
 rm -rf dist
 pip3 install --user pipenv
 pipenv install
+mv .env .env_bkp
+# in production we do need to set FLASK_ENV since the default is already 'production'
+
+echo ""
 pipenv run python setup.py bdist_wheel
 VERSION=$(pipenv run python -c 'from properties import __version__; print(__version__)')
 echo "Created project with version $VERSION"
+mv .env_bkp .env
 
 package_name="${PROJECT_DIR}/dist/syncmanagerapi-${VERSION}-py3-none-any.whl"
 
@@ -173,7 +180,9 @@ if [ ! -d $FS_ROOT ]; then
     sudo mkdir $FS_ROOT
     echo "Created directory ${FS_ROOT}."
 fi
-sudo mkdir $FS_ROOT/git
+if [ ! -d $FS_ROOT/git ]; then
+    sudo mkdir $FS_ROOT/git
+fi
 sudo chown :$UNIX_USER -R $FS_ROOT
 sudo chmod 770 -R $FS_ROOT
 

@@ -32,17 +32,24 @@ Execute tests
 cd <project-root>/syncmanagerclient
 pipenv shell
 python -m unittest tests/test_git_sync.py
+python -m unittest tests/test_git_settings.py
 ```
 
 ## Server
 
 ### installation
-* necessary both in DEV and PROD since both require MySQL database
+* on PROD, require MySQL database
 ```bash
 deploy/install.sh
 ```
+* local DEV environment (uses SQLite3 database)
+```bash
+# install SQLite3
+sudo apt-get install sqlite3 
+deploy/install_local.sh
+```
 
-#### Known issues
+__Known issues__  
 pip installs packages like virtualenv, only if not existing. 
 In case these packages are already installed, make sure they are up-to-date: 
 ```bash
@@ -52,19 +59,20 @@ pip3 install --upgrade virtualenv --user
 sudo pip3 install --upgrade virtualenv
 ```
 
-* start in test mode
+#### Application
+start in test mode
 ```
 cd syncmanagerapi
 python3 -m syncmanagerapi 
 ```
-* create admin user (only possible via CLI)
-on dev
+create admin user (only possible via CLI)  
+on DEV
 ```
 cd syncmanagerapi
 export FLASK_APP=syncmanagerapi 
 flask admin-create --name <name> --password <password>
 ```
-on prod:
+on PROD:
 ```bash
 sudo deploy/create_admin.sh
 ```

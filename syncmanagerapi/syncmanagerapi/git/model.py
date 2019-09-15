@@ -68,7 +68,7 @@ class GitRepo(db.Model):
                 raise DataInconsistencyException('No client env given')
             _assoc_id = uuid.uuid4()
             if not git_repo_obj.id:
-                git_repo_obj.id = uuid.uuid4()
+                git_repo_obj.id = str(uuid.uuid4())
             user_gitrepo_assoc = UserGitReposAssoc(id=_assoc_id, user_id=git_repo_obj.user_id,
                                                    local_path_rel=_local_path_rel,
                                                    remote_name=_remote_name,
@@ -131,7 +131,7 @@ class UserGitReposAssoc(db.Model):
         if not _client_envs:
             raise DataInconsistencyException('No client environment given')
         _id = uuid.uuid4()
-        new_gitrep_assoc = UserGitReposAssoc(id=_id, user_id=_user_id, repo_id=_repo_id,
+        new_gitrep_assoc = UserGitReposAssoc(id=str(_id), user_id=_user_id, repo_id=_repo_id,
                                              local_path_rel=_local_path_rel)
         new_gitrep_assoc.client_envs.extend(_client_envs)
         db.session.add(new_gitrep_assoc)

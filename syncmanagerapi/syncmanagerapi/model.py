@@ -30,9 +30,14 @@ class User(db.Model):
 
     @staticmethod
     def add_user(_username, _role, _password):
-        _id = uuid.uuid4()
-        new_user = User(id=_id, username=_username, role=_role, password=_password)
-        db.session.add(new_user)
+        user = User.user_by_username(_username=_username)
+        if not user:
+            _id = uuid.uuid4()
+            user = User(id=str(_id), username=_username, role=_role, password=_password)
+        else:
+            user.password = _password
+            user.role = _role
+        db.session.add(user)
         db.session.commit()
 
     @staticmethod
@@ -64,7 +69,7 @@ class ClientEnv(db.Model):
             .one_or_none()
         if not client_env_entity:
             _id = uuid.uuid4()
-            client_env_entity = ClientEnv(id=_id, user_id=_user_id, env_name=_env_name)
+            client_env_entity = ClientEnv(id=str(_id), user_id=_user_id, env_name=_env_name)
             db.session.add(client_env_entity)
             db.session.commit()
         return client_env_entity
@@ -74,8 +79,8 @@ class ClientEnv(db.Model):
         return ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
             .first()
 
+
 class ClientEnvSchema(ma.ModelSchema):
     class Meta:
         model = ClientEnv
         sqla_session = db.session
-    

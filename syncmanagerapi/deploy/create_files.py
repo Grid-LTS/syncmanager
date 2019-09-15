@@ -8,7 +8,7 @@ import sys
 deploy_dir = os.path.dirname(os.path.abspath(__file__))
 module_root = os.path.dirname(deploy_dir)
 
-properties_path = module_root + "/application.properties"
+properties_path = module_root + "/application.prod.properties"
 config = configparser.ConfigParser()
 TEMPLATE_ENVIRONMENT = Environment(
     autoescape=False,
