@@ -1,0 +1,10 @@
+SERVER_PORT=5010
+UNIX_USER="syncman"
+INSTALL_DIR="/opt/syncmanagerapi"
+FS_ROOT="/var/syncmanager"
+HOSTNAME= # if not given internal network address is taken
+DB_SCHEMA_NAME="syncmanagerapi"
+DB_USER="syncmanager"
+DB_HOST="localhost" #hostname of the db server
+DB_PORT=3306  
+DP_ROOT_USER="root"

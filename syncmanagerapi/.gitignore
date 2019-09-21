@@ -1,6 +1,6 @@
 venv/
 **/.env
-application.prod.properties
+application.prod.cfg
 local
 
 *.pyc
@@ -17,4 +17,4 @@ build/
 *.egg-info/
 
 # properties
-application.properties
+application.cfg

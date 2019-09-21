@@ -40,7 +40,7 @@ setup(
             'setuptools>=35.0.1'
             'wheel>=0.29.0'
         ],
-        # 'test': ['coverage'],
+        # 'tests': ['coverage'],
     },
 
     #  package_data={

@@ -9,19 +9,6 @@ import sqlite3
 
 from .settings import properties_dir
 
-conf = current_app.config
-
-if current_app.env == 'development' and conf.get('DB_SQLITE_NAME', None):
-    path_to_db = osp.join(osp.join(properties_dir, conf.get('INSTALL_DIR')), conf.get('DB_SQLITE_NAME'))
-    current_app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{path_to_db}"
-else:
-    current_app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://{db_user}:{db_password}@{db_host}/{db_schema}".format(
-        db_user=conf['DB_USER'], db_password=conf['DB_PASSWORD'], db_host=conf['DB_HOST'],
-        db_schema=conf['DB_SCHEMA_NAME'])
-db = SQLAlchemy(current_app)
-# Initialize Marshmallow
-ma = Marshmallow(current_app)
-
 
 def init_schema():
     # import all the models
@@ -29,17 +16,40 @@ def init_schema():
     db.create_all()
 
 
-def get_database_connection():
-    if current_app.env == 'development' and conf.get('DB_SQLITE_NAME', None):
-        path_to_db = osp.join(osp.join(properties_dir, conf.get('INSTALL_DIR')), conf.get('DB_SQLITE_NAME'))
+def get_sqlite_path(conf):
+    if conf["DB_SQLITE_PATH"]:
+        return conf["DB_SQLITE_PATH"]
+    if not conf.get('DB_SQLITE_NAME', None):
+        exit(1)
+    return osp.join(osp.join(properties_dir, conf.get('INSTALL_DIR')), conf.get('DB_SQLITE_NAME'))
+
+
+def get_database_url(conf):
+    if current_app.env == 'development' or current_app.env == 'test':
+        path_to_db = get_sqlite_path(conf)
+        return f"sqlite:///{path_to_db}"
+    else:
+        return "mysql://{db_user}:{db_password}@{db_host}/{db_schema}".format(
+            db_user=conf['DB_USER'], db_password=conf['DB_PASSWORD'], db_host=conf['DB_HOST'],
+            db_schema=conf['DB_SCHEMA_NAME'])
+
+
+def get_database_connection(conf=current_app.config):
+    if current_app.env == 'development' or current_app.env == 'test':
+        path_to_db = get_sqlite_path(conf)
         db = sqlite3.connect(path_to_db)
         db_type = "sqlite"
     else:
-        db = MySQLdb.connect(host=current_app.config['DB_HOST'], user=current_app.config['DB_USER'],
-                             passwd=current_app.config['DB_PASSWORD'], db=current_app.config['DB_SCHEMA_NAME'])
+        db = MySQLdb.connect(host=conf['DB_HOST'], user=conf['DB_USER'],
+                             passwd=conf['DB_PASSWORD'], db=conf['DB_SCHEMA_NAME'])
         db_type = "mysql"
     return db, db_type
 
+
+current_app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url(current_app.config)
+db = SQLAlchemy(current_app)
+# Initialize Marshmallow
+ma = Marshmallow(current_app)
 
 """
 @current_app.teardown_appcontext

@@ -3,7 +3,7 @@ from flask import jsonify
 
 import connexion
 
-from .settings import read_properties_file, project_dir
+from .settings import project_dir, get_properties_path
 from .utils import generate_password
 from .error import InvalidRequest
 from .authorization import InvalidAuthorizationException
@@ -26,7 +26,14 @@ def create_app(test_config=None):
     # Read the swagger.yml file to configure the endpoints
     application.add_api('swagger.yaml')
     app = application.app
-    app.config.from_mapping(**read_properties_file(environment=app.env))
+    if test_config:
+        app.config.from_mapping(test_config)
+        properties_file_path = get_properties_path(environment=app.env,
+                                                   _properties_dir=app.config['SYNCMANAGER_SERVER_CONF'])
+        app.config.from_pyfile(properties_file_path, silent=True)
+    else:
+        properties_file_path = get_properties_path(environment=app.env)
+    app.config.from_pyfile(properties_file_path, silent=True)
     app.config['BASIC_AUTH_FORCE'] = True
 
     with app.app_context():

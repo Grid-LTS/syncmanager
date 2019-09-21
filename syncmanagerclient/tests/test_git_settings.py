@@ -18,7 +18,7 @@ class GitClientSettingsTest(unittest.TestCase):
 
     def test_set_config(self):
         mod_user_name = 'Mod User'
-        mod_user_email = 'foobaz@test.com'
+        mod_user_email = 'foobaz@tests.com'
         mod_origin_path = os.path.join(os.path.dirname(origin_repo_path), 'dummy_repo')
         context = {
             'local_path': local_repo_path,
