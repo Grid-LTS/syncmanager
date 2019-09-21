@@ -1,8 +1,8 @@
 # Developer space
 
-## 1. Client
+### 1. Client (syncmanagerclient)
 
-### Installation
+#### Installation
 1. install as package: see README.md
 2. install dependencies in pipenv: see README.md
 
@@ -15,29 +15,20 @@ run setup script
 running in virtual env  
 `source venv/bin/activate`  
 
-#### Add new packages
+##### Add new packages
 Append in `requirements.txt`  
 run `pipenv install -r` for updating Pipfile
 
-### Execution
+#### Execution
 Execute without installing: in case you want to run in from source, replace with:
 ```
 cd <project root>/syncmanagerclient
 python3 -m synchmanagerclient <arguments>
 ```
 
-### Tests
-Execute tests
-```
-cd <project-root>/syncmanagerclient
-pipenv shell
-python -m unittest tests/test_git_sync.py
-python -m unittest tests/test_git_settings.py
-```
+### 2. Server (syncmanagerapi)
 
-## Server
-
-### installation
+#### Installation
 * on PROD, require MySQL database
 ```bash
 deploy/install.sh
@@ -59,8 +50,8 @@ pip3 install --upgrade virtualenv --user
 sudo pip3 install --upgrade virtualenv
 ```
 
-#### Application
-start in test mode
+#### Executing application
+start in DEV mode
 ```
 cd syncmanagerapi
 python3 -m syncmanagerapi 
@@ -76,3 +67,23 @@ on PROD:
 ```bash
 sudo deploy/create_admin.sh
 ```
+
+
+### Tests
+Execute tests
+#### client (legacy)
+```
+cd <project-root>/syncmanagerclient
+pipenv shell
+python -m unittest tests/test_git_sync.py
+python -m unittest tests/test_git_settings.py
+```
+#### api server
+```
+cd <project-root>/syncmanagerapi
+pipenv shell
+pytest tests
+```
+#### systemtest
+to be done
+

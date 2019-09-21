@@ -8,7 +8,7 @@ import sys
 deploy_dir = os.path.dirname(os.path.abspath(__file__))
 module_root = os.path.dirname(deploy_dir)
 
-properties_path = module_root + "/application.prod.properties"
+properties_path = module_root + "/application.prod.cfg"
 config = configparser.ConfigParser()
 TEMPLATE_ENVIRONMENT = Environment(
     autoescape=False,
@@ -21,14 +21,14 @@ if os.path.isfile(properties_path):
         config.read_string(config_string)
         if sys.argv[1] == 'syncmanagerapi.service':
             systemd_service_file = sys.argv[1]
-            install_dir = config['default_section'].get('INSTALL_DIR', '/opt/syncmanagerapi')
-            fs_root_dir = config['default_section'].get('FS_ROOT', '/var/syncmanager')
+            install_dir = config['default_section'].get('INSTALL_DIR', '/opt/syncmanagerapi').strip('"\'')
+            fs_root_dir = config['default_section'].get('FS_ROOT', '/var/syncmanager').strip('"\'')
             context = {
-                'unix_user': config['default_section'].get('UNIX_USER', 'syncman'),
-                'unix_group': config['default_section'].get('UNIX_USER', 'syncman'),
+                'unix_user': config['default_section'].get('UNIX_USER', 'syncman').strip('"\''),
+                'unix_group': config['default_section'].get('UNIX_USER', 'syncman').strip('"\''),
                 'install_dir': install_dir,
                 'server_port': config['default_section'].get('SERVER_PORT', '5010'),
-                'hostname': config['default_section'].get('HOSTNAME', socket.gethostname())
+                'hostname': config['default_section'].get('HOSTNAME', socket.gethostname()).strip('"\'')
             }
             conf_file = TEMPLATE_ENVIRONMENT.get_template('{}.j2'.format(systemd_service_file)).render(context)
             f = open(os.path.join(deploy_dir, systemd_service_file), 'w')
@@ -38,11 +38,11 @@ if os.path.isfile(properties_path):
         # generate database init script
         if sys.argv[1] == 'init_db.sql':
             init_db_file = sys.argv[1]
-            db_user_name = config['default_section'].get('DB_USER', 'syncmanager')
+            db_user_name = config['default_section'].get('DB_USER', 'syncmanager').strip('"\'')
             # password must be provided, in future this should be replaced by a retrieval from a password vault
             passw = getpass.getpass("Provide password for Mysql user {}:".format(db_user_name))
             context = {
-                'db_schema_name': config['default_section'].get('DB_SCHEMA_NAME', 'syncmanerapi'),
+                'db_schema_name': config['default_section'].get('DB_SCHEMA_NAME', 'syncmanerapi').strip('"\''),
                 'db_user': db_user_name,
                 'db_user_password': passw
             }
@@ -51,4 +51,4 @@ if os.path.isfile(properties_path):
             f = open(os.path.join(deploy_dir, init_db_file), 'w')
             f.write(conf_file)
             f.close()
-            print("DB_PASSWORD={}".format(passw))
+            print(f"DB_PASSWORD=\"{passw}\"")

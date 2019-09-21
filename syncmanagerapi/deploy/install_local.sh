@@ -7,7 +7,7 @@ DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd -P )"
 PROJECT_DIR="$( dirname "$DIR" )"
 
 # assuming same environment for TEST and DEV
-PROPERTIES_FILE_NAME=application.dev.properties
+PROPERTIES_FILE_NAME=application.dev.cfg
 
 if [ -f "$PROJECT_DIR/$PROPERTIES_FILE_NAME" ]; then
   while IFS== read -r VAR1 VAR2

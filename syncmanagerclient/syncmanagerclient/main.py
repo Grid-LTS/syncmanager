@@ -60,7 +60,7 @@ def register_local_branch_for_deletion(path, git_repo_path):
     client_instance.apply(path=path)
 
 
-staging_envs = ['dev', 'test', 'prod']
+staging_envs = ['dev', 'tests', 'prod']
 clients = ['git','unison']
 
 
@@ -190,5 +190,6 @@ def main():
         clients_enabled = clients
     print('Enabled clients: ' + ', '.join(clients_enabled))
     for mode in clients_enabled:
+        print(f"Syncing client {mode}")
         sync_client = SyncClient(mode, action, sync_env, force, args.namespace)
         sync_client.get_and_sync_repos()

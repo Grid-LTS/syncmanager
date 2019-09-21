@@ -36,7 +36,7 @@ class GitClientSyncTest(unittest.TestCase):
         apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
         # sync changes to others repo
         apply_sync_conf_files(test_dir, [others_conf_file_name], ACTION_PULL, False, '', ['git'])
-        # test that the HEAD of the other repo points to the synced commit
+        # tests that the HEAD of the other repo points to the synced commit
         last_commit = __class__.others_repo.head.commit
         self.assertEqual(last_commit.message, commit_message)
 
@@ -47,7 +47,7 @@ class GitClientSyncTest(unittest.TestCase):
         :return: None
         """
         # create branch
-        test_branch = 'feature/test'
+        test_branch = 'feature/tests'
         __class__.local_repo.create_head(test_branch)
         # sync with remote repo
         apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
@@ -57,10 +57,10 @@ class GitClientSyncTest(unittest.TestCase):
         self.assertTrue(getattr(__class__.others_repo.heads, test_branch))
         # delete the created branch and sync
         register_local_branch_for_deletion(test_branch, local_repo_path)
-        # test that deleted branch register is present
+        # tests that deleted branch register is present
         self.assertTrue(os.path.exists(os.path.join(var_dir_path, 'git.origin.txt')))
         apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
-        # test that the remote repo is missing the branch
+        # tests that the remote repo is missing the branch
         self.assertEqual(getattr(__class__.origin_repo.heads, test_branch, None), None)
         # register should be deleted after sync
         self.assertTrue(not os.path.exists(os.path.join(var_dir_path, 'git.origin.txt')))

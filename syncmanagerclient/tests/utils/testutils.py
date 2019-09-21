@@ -21,7 +21,7 @@ local_conf_file_name = 'local.conf'
 others_conf_file_name = 'others.conf'
 
 test_user_name = 'Test User'
-test_user_email = 'dummy@test.com'
+test_user_email = 'dummy@tests.com'
 
 TEMPLATE_ENVIRONMENT = Environment(
         autoescape=False,
@@ -38,8 +38,8 @@ def detemplate_conf(sync_env, context):
 
 
 def detemplate_properties(context):
-    server_properties = TEMPLATE_ENVIRONMENT.get_template('server-sync.test.properties.j2').render(context)
-    f = open(os.path.join(os.path.dirname(test_dir), 'server-sync.test.properties'), 'w')
+    server_properties = TEMPLATE_ENVIRONMENT.get_template('server-sync.tests.properties.j2').render(context)
+    f = open(os.path.join(os.path.dirname(test_dir), 'server-sync.tests.properties'), 'w')
     f.write(server_properties)
     f.close()
 
@@ -63,7 +63,7 @@ def setup_repos(local_conf_file_name):
     detemplate_properties(context)
     # setup global properties file
     globalproperties.set_prefix(os.path.dirname(test_dir))
-    globalproperties.read_config('test')
+    globalproperties.read_config('tests')
     repos_dir = os.path.join(test_dir, 'repos')
     shutil.rmtree(repos_dir, ignore_errors=True)
     if not os.path.exists(repos_dir):

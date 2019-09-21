@@ -6,7 +6,7 @@ SOURCE="$(readlink -f "$SOURCE")"
 DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd -P )"
 PROJECT_DIR="$( dirname "$DIR" )"
 
-PROPERTIES_FILE_NAME=application.prod.properties
+PROPERTIES_FILE_NAME=application.prod.cfg
 
 if [ -f "$PROJECT_DIR/$PROPERTIES_FILE_NAME" ]; then
   while IFS== read -r VAR1 VAR2
@@ -15,7 +15,8 @@ if [ -f "$PROJECT_DIR/$PROPERTIES_FILE_NAME" ]; then
       continue
     fi
     if [ -n "$VAR2" ]; then
-      export "$VAR1=$VAR2"
+        VAR2="${VAR2//[\"\']}"
+      export "$VAR1=${VAR2}"
     fi
   done < "$PROJECT_DIR/$PROPERTIES_FILE_NAME"
 else
@@ -100,14 +101,12 @@ rm -rf build
 rm -rf dist
 pip3 install --user pipenv
 pipenv install
-mv .env .env_bkp
 # in production we do need to set FLASK_ENV since the default is already 'production'
 
 echo ""
 pipenv run python setup.py bdist_wheel
 VERSION=$(pipenv run python -c 'from properties import __version__; print(__version__)')
 echo "Created project with version $VERSION"
-mv .env_bkp .env
 
 package_name="${PROJECT_DIR}/dist/syncmanagerapi-${VERSION}-py3-none-any.whl"
 
@@ -144,7 +143,7 @@ read db_password
 stty echo
 
 sudo mkdir $INSTALL_DIR/conf > /dev/null 2>&1
-vars_file=$INSTALL_DIR/conf/application.properties
+vars_file=$INSTALL_DIR/conf/application.cfg
 if ! sudo mysql -h $DB_HOST -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "use ${DB_SCHEMA_NAME}" > /dev/null 2>&1; then
     echo "Initialize database for syncmanagerapi."
 fi
@@ -166,11 +165,11 @@ runtime_conf=$(pipenv run python deploy/create_files.py init_db.sql)
 sudo mysql -h $DB_HOST -u $DB_ROOT_USER -h $DB_HOST -P $DB_PORT -p$db_password < deploy/init_db.sql
 echo $runtime_conf | sudo tee $vars_file > /dev/null
 # write out all other runtime variables
-echo "DB_USER=${DB_USER}" | sudo tee -a $vars_file > /dev/null
-echo "DB_SCHEMA_NAME=${DB_SCHEMA_NAME}" | sudo tee -a $vars_file > /dev/null
-echo "DB_HOST=${DB_HOST}"  | sudo tee -a $vars_file > /dev/null
+echo "DB_USER=\"${DB_USER}\"" | sudo tee -a $vars_file > /dev/null
+echo "DB_SCHEMA_NAME=\"${DB_SCHEMA_NAME}\"" | sudo tee -a $vars_file > /dev/null
+echo "DB_HOST=\"${DB_HOST}\""  | sudo tee -a $vars_file > /dev/null
 echo "DB_PORT=${DB_PORT}"  | sudo tee -a $vars_file > /dev/null
-echo "FS_ROOT=${FS_ROOT}" | sudo tee -a $vars_file > /dev/null
+echo "FS_ROOT=\"${FS_ROOT}\""    | sudo tee -a $vars_file > /dev/null
 sudo chown -R $UNIX_USER:$UNIX_USER $INSTALL_DIR/conf
 sudo chmod -R 700 $INSTALL_DIR/conf 
 rm deploy/init_db.sql
@@ -180,9 +179,9 @@ if [ ! -d $FS_ROOT ]; then
     sudo mkdir $FS_ROOT
     echo "Created directory ${FS_ROOT}."
 fi
-if [ ! -d $FS_ROOT/git ]; then
-    sudo mkdir $FS_ROOT/git
-fi
+
+sudo mkdir $FS_ROOT/git 2>> /dev/null
+
 sudo chown :$UNIX_USER -R $FS_ROOT
 sudo chmod 770 -R $FS_ROOT
 
