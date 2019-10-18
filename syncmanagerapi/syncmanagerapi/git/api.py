@@ -102,7 +102,6 @@ def create_repo():
                   f"{git_user_repo_assoc_ref.remote_name} is already includes this remote repo.")
     gitrepo_schema = GitRepoSchema()
     response = gitrepo_schema.dump(git_repo_entity)
-    response['remote_repo_path'] = fs_git_repo.gitrepo_path
     response['remote_name'] = remote_name
     response['is_new_reference'] = new_reference
     # ToDo distinguish status codes: new created or already existing
@@ -168,11 +167,11 @@ def get_repos(full_info=False):
     else:
         user_gitrepo_assoc_schema = UserGitReposAssocSchema(many=True)
     repos = UserGitReposAssoc.get_user_repos(_user_id=user.id)
-    if not repos:
-        return jsonify([])
     repo_list = dict()
     for client_env in user.client_envs:
         repo_list[client_env.env_name] = []
+    if not repos:
+        return jsonify(repo_list)
     for repo, client_env_name in repos:
         repo_list[client_env_name].append(repo)
     for client_env_name in repo_list:

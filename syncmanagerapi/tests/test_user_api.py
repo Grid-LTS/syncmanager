@@ -1,6 +1,5 @@
 from setup import SYNC_ADMIN, SYNC_ADMIN_PASSWORD, create_admin, get_admin_basic_authorization
 
-
 def test_unauthenticated(client, runner):
     create_admin(runner)
     body = {

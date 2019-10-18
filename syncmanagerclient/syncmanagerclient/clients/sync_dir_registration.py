@@ -50,7 +50,7 @@ class SyncDirRegistration:
             p = pathlib.Path(repo_ref['git_repo']['server_path_rel'])
             print(f"{p.relative_to(*p.parts[:1])}")
             self.existing_repos_env_ids.append(repo_ref['git_repo']['id'])
-            if not self.gitrepo.remote(repo_ref['remote_name']):
+            if not repo_ref['remote_name'] in self.gitrepo.remotes:
                 continue
             url = next(self.gitrepo.remote(repo_ref['remote_name']).urls)
             if url == SyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
@@ -121,16 +121,16 @@ class SyncDirRegistration:
         response = self.api_service.create_remote_repository(self.local_path_short, server_path_rel,
                                                              repo_name, remote_name, all_sync_env)
         if response['is_new_reference']:
-            remote_url = SyncDirRegistration.get_remote_url(response['remote_repo_path'])
+            remote_url = SyncDirRegistration.get_remote_url(response['server_path_absolute'])
             if is_overwrite:
                 remote = self.gitrepo.remote(remote_name)
                 remote.set_url(remote_url)
-                print(f"Set URL at path {response['remote_repo_path']} for remote {remote_name}.")
+                print(f"Set URL at path {response['server_path_absolute']} for remote {remote_name}.")
             else:
                 self.gitrepo.create_remote(remote_name, remote_url)
-                print(f"Bare repo at path {response['remote_repo_path']} is registered as remote {remote_name}.")
+                print(f"Bare repo at path {response['server_path_absolute']} is registered as remote {remote_name}.")
         else:
-            print(f"Bare repo at path {response['remote_repo_path']} is already registered as remote.")
+            print(f"Bare repo at path {response['server_path_absolute']} is already registered as remote.")
 
     def update_reference(self):
         git_repo, gitrepo_reference = self.api_service.update_server_repo_reference(
@@ -139,6 +139,8 @@ class SyncDirRegistration:
         # check if path changed
         if self.server_repo_ref['local_path_rel'] != gitrepo_reference['local_path_rel']:
             print(f"Updated local path to {gitrepo_reference['local_path_rel']}")
+        else:
+            print(f"The registered local path {gitrepo_reference['local_path_rel']} did not change.")
 
     @staticmethod
     def get_remote_url(remote_repo_path):
