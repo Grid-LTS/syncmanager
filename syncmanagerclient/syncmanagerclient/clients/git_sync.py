@@ -154,7 +154,7 @@ class GitClientSync:
         # get all branches that have a remote tracking branch, that is not part of the remote refs anymore
         for branch in self.gitrepo.heads:
             # do not delete master
-            if (str(branch) == 'master' or str(branch) == 'HEAD'):
+            if str(branch) == 'master' or str(branch) == 'HEAD':
                 continue
             remote_tracking = branch.tracking_branch()
             parts = str(remote_tracking).split('/')

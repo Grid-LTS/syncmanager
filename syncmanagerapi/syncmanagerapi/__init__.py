@@ -3,13 +3,14 @@ from flask import jsonify
 
 import connexion
 
-from .settings import project_dir, get_properties_path
+from .settings import project_dir, properties_dir, get_properties_path
 from .utils import generate_password
 from .error import InvalidRequest
 from .authorization import InvalidAuthorizationException
 
 from dotenv import load_dotenv
 
+# .env file should only exists on developer machine, setting FLASK_ENV=development
 dotenv_path = os.path.join(project_dir, '.env')  # Path to .env file
 if os.path.exists(dotenv_path):
     load_dotenv(dotenv_path)
@@ -26,14 +27,16 @@ def create_app(test_config=None):
     # Read the swagger.yml file to configure the endpoints
     application.add_api('swagger.yaml')
     app = application.app
+    if not app.config.get('SYNCMANAGER_SERVER_CONF', None):
+        app.config['SYNCMANAGER_SERVER_CONF'] = properties_dir
     if test_config:
         app.config.from_mapping(test_config)
-        properties_file_path = get_properties_path(environment=app.env,
-                                                   _properties_dir=app.config['SYNCMANAGER_SERVER_CONF'])
-        app.config.from_pyfile(properties_file_path, silent=True)
-    else:
-        properties_file_path = get_properties_path(environment=app.env)
+    properties_file_path = get_properties_path(environment=app.env,
+                                               _properties_dir=app.config['SYNCMANAGER_SERVER_CONF'])
     app.config.from_pyfile(properties_file_path, silent=True)
+    if app.env == "development" or app.env == "test":
+        app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
+        app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
     app.config['BASIC_AUTH_FORCE'] = True
 
     with app.app_context():

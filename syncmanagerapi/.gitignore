@@ -2,6 +2,7 @@ venv/
 **/.env
 application.prod.cfg
 local
+tests/local
 
 *.pyc
 __pycache__/

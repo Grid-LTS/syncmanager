@@ -66,7 +66,7 @@ class GitRepo(db.Model):
         if not result:
             if not _client_envs:
                 raise DataInconsistencyException('No client env given')
-            _assoc_id = uuid.uuid4()
+            _assoc_id = str(uuid.uuid4())
             if not git_repo_obj.id:
                 git_repo_obj.id = str(uuid.uuid4())
             user_gitrepo_assoc = UserGitReposAssoc(id=_assoc_id, user_id=git_repo_obj.user_id,

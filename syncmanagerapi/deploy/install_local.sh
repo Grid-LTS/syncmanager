@@ -24,4 +24,5 @@ else
   exit 1 
 fi
 
-mkdir -p $PROJECT_DIR/$INSTALL_DIR/$FS_ROOT
+mkdir -p $PROJECT_DIR/local/var
+mkdir -p $PROJECT_DIR/tests/local/var
