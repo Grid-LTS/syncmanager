@@ -9,8 +9,7 @@ USER_CLIENT_ENV = "intregationtest"
 
 
 def create_admin(runner):
-    result = runner.invoke(args=['admin-create', '--name', SYNC_ADMIN, '--password', SYNC_ADMIN_PASSWORD])
-    assert f"Created user {SYNC_ADMIN}" in result.output
+    runner.invoke(args=['admin-create', '--name', SYNC_ADMIN, '--password', SYNC_ADMIN_PASSWORD])
 
 
 def get_admin_basic_authorization():

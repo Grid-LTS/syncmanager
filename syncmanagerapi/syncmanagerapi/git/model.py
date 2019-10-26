@@ -164,9 +164,11 @@ class UserGitReposAssocFullSchema(UserGitReposAssocSchema):
     git_repo = fields.Nested(GitRepoSchema, default={}, many=False)
     client_envs = fields.Nested(ClientEnvSchema, default=[], many=True)
 
+
 class GitRepoFullSchema(ma.ModelSchema):
     class Meta:
         model = GitRepo
         sqla_session = db.session
 
+    server_path_absolute = fields.String()
     userinfo = fields.Nested(UserGitReposAssocFullSchema, default=[], many=True)

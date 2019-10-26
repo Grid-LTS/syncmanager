@@ -27,7 +27,7 @@ def create_app(test_config=None):
     # Read the swagger.yml file to configure the endpoints
     application.add_api('swagger.yaml')
     app = application.app
-    if not app.config.get('SYNCMANAGER_SERVER_CONF', None):
+    if not app.config.get('SYNCMANAGER_SERVER_CONF', None) and not test_config:
         app.config['SYNCMANAGER_SERVER_CONF'] = properties_dir
     if test_config:
         app.config.from_mapping(test_config)
@@ -58,14 +58,17 @@ def create_app(test_config=None):
         from .cli import create_admin_command
         app.cli.add_command(create_admin_command)
     # initialize database tables
-    initialize_database(app)
+    initialize_database(app, reset=app.config.get("DB_RESET", False))
     return app
 
 
-def initialize_database(app):
+def initialize_database(app, reset=False):
     with app.app_context():
         from . import database
-        db, db_type = database.get_database_connection()
+        if reset:
+            # in test environment when module code is not reexecuted, we need to reset (empty) the database 
+            database.reset_db_connection()
+        db, db_type = database.get_database_connection(app)
         cur = db.cursor()
         if db_type == "sqlite":
             query = "SELECT name FROM sqlite_master WHERE type='table';"
