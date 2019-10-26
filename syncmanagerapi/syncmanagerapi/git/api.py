@@ -8,7 +8,7 @@ from ..error import InvalidRequest
 
 def create_repo():
     from ..database import db
-    from .model import GitRepo, UserGitReposAssoc, GitRepoSchema
+    from .model import GitRepo, UserGitReposAssoc, GitRepoFullSchema
     from ..model import User
     body = request.data
     from ..decorators import requires_auth
@@ -100,7 +100,7 @@ def create_repo():
             print("No new reference has been created. The existing local reference at " +
                   f"{git_user_repo_assoc_ref.local_path_rel} with remote " +
                   f"{git_user_repo_assoc_ref.remote_name} is already includes this remote repo.")
-    gitrepo_schema = GitRepoSchema()
+    gitrepo_schema = GitRepoFullSchema()
     response = gitrepo_schema.dump(git_repo_entity)
     response['remote_name'] = remote_name
     response['is_new_reference'] = new_reference
