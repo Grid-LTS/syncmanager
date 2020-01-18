@@ -203,7 +203,7 @@
                 "sha256:8c3b61d89f7daaeab6aad6bf4c4bc3ef30bec1a8169f94dc59aea87ba2fabf80",
                 "sha256:9c737cc55a5dc8dd3583a942d5a9b21be58d16f00f5fefca4e575e7d9682e98c"
             ],
-            "version": "==1.4.4"
+            "version": "==1.4.6"
         },
         "openapi-spec-validator": {
             "hashes": [

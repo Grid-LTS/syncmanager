@@ -50,9 +50,10 @@ class ApiService:
         url = f"{self.base_api_url}/repos"
         return req.post(url, json=body, auth=self.auth).json()
 
-    def update_server_repo_reference(self, server_repo_id, local_path):
+    def update_server_repo_reference(self, server_repo_id, local_path, server_path_rel):
         body = {
-            'local_path': local_path
+            'local_path': local_path,
+            'server_path_rel' : server_path_rel
         }
         url = f"{self.base_api_url}/repos/{server_repo_id}/{self.sync_env}"
         response = req.put(url, json=body, auth=self.auth)
@@ -83,3 +84,4 @@ class ApiService:
                 return server_repo_ref
         return None
                 
+    

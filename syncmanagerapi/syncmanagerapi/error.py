@@ -18,10 +18,11 @@ class InvalidRequest(Exception):
 class FsConflictError(Exception):
     status_code = 409
 
-    def __init__(self, message, path, status_code=None):
+    def __init__(self, message, path, target_path=None, status_code=None):
         Exception.__init__(self)
         self.message = message
         self.path = path
+        self.target_path = target_path
         if status_code is not None:
             self.status_code = status_code
 
@@ -29,6 +30,8 @@ class FsConflictError(Exception):
         rv = dict()
         rv['message'] = self.message
         rv['path'] = self.path
+        if self.target_path:
+            rv['target_path'] = self.target_path
         return rv
 
 

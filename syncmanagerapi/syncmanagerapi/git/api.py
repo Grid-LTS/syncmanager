@@ -129,6 +129,14 @@ def update_repo_for_clientenv(repo_id, client_env):
             break
     if not git_user_repo_assoc:
         raise InvalidRequest(f"The repo is not referenced in the given environment {client_env}", 'client_env', 404)
+    if 'server_path_rel' in data and data['server_path_rel']:
+        if git_repo_entity.server_path_rel != data['server_path_rel']:
+            fs_git_repo = GitRepoFs(git_repo_entity)
+            success = fs_git_repo.move_repo(data['server_path_rel'])
+            if success:
+                git_repo_entity.server_path_rel = data['server_path_rel']
+                db.session.add(git_repo_entity)
+                db.session.commit()
     if 'local_path' in data and data['local_path']:
         if git_user_repo_assoc.local_path_rel != data['local_path']:
             if len(git_user_repo_assoc.client_envs) > 1:

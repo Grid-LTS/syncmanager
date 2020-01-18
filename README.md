@@ -36,6 +36,9 @@ for pushing to the server
 ```
 syncmanager push [ -f $conf-file ]
 ```
+#### Options
+`-n, --namespace <ns>` : only sync folders under a certain names 
+
 
 #### Deletion of branches
 Branches should not be deleted with `git branch -d <branch>` since they will be recreated on the next sync with the server.

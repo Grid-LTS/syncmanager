@@ -25,6 +25,7 @@ class SyncDirRegistration:
         self.existing_repos_env_ids = []
         self.server_repo_ref = None
         self.other_envs_repos = None
+        self.server_path_rels_of_other_repo = []
 
     def get_mode(self):
         if os.path.isdir(self.local_path + '/.git'):
@@ -47,24 +48,23 @@ class SyncDirRegistration:
         print(f"{self.sync_env}:")
         is_update = False
         for repo_ref in existing_repos_env:
-            p = pathlib.Path(repo_ref['git_repo']['server_path_rel'])
-            print(f"{p.relative_to(*p.parts[:1])}")
+            print(f"{self.remove_first_path_part(repo_ref['git_repo']['server_path_rel'])}")
             self.existing_repos_env_ids.append(repo_ref['git_repo']['id'])
-            if not repo_ref['remote_name'] in self.gitrepo.remotes:
+            if not getattr(self.gitrepo.remotes, repo_ref['remote_name']):
                 continue
             url = next(self.gitrepo.remote(repo_ref['remote_name']).urls)
             if url == SyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
                 self.server_repo_ref = repo_ref
                 is_update = True
+        self.print_other_env_repos()
         if is_update:
             self.update_reference()
         else:
             self.create_reference()
 
-    def create_reference(self):
+    def print_other_env_repos(self):
         other_env_repos = dict()
         other_env_repos_ids = []
-        server_path_rels_of_other_repo = []
         for other_env in self.other_envs_repos:
             other_env_repos[other_env] = []
             print()
@@ -76,10 +76,34 @@ class SyncDirRegistration:
                     other_env_repos_ids.append(other_repo_id)
                     p = pathlib.Path(other_repo['git_repo']['server_path_rel'])
                     server_path_rel_of_other_repo = p.relative_to(*p.parts[:1])
-                    server_path_rels_of_other_repo.append(str(server_path_rel_of_other_repo))
+                    self.server_path_rels_of_other_repo.append(str(server_path_rel_of_other_repo))
                     print(f"{server_path_rel_of_other_repo}")
-
         print()
+    
+    def remove_first_path_part(self, path):
+        p = pathlib.Path(path)
+        return p.relative_to(*p.parts[:1])
+    
+    def first_path_part(self, path):
+        p = pathlib.Path(path)
+        return p.parts[0]
+    
+    def last_path_part(self, path):
+        p = pathlib.Path(path)
+        return p.parts[-1]
+    
+    def user_owns_repo(self, server_repo_ref):
+        return server_repo_ref['user'] == self.first_path_part(server_repo_ref['git_repo']['server_path_rel'])
+    
+    def prompt_for_repo_name(self):
+        repo_name = input('Enter directory name of bare repository (optional): ').strip()
+        if not repo_name:
+            repo_name = osp.basename(self.local_path_short)
+        if repo_name[-4:] != '.git':
+            repo_name += '.git'
+        return repo_name
+
+    def create_reference(self):
         server_path_rel = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
         remote_name = ''
         is_overwrite = False
@@ -101,16 +125,12 @@ class SyncDirRegistration:
                 print("")
             except ValueError:
                 pass
-        repo_name = input('Enter directory name of bare repository (optional): ').strip()
-        if not repo_name:
-            repo_name = osp.basename(self.local_path_short)
-        if repo_name[-4:] != '.git':
-            repo_name += '.git'
+        repo_name = self.prompt_for_repo_name()
         server_path = osp.join(server_path_rel, repo_name)
         all_sync_env = False
         # in case the desired remote repo is already created and registered for other environments, we only
         # register this env as client
-        if not server_path in server_path_rels_of_other_repo:
+        if not server_path in self.server_path_rels_of_other_repo:
             all_envs = input("Should all environments sync this repo? 'Y/y/yes' or other input for 'no': ").strip()
             if all_envs in ['Y', 'y', 'yes']:
                 all_sync_env = True
@@ -133,14 +153,30 @@ class SyncDirRegistration:
             print(f"Bare repo at path {response['server_path_absolute']} is already registered as remote.")
 
     def update_reference(self):
+        is_update_namespace = 'n'
+        if self.user_owns_repo(self.server_repo_ref):
+            is_update_namespace = input(
+            "Do you want to change the namespace of the repo? 'Y/y/yes' or other input for 'no': ").strip()
+        if is_update_namespace in ['Y', 'y', 'yes']:
+            server_path_rel = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
+            repo_name = self.prompt_for_repo_name()
+            server_path_rel = f"{self.server_repo_ref['user']}/{server_path_rel}/{repo_name}"
+        else:
+            server_path_rel = self.server_repo_ref['git_repo']['server_path_rel']
         git_repo, gitrepo_reference = self.api_service.update_server_repo_reference(
             self.server_repo_ref['git_repo']['id'],
-            self.local_path_short)
+            self.local_path_short, server_path_rel)
         # check if path changed
         if self.server_repo_ref['local_path_rel'] != gitrepo_reference['local_path_rel']:
             print(f"Updated local path to {gitrepo_reference['local_path_rel']}")
         else:
             print(f"The registered local path {gitrepo_reference['local_path_rel']} did not change.")
+        remote_url = SyncDirRegistration.get_remote_url(git_repo['server_path_absolute'])
+        remote_name = gitrepo_reference['remote_name']
+        remote = self.gitrepo.remote(remote_name)
+        remote.set_url(remote_url)
+        print(f"Set URL at path {git_repo['server_path_absolute']} for remote {remote_name}.")
+
 
     @staticmethod
     def get_remote_url(remote_repo_path):
