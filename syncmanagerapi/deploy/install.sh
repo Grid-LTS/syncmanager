@@ -91,7 +91,7 @@ if [ "$?" -ne 0 ]; then
     create_user $UNIX_USER
 fi
 # install system dependencies
-sudo apt-get -y install libmysqlclient-dev
+sudo apt-get -y install python3-dev default-libmysqlclient-dev libmysqlclient-dev
 
 
 # build project

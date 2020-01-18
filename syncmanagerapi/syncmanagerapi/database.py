@@ -4,9 +4,6 @@ from flask import current_app, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 
-import MySQLdb
-import sqlite3
-
 from .settings import properties_dir
 
 
@@ -38,10 +35,12 @@ def get_database_url(app):
 def get_database_connection(app):
     conf = app.config
     if app.env == 'development' or app.env == 'test':
+        import sqlite3
         path_to_db = get_sqlite_path(conf)
         db = sqlite3.connect(path_to_db)
         db_type = "sqlite"
     else:
+        import MySQLdb
         db = MySQLdb.connect(host=conf['DB_HOST'], user=conf['DB_USER'],
                              passwd=conf['DB_PASSWORD'], db=conf['DB_SCHEMA_NAME'])
         db_type = "mysql"

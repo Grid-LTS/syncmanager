@@ -3,8 +3,19 @@
 ### 1. Client (syncmanagerclient)
 
 #### Installation
-1. install as package: see README.md
-2. install dependencies in pipenv: see README.md
+##### 1. Install as local package
+* this will provide you the syncmanager command
+```
+pip3 install -e .[dev] --user
+```
+
+##### 2. Install dependencies with Pipenv
+* you need to have pipenv installed `pip3 install --user pipenv`
+* run
+```
+pipenv install
+pipenv shell
+```
 
 __Alternative:__  
 with Virtualenv (deprecated)  
@@ -25,6 +36,12 @@ Execute without installing: in case you want to run in from source, replace with
 cd <project root>/syncmanagerclient
 python3 -m synchmanagerclient <arguments>
 ```
+##### 1. dev environment (SQLite db)
+```bash
+syncmanager --stage dev <command>
+```
+
+
 
 ### 2. Server (syncmanagerapi)
 
