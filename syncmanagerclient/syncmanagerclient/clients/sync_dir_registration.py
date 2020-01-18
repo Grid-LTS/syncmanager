@@ -50,7 +50,8 @@ class SyncDirRegistration:
         for repo_ref in existing_repos_env:
             print(f"{self.remove_first_path_part(repo_ref['git_repo']['server_path_rel'])}")
             self.existing_repos_env_ids.append(repo_ref['git_repo']['id'])
-            if not getattr(self.gitrepo.remotes, repo_ref['remote_name']):
+            remote_objs = [x for x in self.gitrepo.remotes if x.name == repo_ref['remote_name']]
+            if len(remote_objs) == 0:
                 continue
             url = next(self.gitrepo.remote(repo_ref['remote_name']).urls)
             if url == SyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
