@@ -29,9 +29,16 @@ class GitClientSync:
         self.gitrepo = Repo(self.local_path)
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
         self.consistency_check()
-        # checkout master branch
+        # checkout master branch, this simply tests if the local workspace is in a good state
         if hasattr(self.gitrepo.heads, 'master'):
-            self.gitrepo.heads.master.checkout()
+            try:
+                self.gitrepo.heads.master.checkout()
+            except GitCommandError as err:
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, 'master')
+                )
+                print(f"ERROR. Cannot checkout master branch: {str(err)}")
+                return
         if self.action == ACTION_PULL or self.action == ACTION_PUSH:
             # PULL and PUSH are the only actions that happen online, meaning wan actual sync with the remote repo
 
@@ -99,7 +106,14 @@ class GitClientSync:
 
         # finally checkout master branch
         if len(self.gitrepo.heads) > 0:
-            self.gitrepo.heads.master.checkout()
+            try:
+                self.gitrepo.heads.master.checkout()
+            except GitCommandError as err:
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, 'master')
+                )
+                print(f"ERROR. Cannot checkout master branch: {str(err)}")
+                return
         else:
             message = 'No master branch available. Did you make an initial commit?'
             error = GitSyncError(message)
