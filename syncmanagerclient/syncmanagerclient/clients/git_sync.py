@@ -47,7 +47,7 @@ class GitClientSync:
             self.sync_deletion()
             # delete local branches with with the remote tracking branches 'gone',
             self.cleanup_orphaned_local_branches()
-        if self.action == ACTION_PULL:
+        if self.action == ACTION_PULL and self.force:
             self.sync_pull()
         elif self.action == ACTION_PUSH:
             self.sync_push()
@@ -78,22 +78,11 @@ class GitClientSync:
                 print(str(err))
                 continue
             git = self.gitrepo.git
-            if self.force:
-                print(branch)
-                # force pull of the remote repo
-                git.reset('--hard', str(remote_branch))
-                print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
-            else:
-                try:
-                    # just pull all updates
-                    out = git.pull(None, with_stdout=True)
-                    print(out)
-                except GitCommandError as err:
-                    self.errors.append(
-                        GitErrorItem(self.local_path_short, err, str(branch))
-                    )
-                    print(f"ERROR: {str(err)}")
-                    continue
+            print(branch)
+            # force pull of the remote repo
+            git.reset('--hard', str(remote_branch))
+            print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
+
 
         # checkout a local branch for all remote refs not being tracked
         # remote refs in the shape origin/feature/my-remote/
@@ -226,6 +215,17 @@ class GitClientSync:
                 GitErrorItem(self.local_path_short, err, 'git push --all')
             )
         print('')
+
+    def git_pull(self, git, branch):
+        try:
+            # just pull all updates
+            out = git.pull(None, with_stdout=True)
+            print(out)
+        except GitCommandError as err:
+            self.errors.append(
+                GitErrorItem(self.local_path_short, err, str(branch))
+            )
+            print(f"ERROR: {str(err)}")
 
     def git_fetch(self, prune=False):
 
