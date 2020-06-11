@@ -40,78 +40,16 @@ class GitClientSync:
                 print(f"ERROR. Cannot checkout master branch: {str(err)}")
                 return
         if self.action == ACTION_PULL or self.action == ACTION_PUSH:
-            # PULL and PUSH are the only actions that happen online, meaning wan actual sync with the remote repo
-
+            # PULL and PUSH are the only actions that happen online, where an actual sync with the remote repo happens
             # fetch and prune all branches in local repo
-            code = self.git_fetch(True)
+            self.git_fetch(True)
             self.sync_deletion()
             # delete local branches with with the remote tracking branches 'gone',
             self.cleanup_orphaned_local_branches()
-        if self.action == ACTION_PULL and self.force:
-            self.sync_pull()
-        elif self.action == ACTION_PUSH:
             self.sync_push()
         elif self.action == ACTION_DELETE:
             self.delete_local_branch(**kwargs)
         change_dir(start_dir)
-
-    def sync_pull(self):
-        # only consider branches of the remote repo with a tracking relationship
-        tracked_remotes = []
-        for branch in self.gitrepo.heads:
-            remote_branch = branch.tracking_branch()
-            if not remote_branch:
-                continue
-            expected_branch, repo = self.get_branch_name_and_repo_from_remote_path(str(remote_branch))
-            if repo != self.remote_reponame:
-                continue
-            tracked_remotes.append(remote_branch)
-            if expected_branch != str(branch):
-                print('Local branch {} and remote branch {} do not match. Skip'.format(branch, expected_branch))
-                continue
-            try:
-                branch.checkout()
-            except GitCommandError as err:
-                self.errors.append(
-                    GitErrorItem(self.local_path_short, err, str(branch))
-                )
-                print(str(err))
-                continue
-            git = self.gitrepo.git
-            print(branch)
-            # force pull of the remote repo
-            git.reset('--hard', str(remote_branch))
-            print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
-
-
-        # checkout a local branch for all remote refs not being tracked
-        # remote refs in the shape origin/feature/my-remote/
-        for remote_ref in self.remote_gitrepo.refs:
-            name, repo = self.get_branch_name_and_repo_from_remote_path(str(remote_ref))
-            if not remote_ref in tracked_remotes and not name == 'HEAD':
-                print('Set up local tracking branch for {}'.format(str(remote_ref)))
-                self.create_local_branch_from_remote(remote_ref)
-                # remote ref does not have a local tracking branch
-
-        # finally checkout master branch
-        if len(self.gitrepo.heads) > 0:
-            try:
-                self.gitrepo.heads.master.checkout()
-            except GitCommandError as err:
-                self.errors.append(
-                    GitErrorItem(self.local_path_short, err, 'master')
-                )
-                print(f"ERROR. Cannot checkout master branch: {str(err)}")
-                return
-        else:
-            message = 'No master branch available. Did you make an initial commit?'
-            error = GitSyncError(message)
-
-            self.errors.append(
-                GitErrorItem(self.local_path_short, error, 'master')
-            )
-            print(message)
-        print('')
 
     def delete_local_branch(self, **kwargs):
         path = kwargs.get('path', None)
@@ -195,25 +133,79 @@ class GitClientSync:
                 # remove last line
                 output = output[:output.rfind('\n')]
                 print(output)
-        # first merge with upstream branches
-        # this will only merge if no conflicts present
-        try:
-            self.remote_gitrepo.pull(rebase=True)
-        except Exception as err:
-            self.errors.append(
-                GitErrorItem(self.local_path_short, err, 'git pull --rebase')
-            )
-        # Finally push all branches with one command
-        try:
-            if self.force:
-                output = git.push(self.remote_gitrepo, porcelain=True, force=True, all=True)
             else:
-                output = git.push(self.remote_gitrepo, porcelain=True, all=True)
-            print(output)
-        except Exception as err:
+                print(branch)
+                try:
+                    branch.checkout()
+                except GitCommandError as err:
+                    self.errors.append(
+                        GitErrorItem(self.local_path_short, err, str(branch))
+                    )
+                    print(str(err))
+                    continue
+                # this branch tracks an upstream branch, we need to ensure that the remote branch and 
+                # the working branch are merged
+                if self.action == ACTION_PULL and self.force:
+                    # force pull of the remote repo
+                    git.reset('--hard', str(remote_branch))
+                    print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
+                    continue
+                # first merge with upstream branches
+                # this will only merge if no conflicts present
+                # Todo: first check if the upstream has changes, e.g. a differing commit 
+                try:
+                    self.remote_gitrepo.pull(rebase=True)
+                except GitCommandError as err:
+                    if "You have unstaged changes" in err.stderr:
+                        self.errors.append(
+                            GitErrorItem(self.local_path_short, err, str(branch))
+                        )
+                        print(str(err))
+                    else:
+                        # merge conflict needs to be resolved manually
+                        git.rebase('--abort')
+                        self.errors.append(
+                            GitErrorItem(self.local_path_short, err, str(branch))
+                        )
+                        print(str(err))
+                        continue
+                except Exception as err:
+                    self.errors.append(
+                        GitErrorItem(self.local_path_short, err, str(branch))
+                    )
+                    continue
+                    
+                # Finally push the branch
+                # Todo: check possibility of --force-with-lease
+                try:
+                    if self.force:
+                        output = git.push(self.remote_gitrepo, porcelain=True, force=True)
+                    else:
+                        output = git.push(self.remote_gitrepo, porcelain=True)
+                    print(output)
+                except Exception as err:
+                    self.errors.append(
+                        GitErrorItem(self.local_path_short, err, f"git push fails for {str(branch)}")
+                    )
+        
+        # finally checkout master branch
+        if len(self.gitrepo.heads) > 0:
+            try:
+                self.gitrepo.heads.master.checkout()
+            except GitCommandError as err:
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, 'master')
+                )
+                print(f"ERROR. Cannot checkout master branch: {str(err)}")
+                return
+        else:
+            message = 'No master branch available. Did you make an initial commit?'
+            error = GitSyncError(message)
+
             self.errors.append(
-                GitErrorItem(self.local_path_short, err, 'git push --all')
+                GitErrorItem(self.local_path_short, error, 'master')
             )
+            print(message)
         print('')
 
     def git_pull(self, git, branch):
