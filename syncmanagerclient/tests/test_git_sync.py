@@ -68,6 +68,7 @@ class GitClientSyncTest(unittest.TestCase):
         apply_sync_conf_files(test_dir, [others_conf_file_name], ACTION_PULL, False, '', ['git'])
         self.assertEqual(getattr(__class__.others_repo.heads, test_branch, None), None)
 
+
     def test_empty_sync(self):
         apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
         apply_sync_conf_files(test_dir, [others_conf_file_name], ACTION_PULL, False, '', ['git'])
