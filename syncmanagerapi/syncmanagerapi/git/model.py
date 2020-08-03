@@ -86,11 +86,11 @@ class GitRepo(db.Model):
         return '<GitRepo %r>' % self.repo_id
 
 
-class GitRepoSchema(ma.ModelSchema):
+class GitRepoSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = GitRepo
         sqla_session = db.session
-
+        include_relationships = True
     server_path_absolute = fields.String()
 
 
@@ -154,10 +154,11 @@ class UserGitReposAssoc(db.Model):
             .filter_by(user_id=_user_id).all()
 
 
-class UserGitReposAssocSchema(ma.ModelSchema):
+class UserGitReposAssocSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = UserGitReposAssoc
         sqla_session = db.session
+        include_relationships = True
 
 
 class UserGitReposAssocFullSchema(UserGitReposAssocSchema):
@@ -165,10 +166,11 @@ class UserGitReposAssocFullSchema(UserGitReposAssocSchema):
     client_envs = fields.Nested(ClientEnvSchema, default=[], many=True)
 
 
-class GitRepoFullSchema(ma.ModelSchema):
+class GitRepoFullSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = GitRepo
         sqla_session = db.session
+        include_relationships = True
 
     server_path_absolute = fields.String()
     userinfo = fields.Nested(UserGitReposAssocFullSchema, default=[], many=True)
