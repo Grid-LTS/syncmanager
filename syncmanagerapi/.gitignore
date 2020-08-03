@@ -17,5 +17,9 @@ dist/
 build/
 *.egg-info/
 
+# deploy artifacts
+syncmanagerapi.service
+
 # properties
 application.cfg
+

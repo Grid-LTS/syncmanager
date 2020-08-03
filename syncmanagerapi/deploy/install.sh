@@ -99,7 +99,8 @@ cd $PROJECT_DIR
 rm -rf build
 # remove old build artefacts
 rm -rf dist
-pip3 install --user pipenv
+python3 -m pip install --user pipenv
+pipenv --python $(python3 -c "print(__import__('sys').version.split(' ')[0])")
 pipenv install
 # in production we do need to set FLASK_ENV since the default is already 'production'
 

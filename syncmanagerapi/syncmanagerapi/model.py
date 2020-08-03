@@ -80,7 +80,8 @@ class ClientEnv(db.Model):
             .first()
 
 
-class ClientEnvSchema(ma.ModelSchema):
+class ClientEnvSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ClientEnv
         sqla_session = db.session
+        include_relationships = True
