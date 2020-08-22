@@ -47,6 +47,7 @@ class GitClientSync:
             # delete local branches with with the remote tracking branches 'gone',
             self.cleanup_orphaned_local_branches()
             self.sync_push()
+            # nothing to do for ACTION_PULL as the updates have been sync with FETCH
         elif self.action == ACTION_DELETE:
             self.delete_local_branch(**kwargs)
         change_dir(start_dir)
@@ -106,14 +107,6 @@ class GitClientSync:
             if remote_tracking and not remote_tracking in self.remote_gitrepo.refs:
                 print('Delete orphaned branch \'{0}\''.format(branch))
                 self.gitrepo.delete_head(branch)
-
-    def create_local_branch_from_remote(self, remote_branch):
-        local_branch, repo = self.get_branch_name_and_repo_from_remote_path(str(remote_branch))
-        if not str(repo) == str(self.remote_reponame):
-            return None
-        self.gitrepo.create_head(local_branch, remote_branch)  # create local branch from remote
-        if hasattr(self.gitrepo.heads, str(local_branch)):
-            getattr(self.gitrepo.heads, str(local_branch)).set_tracking_branch(remote_branch)
 
     def sync_push(self):
         git = self.gitrepo.git
@@ -282,11 +275,6 @@ class GitClientSync:
                 print('Remote repo could not be clone because of an error:\n')
                 return 1
         return 0
-
-    def get_branch_name_and_repo_from_remote_path(self, remote_branch):
-        remote_branch = remote_branch.strip()
-        parts = remote_branch.split('/')
-        return '/'.join(parts[1:]), parts[0]
 
     def consistency_check(self):
         url = next(self.remote_gitrepo.urls)
