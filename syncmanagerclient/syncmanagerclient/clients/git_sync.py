@@ -61,7 +61,7 @@ class GitClientSync:
         try:
             out = self.gitrepo.delete_head(path)
         except GitCommandError as e:
-            print('Branch cannot be deleted now, and will be deleted on next synchronization.')
+            print('Local branch cannot be deleted.')
             return
         if out:
             print(out)
