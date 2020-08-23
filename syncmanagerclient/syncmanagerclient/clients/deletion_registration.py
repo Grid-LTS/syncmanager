@@ -13,6 +13,7 @@ class DeletionRegistration:
         self.dir = kwargs.get('git_repo_path')
         self.configs = []
         self.mode = kwargs.get('mode', None)
+        self.local_branch_exists = False
 
     def get_mode(self):
         if os.path.isdir(self.dir + '/.git'):
@@ -20,9 +21,10 @@ class DeletionRegistration:
             self.gitrepo = Repo(self.dir)
             if not hasattr(self.gitrepo.heads, self.branch_path):
                 print('There is no local branch ' + self.branch_path)
-                self.mode = None
+                self.mode = 'git'
                 return
             self.mode = 'git'
+            self.local_branch_exists = True
             return
         # to be implemented: Unison check
 
@@ -36,9 +38,19 @@ class DeletionRegistration:
             # fetch url of origin
             if self.gitrepo.remotes:
                 for remote in self.gitrepo.remotes:
+                    remote_urls = []
+                    for remote_url in remote.urls:
+                        remote_urls.append(remote_url)
+                    if len(remote_urls) > 1:
+                        print(f"Multiple urls defined for this remote: {str(remote_urls)}. Skip")
+                        continue
+                    if len(remote_urls) == 0:
+                        print(f"No remote url defined. Skip")
+                        continue
+                    remote_url = remote_urls[0]
                     config = dict()
                     config['source'] = self.dir
-                    config['url'] = iter(remote.urls)
+                    config['url'] = remote_url
                     config['remote_repo'] = remote.name
                     self.configs.append(config)
         elif self.mode == 'unison':

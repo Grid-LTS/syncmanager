@@ -53,11 +53,15 @@ def register_local_branch_for_deletion(path, git_repo_path):
     if not len(configs) > 0:
         exit(1)
     config = configs[0]
-    client_factory = SyncClient(client, ACTION_DELETE)
-    client_instance = client_factory.get_instance()
-    client_instance.set_config(config, False)
-    # delete the local branches
-    client_instance.apply(path=path)
+    if delete_action.local_branch_exists:
+        client_factory = SyncClient(client, ACTION_DELETE)
+        client_instance = client_factory.get_instance()
+        client_instance.set_config(config, False)
+        # delete the local branches
+        client_instance.apply(path=path)
+    else:
+        print("Warning: you have not checked out this branch, but it will be completely wiped from "
+              "all machines on the next sync.")
 
 
 staging_envs = ['dev', 'tests', 'prod']
