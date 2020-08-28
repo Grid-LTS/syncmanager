@@ -1,4 +1,4 @@
 gitpython
 pathlib
 configparser
-jinja2
+Jinja2
