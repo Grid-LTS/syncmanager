@@ -106,7 +106,7 @@ class GitClientSync:
                 continue
             if remote_tracking and not remote_tracking in self.remote_gitrepo.refs:
                 print('Delete orphaned branch \'{0}\''.format(branch))
-                self.gitrepo.delete_head(branch)
+                self.gitrepo.delete_head(branch, "-D")
 
     def sync_push(self):
         git = self.gitrepo.git

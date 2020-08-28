@@ -37,7 +37,8 @@ setup(
 
     extras_require={
         'dev': [
-            'setuptools>=35.0.1'
+            'Jinja2',
+            'setuptools>=35.0.1',
             'wheel>=0.29.0'
         ],
         # 'tests': ['coverage'],

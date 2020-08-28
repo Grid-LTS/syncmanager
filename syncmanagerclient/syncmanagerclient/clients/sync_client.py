@@ -59,9 +59,7 @@ class SyncClient:
                 p_ns = pathlib.Path(self.namespace)
                 p = pathlib.Path(remote_repo['git_repo']['server_path_rel'])
                 p = pathlib.Path(*p.parts[1:])
-                try:
-                    rel_path = str(p.relative_to(*p_ns.parts))
-                except ValueError:
+                if not str(p).startswith(str(p_ns)):
                     continue
             config = {
                 'source': remote_repo['local_path_rel'],
