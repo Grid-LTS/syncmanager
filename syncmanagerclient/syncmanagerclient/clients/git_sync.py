@@ -88,7 +88,7 @@ class GitClientSync:
                 # Delete local working branch if still existing
                 out = self.gitrepo.delete_head(branch_path)
                 print(out)
-            del entries[index]
+            entries.remove(entry)
         if len(entries) > 0:
             deletion_registry.write_registry(self.remote_reponame, entries)
 
