@@ -117,16 +117,11 @@ def update_repo_for_clientenv(repo_id, client_env):
     auth = request.authorization
     user = User.user_by_username(auth['username'])
     data = request.get_json(force=True)
-    git_repo_entity = GitRepo.get_repo_by_id(repo_id)
-    # find the reference to git repo for this user
-    git_user_repo_assoc = None
-    for ind, user_info in enumerate(git_repo_entity.userinfo):
-        referenced_envs = [env.env_name for env in user_info.client_envs]
-        if client_env in referenced_envs:
-            git_user_repo_assoc = user_info
-            client_env_index = referenced_envs.index(client_env)
-            # existing reference found, abort lookup
-            break
+    git_repo_entity = GitRepo.get_repo_by_id_and_user_id(repo_id, user.id)
+    if not git_repo_entity:
+        message = f"The repo {repo_id} does not exist for your user."
+        raise InvalidRequest(message=message, field='repo_id', status_code=404)
+    git_user_repo_assoc = find_git_user_repo_assoc(git_repo_entity, client_env)
     if not git_user_repo_assoc:
         raise InvalidRequest(f"The repo is not referenced in the given environment {client_env}", 'client_env', 404)
     if 'server_path_rel' in data and data['server_path_rel']:
@@ -159,6 +154,46 @@ def update_repo_for_clientenv(repo_id, client_env):
     user_gitrepo_schema = GitRepoFullSchema(many=False)
     return user_gitrepo_schema.dump(git_repo_entity)
 
+def find_git_user_repo_assoc(git_repo_entity, client_env):
+    # find the reference to git repo for this user
+    git_user_repo_assoc = None
+    for ind, user_info in enumerate(git_repo_entity.userinfo):
+        referenced_envs = [env.env_name for env in user_info.client_envs]
+        if client_env in referenced_envs:
+            git_user_repo_assoc = user_info
+            client_env_index = referenced_envs.index(client_env)
+            # existing reference found, abort lookup
+            break
+    return git_user_repo_assoc
+
+def delete_repo(repo_id):
+    from .model import GitRepo
+    from ..model import User
+    from ..decorators import requires_auth
+    from ..database import db
+    requires_auth()
+    auth = request.authorization
+    user = User.user_by_username(auth['username'])
+    git_repo_entity = GitRepo.get_repo_by_id_and_user_id(repo_id, user.id)
+    if not git_repo_entity:
+        return
+    git_repo_entity.remove()
+
+def delete_repo_assoc_for_clientenv(repo_id, client_env):
+    from .model import GitRepo
+    from ..model import User
+    from ..decorators import requires_auth
+    requires_auth()
+    auth = request.authorization
+    user = User.user_by_username(auth['username'])
+    git_repo_entity = GitRepo.get_repo_by_id_and_user_id(repo_id, user.id)
+    if not git_repo_entity:
+        message = f"The repo {repo_id} does not exist for your user."
+        raise InvalidRequest(message=message, field='repo_id', status_code=404)
+    git_user_repo_assoc = find_git_user_repo_assoc(git_repo_entity, client_env)
+    if not git_user_repo_assoc:
+        return
+    git_user_repo_assoc.remove()
 
 def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):
     for user_info in user_infos:

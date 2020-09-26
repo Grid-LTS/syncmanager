@@ -31,7 +31,6 @@ def get_database_url(app):
             db_user=conf['DB_USER'], db_password=conf['DB_PASSWORD'], db_host=conf['DB_HOST'],
             db_schema=conf['DB_SCHEMA_NAME'])
 
-
 def get_database_connection(app):
     conf = app.config
     if app.env == 'development' or app.env == 'test':
@@ -39,6 +38,9 @@ def get_database_connection(app):
         path_to_db = get_sqlite_path(conf)
         db = sqlite3.connect(path_to_db)
         db_type = "sqlite"
+        cursor = db.cursor()
+        ret = cursor.execute("PRAGMA foreign_keys=ON;")
+        cursor.close()
     else:
         import MySQLdb
         db = MySQLdb.connect(host=conf['DB_HOST'], user=conf['DB_USER'],

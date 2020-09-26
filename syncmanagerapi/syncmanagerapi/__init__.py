@@ -37,8 +37,8 @@ def create_app(test_config=None):
     if app.env == "development" or app.env == "test":
         app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
-    app.config['BASIC_AUTH_FORCE'] = True
-
+    app.config["SQLALCHEMY_ECHO"] = True
+    
     with app.app_context():
         from .authentication import SyncBasicAuth
         basic_auth = SyncBasicAuth(app)

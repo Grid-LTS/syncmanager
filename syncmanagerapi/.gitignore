@@ -1,6 +1,4 @@
 venv/
-**/.env
-application.prod.cfg
 local
 tests/local
 
@@ -8,6 +6,11 @@ tests/local
 __pycache__/
 
 instance/
+
+# properties
+application.cfg
+**/.env
+application.prod.cfg
 
 .pytest_cache/
 .coverage
@@ -20,6 +23,5 @@ build/
 # deploy artifacts
 syncmanagerapi.service
 
-# properties
-application.cfg
+
 

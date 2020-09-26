@@ -98,6 +98,7 @@ python -m unittest tests/test_git_settings.py
 #### api server
 ```
 cd <project-root>/syncmanagerapi
+pipenv install --dev
 pipenv shell
 pytest tests
 ```
