@@ -46,6 +46,13 @@ def test_create_repo(client):
     fetched_created_repo = repo_list[0]
     assert fetched_created_repo['git_repo'] == repo_id
     assert fetched_created_repo['id'] == user_git_repo_id
+    # delete repo
+    delete_repo_url =  f"/api/git/repos/{repo_id}"
+    response = client.delete(delete_repo_url, headers=headers)
+    assert response.status_code == 204
+    repo_list_resp2 = client.get(get_clientenv_repos_url, headers=headers)
+    repo_list2 = repo_list_resp2.json
+    assert len(repo_list2) == 0
     
     
 @pytest.mark.dependency(depends=["test_create_repo"])

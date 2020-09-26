@@ -119,10 +119,11 @@ user_clientenv_gitrepo_table = db.Table('user_gitrepo_clientenv', db.Model.metad
 class UserGitReposAssoc(db.Model):
     __tablename__ = "user_git_repos"
     id = db.Column(db.String(36), primary_key=True)
-    user_id = db.Column(db.String(36), db.ForeignKey('user.id', ondelete='CASCADE'))
-    repo_id = db.Column(db.String(36), db.ForeignKey('git_repos.id', ondelete='CASCADE'))
+    user_id = db.Column(db.String(36), db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    repo_id = db.Column(db.String(36), db.ForeignKey('git_repos.id', ondelete='CASCADE'), nullable=False)
     local_path_rel = db.Column(db.Text(), nullable=False)
     remote_name = db.Column(db.String(100), nullable=False)  # name of remote
+    # Todo move this relationship to User entity as deletion might not work with every DB engine
     user = db.relationship(User, backref=db.backref("gitrepos", passive_deletes=True))
     client_envs = db.relationship(ClientEnv,
                                   secondary=user_clientenv_gitrepo_table)
@@ -170,7 +171,7 @@ class UserGitReposAssoc(db.Model):
             .filter_by(user_id=_user_id).all()
 
 # backreference so that there is a cascading on deletion
-GitRepo.userinfo = db.relationship(UserGitReposAssoc, cascade="all, delete", backref=db.backref("git_repo"), passive_deletes=True)
+GitRepo.userinfo = db.relationship(UserGitReposAssoc, cascade="all, delete", backref=db.backref("git_repo"))
 
 # Marshmallow schemas
 class UserGitReposAssocSchema(ma.SQLAlchemyAutoSchema):
