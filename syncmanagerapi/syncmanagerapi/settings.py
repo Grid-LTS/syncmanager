@@ -18,7 +18,10 @@ def import_entry_point(function_name):
 def get_properties_path(environment, _properties_dir=properties_dir):
     # first determine environment
     if environment == 'production':
-        return os.path.join(_properties_dir, 'application.cfg')
+        properties_path = os.path.join(_properties_dir, 'application.prod.cfg')
+        if os.path.isfile(properties_path):
+            return properties_path
+        return os.path.join(_properties_dir, 'application.prod.cfg')
     else:
         mappers = {
             'production': 'prod',

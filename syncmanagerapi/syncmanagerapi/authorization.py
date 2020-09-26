@@ -4,14 +4,16 @@ class Roles:
 
 
 class InvalidAuthorizationException(Exception):
-    status_code = 403
 
-    def __init__(self, message=''):
+    def __init__(self, status_code = 403, message=''):
         Exception.__init__(self)
+        self.status_code = status_code
         if message:
             self.message = message
-        else:
-            self.message = 'You are not authorized'
+            return
+        if status_code == 401:
+            self.message = 'You are not authenticated'
+        self.message = 'You are not authorized'
 
     def get_response_info(self):
         rv = dict()

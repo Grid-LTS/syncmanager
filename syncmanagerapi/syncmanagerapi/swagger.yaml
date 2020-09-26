@@ -77,12 +77,26 @@ paths:
       responses:
         200:
           description: "List of Git repositories"
+  /git/repos/{repo_id}:
+    delete:
+      operationId: syncmanagerapi.git.api.delete_repo
+      summary: "Deletes the server repository"
+      description: ""
+      parameters:
+      - name: repo_id
+        in: path
+        description: identifier for the server repository
+        type: string
+        required: true
+      responses:
+        204:
+          description: "server repo deleted"
   /git/repos/{repo_id}/{client_env}:
     put:
       operationId: "syncmanagerapi.git.api.update_repo_for_clientenv"
       tags:
       - "Git"
-      summary: "Updates the server repository"
+      summary: "Updates the client reference of server repository"
       description: ""
       parameters:
       - name: repo_id
@@ -92,16 +106,36 @@ paths:
         required: true
       - name: client_env
         in: path
-        description: env descriptor of the synchronization client
+        description: env descriptor of the synchronization environment
         type: string
         required: true
       responses:
         200:
           description: "Returns updated server repo reference"
+    delete:
+      operationId: syncmanagerapi.git.api.delete_repo_assoc_for_clientenv
+      tags:
+      - "Git"
+      summary: "Deletes the client reference of server repository"
+      description: ""
+      parameters:
+        - name: repo_id
+          in: path
+          description: identifier for the server repository
+          type: string
+          required: true
+        - name: client_env
+          in: path
+          description: env descriptor of the synchronization evironment
+          type: string
+          required: true
+      responses:
+        204:
+          description: "User git repo association deleted for the given environment"
       
   /admin/user:
     post:
-      operationId: "syncmanagerapi.admin.controller.create_standard_user"
+      operationId: syncmanagerapi.admin.controller.create_standard_user
       tags:
         - "Admin interface"
       summary: "Creates standard user syncing files."
