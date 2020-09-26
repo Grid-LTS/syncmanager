@@ -27,7 +27,15 @@ class GitClientSync:
         if code != 0:
             return
         self.gitrepo = Repo(self.local_path)
+        remotes = [remote.name for remote in self.gitrepo.remotes]
+        if not self.remote_reponame in remotes:
+            self.errors.append(
+                GitErrorItem(self.local_path_short, f"Remote repo {self.remote_reponame} is not defined. "
+                                                    f"Run 'set-remote' on this repo.", None)
+            )
+            return
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
+        
         self.consistency_check()
         # checkout master branch, this simply tests if the local workspace is in a good state
         if hasattr(self.gitrepo.heads, 'master'):
@@ -113,7 +121,8 @@ class GitClientSync:
         # find all local branches which do not have a upstream tracking branch
         for branch in self.gitrepo.heads:
             remote_branch = branch.tracking_branch()
-            if not remote_branch:
+            # check that the remote branch is in refs
+            if not remote_branch or not remote_branch in self.remote_gitrepo.refs:
                 print('Push new local branch \'{0}\' to repo.'.format(str(branch)))
                 # use git directly, second argument is refspec
                 output = git.push(self.remote_gitrepo, '{}:{}'.format(str(branch), str(branch)), porcelain=True)
@@ -144,6 +153,8 @@ class GitClientSync:
                     print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
                     continue
                 # first merge with upstream branches
+                # first check if there are tracking branches
+                
                 # this will only merge if no conflicts present
                 # Todo: first check if the upstream has changes, e.g. a differing commit 
                 try:
