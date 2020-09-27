@@ -21,7 +21,7 @@ def get_properties_path(environment, _properties_dir=properties_dir):
         properties_path = os.path.join(_properties_dir, 'application.prod.cfg')
         if os.path.isfile(properties_path):
             return properties_path
-        return os.path.join(_properties_dir, 'application.prod.cfg')
+        return os.path.join(_properties_dir, 'application.cfg')
     else:
         mappers = {
             'production': 'prod',

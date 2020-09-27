@@ -6,11 +6,11 @@
 ##### 1. Install as local package
 * this will provide you the syncmanager command
 ```
-pip3 install -e .[dev] --user
+python3 -m pip install -e .[dev] --user
 ```
 
 ##### 2. Install dependencies with Pipenv
-* you need to have pipenv installed `pip3 install --user pipenv`
+* you need to have pipenv installed `python3 -m pip install --user pipenv`
 * run
 ```
 pipenv install

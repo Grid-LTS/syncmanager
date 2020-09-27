@@ -38,6 +38,11 @@ if [ -z "$INSTALL_DIR" ]; then
     exit 1
 fi
 
+if [ -n "$PYTHONPATH" ]; then
+    echo "You have PYTHONPATH set. This will be disabled for the build."
+    unset PYTHONPATH
+fi
+
 create_user() {
     UNIX_USER=$1
     echo "Create unix user ${UNIX_USER}."
@@ -99,10 +104,17 @@ cd $PROJECT_DIR
 rm -rf build
 # remove old build artefacts
 rm -rf dist
+
 python3 -m pip install --user pipenv
+
+pipenv_path=$(pipenv --venv) 
+if [ -d $pipenv_path ]; then
+  rm -rf $pipenv_path
+fi
+
 pipenv --python $(python3 -c "print(__import__('sys').version.split(' ')[0])")
-pipenv install
-# in production we do need to set FLASK_ENV since the default is already 'production'
+pipenv sync
+# in production we do not need to set FLASK_ENV since the default is already 'production'
 
 echo ""
 pipenv run python setup.py bdist_wheel
