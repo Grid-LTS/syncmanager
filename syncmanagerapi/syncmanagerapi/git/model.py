@@ -53,6 +53,7 @@ class GitRepo(db.Model):
         return new_reference
 
     def remove(self):
+        GitRepoFs(self).delete_from_fs()
         db.session.delete(self)
         db.session.commit()
 
@@ -110,9 +111,11 @@ class GitRepoSchema(ma.SQLAlchemyAutoSchema):
 # an environment allows to fine-grainly select what data is synced on the client machine
 user_clientenv_gitrepo_table = db.Table('user_gitrepo_clientenv', db.Model.metadata,
                                         db.Column('user_gitrepo_assoc_id', db.String(36),
-                                                  db.ForeignKey('user_git_repos.id', ondelete='CASCADE'), nullable=False),
+                                                  db.ForeignKey('user_git_repos.id', ondelete='CASCADE'),
+                                                  nullable=False),
                                         db.Column('user_clientenv_id', db.String(36),
-                                                  db.ForeignKey('user_client_env.id', ondelete='CASCADE'), nullable=False)
+                                                  db.ForeignKey('user_client_env.id', ondelete='CASCADE'),
+                                                  nullable=False)
                                         )
 
 
@@ -153,12 +156,11 @@ class UserGitReposAssoc(db.Model):
     def remove(self):
         db.session.delete(self)
         db.session.commit()
-    
+
     @staticmethod
     def query_gitrepo_assoc_by_user_id_and_repo_id_and_local_path(_user_id, _repo_id, _local_path_rel):
         return UserGitReposAssoc.query.filter_by(user_id=_user_id, repo_id=_repo_id,
                                                  local_path_rel=_local_path_rel).first()
-    
 
     @staticmethod
     def get_user_repos_by_client_env_name(_user_id, _client_env_name):
@@ -170,8 +172,10 @@ class UserGitReposAssoc(db.Model):
         return UserGitReposAssoc.query.add_columns(ClientEnv.env_name).join(UserGitReposAssoc.client_envs) \
             .filter_by(user_id=_user_id).all()
 
+
 # backreference so that there is a cascading on deletion
 GitRepo.userinfo = db.relationship(UserGitReposAssoc, cascade="all, delete", backref=db.backref("git_repo"))
+
 
 # Marshmallow schemas
 class UserGitReposAssocSchema(ma.SQLAlchemyAutoSchema):

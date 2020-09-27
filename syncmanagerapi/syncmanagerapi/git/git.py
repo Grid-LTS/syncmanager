@@ -38,12 +38,19 @@ class GitRepoFs:
         target_path = GitRepoFs.get_bare_repo_fs_path(target_path_rel)
         if os.path.exists(target_path):
             raise FsConflictError('Upstream repository could not be moved', self.gitrepo_entity.server_path_rel,
-                                      target_path)
+                                  target_path)
         oldmask = os.umask(0o002)
         shutil.move(self.gitrepo_path, target_path)
         GitRepoFs.remove_empty_dir_tree_recursively(self.gitrepo_entity.server_path_rel)
         os.umask(oldmask)
         return True
+
+    def delete_from_fs(self):
+        if not os.path.exists(self.gitrepo_path):
+            print(f"Upstream repository at {self.gitrepo_path} was removed")
+            return
+        shutil.rmtree(self.gitrepo_path)
+        GitRepoFs.remove_empty_dir_tree_recursively(self.gitrepo_entity.server_path_rel)
 
     @staticmethod
     def remove_first_path_part(path):
@@ -63,6 +70,7 @@ class GitRepoFs:
     @staticmethod
     def remove_empty_dir_tree_recursively(dir_path):
         p = pathlib.Path(dir_path)
+        # by design the depth of a repo is at minimum 2, we keep all files at depth 1 
         if len(p.parts) < 2:
             return None
         absolute_path = GitRepoFs.get_bare_repo_fs_path(dir_path)
@@ -72,4 +80,3 @@ class GitRepoFs:
                 return None
             os.rmdir(absolute_path)
         GitRepoFs.remove_empty_dir_tree_recursively(GitRepoFs.remove_last_path_part(dir_path))
-
