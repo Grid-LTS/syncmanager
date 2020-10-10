@@ -6,6 +6,8 @@ from .error import GitSyncError, GitErrorItem
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 
+PRINCIPAL_BRANCHES = ['master','main']
+
 
 class GitClientSync:
     def __init__(self, action):
@@ -19,6 +21,7 @@ class GitClientSync:
         self.remote_reponame = config.get('remote_repo', None)
         self.remote_path = config.get('url', None)
         self.settings = config.get('settings', None)
+        self.principal_branch = None
         self.force = force
 
     def apply(self, **kwargs):
@@ -37,15 +40,19 @@ class GitClientSync:
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
         
         self.consistency_check()
-        # checkout master branch, this simply tests if the local workspace is in a good state
-        if hasattr(self.gitrepo.heads, 'master'):
+        # checkout principal branch, this simply tests if the local workspace is in a good state
+        for branch in PRINCIPAL_BRANCHES:
+            if hasattr(self.gitrepo.heads, branch):
+                self.principal_branch = branch
+                break
+        if self.principal_branch:
             try:
-                self.gitrepo.heads.master.checkout()
+                getattr(self.gitrepo.heads, self.principal_branch).checkout()
             except GitCommandError as err:
                 self.errors.append(
-                    GitErrorItem(self.local_path_short, err, 'master')
+                    GitErrorItem(self.local_path_short, err,  self.principal_branch)
                 )
-                print(f"ERROR. Cannot checkout master branch: {str(err)}")
+                print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
                 return
         if self.action == ACTION_PULL or self.action == ACTION_PUSH:
             # PULL and PUSH are the only actions that happen online, where an actual sync with the remote repo happens
@@ -103,8 +110,8 @@ class GitClientSync:
     def cleanup_orphaned_local_branches(self):
         # get all branches that have a remote tracking branch, that is not part of the remote refs anymore
         for branch in self.gitrepo.heads:
-            # do not delete master
-            if str(branch) == 'master' or str(branch) == 'HEAD':
+            # do not delete principal branch
+            if str(branch) == self.principal_branch or str(branch) == 'HEAD':
                 continue
             remote_tracking = branch.tracking_branch()
             parts = str(remote_tracking).split('/')
@@ -192,22 +199,22 @@ class GitClientSync:
                         GitErrorItem(self.local_path_short, err, f"git push fails for {str(branch)}")
                     )
         
-        # finally checkout master branch
-        if len(self.gitrepo.heads) > 0:
+        # finally checkout principal branch
+        if len(self.gitrepo.heads) > 0 and  self.principal_branch:
             try:
-                self.gitrepo.heads.master.checkout()
+                getattr(self.gitrepo.heads, self.principal_branch).checkout()
             except GitCommandError as err:
                 self.errors.append(
-                    GitErrorItem(self.local_path_short, err, 'master')
+                    GitErrorItem(self.local_path_short, err,  self.principal_branch)
                 )
-                print(f"ERROR. Cannot checkout master branch: {str(err)}")
+                print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
                 return
         else:
-            message = 'No master branch available. Did you make an initial commit?'
+            message = 'No principal branch available. Did you make an initial commit?'
             error = GitSyncError(message)
 
             self.errors.append(
-                GitErrorItem(self.local_path_short, error, 'master')
+                GitErrorItem(self.local_path_short, error, 'master or main')
             )
             print(message)
         print('')
@@ -274,7 +281,7 @@ class GitClientSync:
                 return ret_code
             # clone git repo
             try:
-                repo = Repo.clone_from(self.remote_path, self.local_path, branch='master')
+                repo = Repo.clone_from(self.remote_path, self.local_path)
                 print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_reponame, self.local_path))
             except GitCommandError as err:
                 repo = None
