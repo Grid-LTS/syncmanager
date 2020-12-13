@@ -6,8 +6,8 @@ from .error import GitSyncError, GitErrorItem
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 
-PRINCIPAL_BRANCHES = ['master','main']
-
+PRINCIPAL_BRANCH_MAIN = 'main'
+PRINCIPAL_BRANCH_MASTER = 'master'
 
 class GitClientSync:
     def __init__(self, action):
@@ -41,10 +41,10 @@ class GitClientSync:
         
         self.consistency_check()
         # checkout principal branch, this simply tests if the local workspace is in a good state
-        for branch in PRINCIPAL_BRANCHES:
-            if hasattr(self.gitrepo.heads, branch):
-                self.principal_branch = branch
-                break
+        if hasattr(self.gitrepo.heads, PRINCIPAL_BRANCH_MAIN):
+            self.principal_branch = PRINCIPAL_BRANCH_MAIN
+        elif hasattr(self.gitrepo.heads, PRINCIPAL_BRANCH_MASTER):
+            self.principal_branch = PRINCIPAL_BRANCH_MASTER
         if self.principal_branch:
             try:
                 getattr(self.gitrepo.heads, self.principal_branch).checkout()
