@@ -167,7 +167,13 @@ class GitClientSync:
                 try:
                     self.remote_gitrepo.pull(rebase=True)
                 except GitCommandError as err:
-                    if "You have unstaged changes" in err.stderr:
+                    unstaged_uncommitted = ["unstaged changes", "uncommitted changes"]
+                    has_diff = False
+                    for mes in unstaged_uncommitted:
+                        if mes in err.stderr:
+                            has_diff = True
+
+                    if has_diff:
                         self.errors.append(
                             GitErrorItem(self.local_path_short, err, str(branch))
                         )
