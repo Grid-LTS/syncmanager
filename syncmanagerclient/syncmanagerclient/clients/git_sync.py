@@ -74,9 +74,9 @@ class GitClientSync:
             exit(1)
         print('Deleting branch {}.'.format(path))
         try:
-            out = self.gitrepo.delete_head(path)
+            out = self.gitrepo.delete_head(path, force=True)
         except GitCommandError as e:
-            print('Local branch cannot be deleted.')
+            print(f"Local branch cannot be deleted: {e}")
             return
         if out:
             print(out)
