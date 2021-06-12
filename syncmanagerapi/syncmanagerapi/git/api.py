@@ -122,6 +122,8 @@ def update_repo_for_clientenv(repo_id, client_env):
         message = f"The repo {repo_id} does not exist for your user."
         raise InvalidRequest(message=message, field='repo_id', status_code=404)
     git_user_repo_assoc = find_git_user_repo_assoc(git_repo_entity, client_env)
+    referenced_envs = [env.env_name for env in git_user_repo_assoc.client_envs]
+    client_env_index = referenced_envs.index(client_env)
     if not git_user_repo_assoc:
         raise InvalidRequest(f"The repo is not referenced in the given environment {client_env}", 'client_env', 404)
     if 'server_path_rel' in data and data['server_path_rel']:
@@ -161,7 +163,6 @@ def find_git_user_repo_assoc(git_repo_entity, client_env):
         referenced_envs = [env.env_name for env in user_info.client_envs]
         if client_env in referenced_envs:
             git_user_repo_assoc = user_info
-            client_env_index = referenced_envs.index(client_env)
             # existing reference found, abort lookup
             break
     return git_user_repo_assoc
@@ -246,3 +247,18 @@ def get_user():
     requires_auth()
     auth = request.authorization
     return User.user_by_username(auth['username'])
+
+# TODO: enrich class with logic 
+class GitRepoUpdate:
+    
+    git_repo_dao = None
+    
+    def __init__(self, repo_id, user, GitRepo):
+        self.user = user
+        self.repo_id = repo_id
+        self.git_repo = None
+        __class__.git_repo_dao = GitRepo
+    
+    def load_repo(self):
+        self.git_repo_entity = __class__.git_repo_dao.get_repo_by_id_and_user_id(self.repo_id, self.user.id) 
+    
