@@ -1,5 +1,5 @@
 import argparse
-import os
+import os, sys
 from os.path import dirname
 
 import syncmanagerclient.util.globalproperties as globalproperties
@@ -49,6 +49,9 @@ def register_local_branch_for_deletion(path, git_repo_path):
     delete_action = DeletionRegistration(branch_path=path, git_repo_path=git_repo_path)
     delete_action.register_path()
     client = delete_action.mode
+    if not client:
+        print("Cannot determine sync client.", file=sys.stderr)
+        exit(1)
     configs = delete_action.configs
     if not len(configs) > 0:
         exit(1)
