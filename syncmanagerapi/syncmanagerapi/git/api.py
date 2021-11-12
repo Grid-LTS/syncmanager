@@ -171,7 +171,6 @@ def delete_repo(repo_id):
     from .model import GitRepo
     from ..model import User
     from ..decorators import requires_auth
-    from ..database import db
     requires_auth()
     auth = request.authorization
     user = User.user_by_username(auth['username'])
