@@ -9,6 +9,7 @@ from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 PRINCIPAL_BRANCH_MAIN = 'main'
 PRINCIPAL_BRANCH_MASTER = 'master'
 
+
 class GitClientSync:
     def __init__(self, action):
         self.action = action
@@ -38,7 +39,7 @@ class GitClientSync:
             )
             return
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
-        
+
         self.consistency_check()
         # checkout principal branch, this simply tests if the local workspace is in a good state
         if hasattr(self.gitrepo.heads, PRINCIPAL_BRANCH_MAIN):
@@ -50,7 +51,7 @@ class GitClientSync:
                 getattr(self.gitrepo.heads, self.principal_branch).checkout()
             except GitCommandError as err:
                 self.errors.append(
-                    GitErrorItem(self.local_path_short, err,  self.principal_branch)
+                    GitErrorItem(self.local_path_short, err, self.principal_branch)
                 )
                 print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
                 return
@@ -95,7 +96,22 @@ class GitClientSync:
             remote_branches = [r.name for r in self.remote_gitrepo.refs]
             if branch_path_full in remote_branches:
                 print('Branch {} is deleted in remote repository {}'.format(branch_path_full, self.remote_reponame))
-                git.push(self.remote_gitrepo, '--delete', str(branch_path), porcelain=True)
+                if branch_path == PRINCIPAL_BRANCH_MAIN:
+                    print(f"Branch {PRINCIPAL_BRANCH_MAIN} cannot be deleted")
+                    continue
+                if branch_path == PRINCIPAL_BRANCH_MASTER:
+                    main_branch = getattr(self.gitrepo.heads, PRINCIPAL_BRANCH_MAIN)
+                    if not main_branch:
+                        # create main branch
+                        self.gitrepo.git.checkout('-b', PRINCIPAL_BRANCH_MAIN)
+                        self.principal_branch = PRINCIPAL_BRANCH_MAIN
+                        git.push(self.remote_gitrepo, '{}:{}'.format(PRINCIPAL_BRANCH_MAIN, PRINCIPAL_BRANCH_MAIN),
+                                 porcelain=True)
+                    self.gitrepo.git.remote('set-head', self.remote_reponame, self.principal_branch)
+                try:
+                    git.push(self.remote_gitrepo, '--delete', str(branch_path), porcelain=True)
+                except GitCommandError:
+                    print(f"Cannot delete {branch_path} on remote. Is it set as default in remote repo?")
             else:
                 print('Branch {} was already removed in remote repository {}'.format(branch_path_full,
                                                                                      self.remote_reponame))
@@ -161,7 +177,7 @@ class GitClientSync:
                     continue
                 # first merge with upstream branches
                 # first check if there are tracking branches
-                
+
                 # this will only merge if no conflicts present
                 # Todo: first check if the upstream has changes, e.g. a differing commit 
                 try:
@@ -191,7 +207,7 @@ class GitClientSync:
                         GitErrorItem(self.local_path_short, err, str(branch))
                     )
                     continue
-                    
+
                 # Finally push the branch
                 # Todo: check possibility of --force-with-lease
                 try:
@@ -204,14 +220,14 @@ class GitClientSync:
                     self.errors.append(
                         GitErrorItem(self.local_path_short, err, f"git push fails for {str(branch)}")
                     )
-        
+
         # finally checkout principal branch
-        if len(self.gitrepo.heads) > 0 and  self.principal_branch:
+        if len(self.gitrepo.heads) > 0 and self.principal_branch:
             try:
                 getattr(self.gitrepo.heads, self.principal_branch).checkout()
             except GitCommandError as err:
                 self.errors.append(
-                    GitErrorItem(self.local_path_short, err,  self.principal_branch)
+                    GitErrorItem(self.local_path_short, err, self.principal_branch)
                 )
                 print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
                 return
@@ -307,4 +323,3 @@ class GitClientSync:
             print(f"The Git url: {url}")
             print(f"Server url: {self.remote_path}")
             self.remote_gitrepo.set_url(self.remote_path)
-                
