@@ -42,9 +42,10 @@ class GitClientSync:
 
         self.consistency_check()
         # checkout principal branch, this simply tests if the local workspace is in a good state
-        if hasattr(self.gitrepo.heads, PRINCIPAL_BRANCH_MAIN):
+        try:
+            self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MAIN)
             self.principal_branch = PRINCIPAL_BRANCH_MAIN
-        elif hasattr(self.gitrepo.heads, PRINCIPAL_BRANCH_MASTER):
+        except GitCommandError as err:
             self.principal_branch = PRINCIPAL_BRANCH_MASTER
         if self.principal_branch:
             try:
