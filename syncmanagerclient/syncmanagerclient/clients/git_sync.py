@@ -41,21 +41,35 @@ class GitClientSync:
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
 
         self.consistency_check()
+        git = self.gitrepo.git
+        if len(self.gitrepo.heads) == 0:
+            # this can be the case if the local repo was cloned from an empty remote repo
+            # pull in remote repo first
+            try:
+                remote_branch = getattr(self.remote_gitrepo.refs, str(self.gitrepo.active_branch.name))
+            except AttributeError:
+                print("Cannot sync since there is no remote branch")
+                return
+            self.gitrepo.active_branch.set_tracking_branch(remote_branch)
+            out = git.pull(self.remote_reponame, with_stdout=True)
+            print(out)
+
         # checkout principal branch, this simply tests if the local workspace is in a good state
         try:
             self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MAIN)
             self.principal_branch = PRINCIPAL_BRANCH_MAIN
-        except GitCommandError as err:
+        except GitCommandError:
             self.principal_branch = PRINCIPAL_BRANCH_MASTER
         if self.principal_branch:
-            try:
-                getattr(self.gitrepo.heads, self.principal_branch).checkout()
-            except GitCommandError as err:
-                self.errors.append(
-                    GitErrorItem(self.local_path_short, err, self.principal_branch)
-                )
-                print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
-                return
+            if self.gitrepo.active_branch.name != self.principal_branch:
+                try:
+                    getattr(self.gitrepo.heads, self.principal_branch).checkout()
+                except GitCommandError as err:
+                    self.errors.append(
+                        GitErrorItem(self.local_path_short, err, self.principal_branch)
+                    )
+                    print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
+                    return
         if self.action == ACTION_PULL or self.action == ACTION_PUSH:
             # PULL and PUSH are the only actions that happen online, where an actual sync with the remote repo happens
             # fetch and prune all branches in local repo
@@ -177,8 +191,6 @@ class GitClientSync:
                     print('Force reset of local branch \'{0}\' to remote ref.'.format(str(branch)))
                     continue
                 # first merge with upstream branches
-                # first check if there are tracking branches
-
                 # this will only merge if no conflicts present
                 # Todo: first check if the upstream has changes, e.g. a differing commit 
                 try:
@@ -221,7 +233,6 @@ class GitClientSync:
                     self.errors.append(
                         GitErrorItem(self.local_path_short, err, f"git push fails for {str(branch)}")
                     )
-
         # finally checkout principal branch
         if len(self.gitrepo.heads) > 0 and self.principal_branch:
             try:
