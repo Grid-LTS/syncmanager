@@ -9,7 +9,6 @@ from .settings import properties_dir
 
 def init_schema():
     # import all the models
-    from .git import model
     db.create_all()
 
 
