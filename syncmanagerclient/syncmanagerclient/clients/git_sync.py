@@ -41,19 +41,11 @@ class GitClientSync:
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
 
         self.consistency_check()
-        git = self.gitrepo.git
+
         if len(self.gitrepo.heads) == 0:
             # this can be the case if the local repo was cloned from an empty remote repo
             # pull in remote repo first
-            try:
-                remote_branch = getattr(self.remote_gitrepo.refs, str(self.gitrepo.active_branch.name))
-            except AttributeError:
-                print("Cannot sync since there is no remote branch")
-                return
-            self.gitrepo.active_branch.set_tracking_branch(remote_branch)
-            out = git.pull(self.remote_reponame, with_stdout=True)
-            print(out)
-
+            self.git_fetch(True)
         # checkout principal branch, this simply tests if the local workspace is in a good state
         try:
             self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MAIN)
@@ -69,7 +61,11 @@ class GitClientSync:
                         GitErrorItem(self.local_path_short, err, self.principal_branch)
                     )
                     print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
+                    self.initial_pull()
                     return
+            self.initial_pull()
+
+
         if self.action == ACTION_PULL or self.action == ACTION_PUSH:
             # PULL and PUSH are the only actions that happen online, where an actual sync with the remote repo happens
             # fetch and prune all branches in local repo
@@ -82,6 +78,25 @@ class GitClientSync:
         elif self.action == ACTION_DELETE:
             self.delete_local_branch(**kwargs)
         change_dir(start_dir)
+
+    def initial_pull(self):
+        git = self.gitrepo.git
+        try:
+            remote_branch = getattr(self.remote_gitrepo.refs, str(self.gitrepo.active_branch.name))
+        except AttributeError:
+            print("Cannot sync since there is no remote branch")
+            return
+        self.gitrepo.active_branch.set_tracking_branch(remote_branch)
+        try:
+            out = git.pull(self.remote_reponame, with_stdout=True, ff_only=True)
+        except GitCommandError as err:
+            self.errors.append(
+                GitErrorItem(self.local_path_short, err, self.principal_branch)
+            )
+            print(f"ERROR. Cannot pull {self.principal_branch}: {str(err)}")
+            return
+        print(out)
+
 
     def delete_local_branch(self, **kwargs):
         path = kwargs.get('path', None)
