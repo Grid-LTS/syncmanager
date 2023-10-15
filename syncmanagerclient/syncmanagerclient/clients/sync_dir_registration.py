@@ -2,20 +2,21 @@ import os
 import os.path as osp
 
 import pathlib
+from pathlib import PurePosixPath
 from git import Repo
 
 from .api import ApiService
 import syncmanagerclient.util.globalproperties as globalproperties
+import syncmanagerclient.util.system as system
 
 
 class SyncDirRegistration:
     mode = None
 
     def __init__(self, local_path, sync_env):
-        home_dir = osp.expanduser('~')
         self.local_path = local_path
-        if osp.commonprefix([local_path, home_dir]) == home_dir:
-            self.local_path_short = '~/' + osp.relpath(local_path, home_dir)
+        if osp.commonprefix([local_path, system.home_dir]) == system.home_dir:
+            self.local_path_short = '~/' + osp.relpath(local_path, system.home_dir)
         else:
             self.local_path_short = local_path
         self.gitrepo = None
@@ -28,7 +29,7 @@ class SyncDirRegistration:
         self.server_path_rels_of_other_repo = []
 
     def get_mode(self):
-        if os.path.isdir(self.local_path + '/.git'):
+        if os.path.isdir(osp.join(self.local_path, '.git')):
             # first check if this branch exists
             self.gitrepo = Repo(self.local_path)
             return 'git'

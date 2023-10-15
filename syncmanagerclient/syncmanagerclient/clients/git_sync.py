@@ -301,7 +301,7 @@ class GitClientSync:
         # first check if the local repo exists and is a git working space
         repo_exists = os.path.isdir(self.local_path)
         print('Change to Git project \'{0}\'.'.format(self.local_path_short))
-        if os.path.isdir(self.local_path + '/.git'):
+        if os.path.isdir(os.path.join(self.local_path, '.git')):
             ret_val = change_dir(self.local_path)
             if ret_val != 0:
                 print('Cannot change to repository \'{0}\'.'.format(self.local_path))
@@ -319,12 +319,8 @@ class GitClientSync:
             parent_dir = os.path.dirname(self.local_path)
             ret_code = 0
             if not os.path.isdir(parent_dir):
-                make_dir = ['mkdir', '-p', parent_dir]
-                ret_code, error = run(make_dir, False)
-            if ret_code == 0:
+                os.makedirs(parent_dir)
                 ret_code = change_dir(parent_dir)
-            else:
-                return ret_code
             if ret_code != 0:
                 print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code

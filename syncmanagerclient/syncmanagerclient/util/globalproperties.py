@@ -50,7 +50,7 @@ def read_config(stage):
 
     # determine sync environment
     if not os.environ.get('SYNC_ENV', None) and not config['config'].get('SYNC_ENV', None):
-        print("Please specify the environment with --env option or as SYNC_ENV in properties file. Using 'defualt")
+        print("Please specify the environment with --env option or as SYNC_ENV in properties file. Using 'default'")
         config['config'].set('SYNC_ENV', 'default')
     sync_env = config['config'].get('SYNC_ENV', None)
     if not sync_env:

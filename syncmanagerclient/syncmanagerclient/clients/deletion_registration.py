@@ -16,7 +16,7 @@ class DeletionRegistration:
         self.local_branch_exists = False
 
     def get_mode(self):
-        if os.path.isdir(self.dir + '/.git'):
+        if os.path.isdir(os.path.join(self.dir, '.git')):
             # first check if this branch exists
             self.gitrepo = Repo(self.dir)
             if not hasattr(self.gitrepo.heads, self.branch_path):

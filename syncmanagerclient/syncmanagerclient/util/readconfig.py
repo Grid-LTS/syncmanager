@@ -2,7 +2,7 @@ import re
 
 
 class ConfigParser:
-    
+
     def __init__(self, path):
         self.config = {}
         self.mode = None
@@ -13,7 +13,7 @@ class ConfigParser:
         parse a config file and yields the config
         :return: dict
         """
-        conffile = open(self.path, 'r') 
+        conffile = open(self.path, 'r')
         for line in conffile:
             line = line.strip()
             source, url, rest = parse_line(line)
@@ -51,7 +51,7 @@ class ConfigParser:
         conffile.close()
 
     def parse_remote_repo_descriptor(self, url):
-        parts = re.split('\|', url, maxsplit=1)
+        parts = re.split("\|", url, maxsplit=1)
         if len(parts) == 1:
             repo_name = 'origin'
             repo_url = url

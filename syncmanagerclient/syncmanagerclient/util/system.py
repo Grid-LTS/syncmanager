@@ -1,6 +1,9 @@
-import subprocess, os
+import subprocess
+import os
+import pathlib
+from pathlib import PurePosixPath
 
-
+home_dir = os.path.expanduser('~')
 def run(command, listen=False, *args, **kwargs):
     """
     Run a shell command with Popen, args & kwargs will be passed
@@ -21,9 +24,11 @@ def run(command, listen=False, *args, **kwargs):
 
 
 def sanitize_path(path):
-    if path.startswith('~'):
-        home_directory_path = os.environ.get('HOME', None)
-        path = path.replace('~', home_directory_path)
+    posix = PurePosixPath(path)
+    parts = list(posix.parts)
+    if parts[0] == '~':
+        parts[0] = home_dir
+    path = pathlib.Path(*parts).absolute()
     return path
 
 
