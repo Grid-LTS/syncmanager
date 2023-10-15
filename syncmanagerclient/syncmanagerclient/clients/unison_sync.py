@@ -4,9 +4,8 @@ from jinja2 import Environment, FileSystemLoader
 from ..util import system
 import syncmanagerclient.util.globalproperties as globalproperties
 
-
 class UnisonClientSync:
-    unison_dir = os.path.join(os.environ['HOME'], '.unison')
+    unison_dir = os.path.join(system.home_dir, '.unison')
 
     def __init__(self, action):
         self.action = action
