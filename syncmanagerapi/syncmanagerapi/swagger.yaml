@@ -134,6 +134,14 @@ paths:
           description: "User git repo association deleted for the given environment"
       
   /admin/user:
+    get:
+      operationId: syncmanagerapi.admin.controller.get_standard_users
+      tags:
+        - "Admin interface"
+      summary: "Return standard users for syncing files."
+      responses:
+        200:
+          description: "List of standard users"
     post:
       operationId: syncmanagerapi.admin.controller.create_standard_user
       tags:

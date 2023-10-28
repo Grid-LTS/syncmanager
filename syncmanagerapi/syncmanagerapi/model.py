@@ -25,6 +25,10 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     @staticmethod
+    def all_users():
+        return User.query.all()
+
+    @staticmethod
     def user_by_username(_username):
         return User.query.filter_by(username=_username).first()
 
@@ -83,5 +87,11 @@ class ClientEnv(db.Model):
 class ClientEnvSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ClientEnv
+        sqla_session = db.session
+        include_relationships = True
+
+class UserSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = User
         sqla_session = db.session
         include_relationships = True
