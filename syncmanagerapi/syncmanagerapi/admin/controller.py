@@ -1,7 +1,15 @@
-from flask import current_app, request, Response, json
+from flask import request, make_response, jsonify, json
 
 from ..authorization import Roles
 
+def get_standard_users():
+    from ..model import User, UserSchema
+    # check that user has ADMIN privileges
+    from ..decorators import requires_auth_roles
+    requires_auth_roles(Roles.ADMIN)
+    resp_data = User.all_users()
+    schema = UserSchema(many=True)
+    return make_response(jsonify(schema.dump(resp_data)), 200)
 
 def create_standard_user():
     from ..error import InvalidRequest
@@ -22,4 +30,4 @@ def create_standard_user():
     User.add_user(_username=username, _password=password, _role=Roles.DEFAULT)
     resp_data = dict()
     resp_data['password'] = password
-    return Response(response=json.dumps(resp_data), status=200, mimetype='application/json')
+    return make_response(json.dumps(resp_data), 200)

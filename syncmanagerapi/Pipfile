@@ -11,9 +11,13 @@ pytest-dependency = "*"
 gunicorn = "*"
 wheel = "*"
 jinja2 = "*"
-connexion = {extras = ["swagger-ui"],version = "*"}
+connexion = {extras = ["swagger-ui"],version = ">=2.14.2"}
 syncmanagerapi = {editable = true,path = "."}
-flask-marshmallow = "*"
+flask = "<=2.1.4"
+# version 2.2.x possibly has a bug
+SQLalchemy = "<=1.4"
+# upgrade when Flask version > 2.3.x
+flask-marshmallow = "==0.14.0"
 marshmallow-sqlalchemy = "*"
 marshmallow = ">=3.0.0"
 mysqlclient = ">=1.4.6"

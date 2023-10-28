@@ -47,12 +47,16 @@ def get_database_connection(app):
         db_type = "mysql"
     return db, db_type
 
+def setup_context(current_app):
+    with current_app.app_context():
+        current_app.config["SQLALCHEMY_DATABASE_URI"] = get_database_url(current_app)
+        current_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+        db = SQLAlchemy(current_app)
+        # Initialize Marshmallow
+        ma = Marshmallow(current_app)
+    return db, ma
 
-current_app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url(current_app)
-db = SQLAlchemy(current_app)
-# Initialize Marshmallow
-ma = Marshmallow(current_app)
-
+db, ma = setup_context(current_app)
 
 def reset_db_connection():
     global current_app
