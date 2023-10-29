@@ -1,6 +1,6 @@
 import os
 from git import Repo, GitCommandError
-from ..util.system import run, change_dir, sanitize_path
+from ..util.system import change_dir, sanitize_path
 from .deletion_registration import DeletionRegistration
 from .error import GitSyncError, GitErrorItem
 

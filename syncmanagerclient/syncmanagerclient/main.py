@@ -1,6 +1,7 @@
 import argparse
 import os, sys
 from os.path import dirname
+from pathlib import Path
 
 import syncmanagerclient.util.globalproperties as globalproperties
 
@@ -175,7 +176,7 @@ def main():
     # elif args.action in ACTION_SET_CONF_ALIASES:
     #    action = ACTION_SET_CONF
     elif args.action in ACTION_SET_REMOTE_ALIASES:
-        local_path = os.getcwd()
+        local_path = Path(os.getcwd())
         new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env)
         new_sync_dir.register()
         exit(0)
