@@ -57,7 +57,10 @@ class SyncDirRegistration:
 
     def register(self):
         existing_repos_all = self.api_service.list_repos_all_client_envs(full=True)
-        existing_repos_env = existing_repos_all[self.sync_env]
+        if not existing_repos_all:
+            existing_repos_env = []
+        else:
+            existing_repos_env = existing_repos_all[self.sync_env]
         print(f"{self.sync_env}:")
         for repo_ref in existing_repos_env:
             print(f"{self.remove_first_path_part(repo_ref['git_repo']['server_path_rel'])}")
