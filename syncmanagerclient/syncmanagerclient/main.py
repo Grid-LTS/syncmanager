@@ -14,7 +14,7 @@ from .clients.sync_dir_registration import SyncDirRegistration
 from .clients.sync_env_registration import SyncEnvRegistration
 
 
-def init_global_properties(_stage='dev'):
+def init_global_properties(_stage='dev', _org=''):
     if os.environ.get('SYNCMANAGER_STAGE'):
         stage = os.environ.get('SYNCMANAGER_STAGE')
     else:
@@ -22,7 +22,7 @@ def init_global_properties(_stage='dev'):
     # initialize global properties
     properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
     globalproperties.set_prefix(properties_path_prefix)
-    globalproperties.read_config(stage)
+    globalproperties.read_config(stage, _org)
 
 
 def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enabled):
@@ -151,6 +151,8 @@ def main():
                              "$SYNC_ENV or in the properties file.")
     parser.add_argument("--stage", choices=staging_envs, default="prod",
                         help="Specify staging environment to be used.")
+    parser.add_argument("-o","--org", default="",
+                        help="Specifies organization to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
@@ -160,7 +162,7 @@ def main():
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
     args = parser.parse_args()
-    init_global_properties(args.stage)
+    init_global_properties(args.stage, args.org)
     # determine the environment which is synced
     if args.env:
         sync_env = args.env
