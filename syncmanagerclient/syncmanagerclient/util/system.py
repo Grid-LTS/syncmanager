@@ -1,7 +1,7 @@
 import subprocess
 import os
 import pathlib
-from pathlib import PurePosixPath
+from pathlib import PurePosixPath, Path
 
 home_dir = os.path.expanduser('~')
 def run(command, listen=False, *args, **kwargs):
@@ -24,12 +24,14 @@ def run(command, listen=False, *args, **kwargs):
 
 
 def sanitize_path(path):
+    if isinstance(path, Path):
+        return path
     posix = PurePosixPath(path)
     parts = list(posix.parts)
     if parts[0] == '~':
         parts[0] = home_dir
-    path = pathlib.Path(*parts).absolute()
-    return path
+    ret_path = pathlib.Path(*parts)
+    return ret_path
 
 
 def change_dir(path):
