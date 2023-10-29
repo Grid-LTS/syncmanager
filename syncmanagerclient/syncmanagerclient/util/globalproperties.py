@@ -1,8 +1,8 @@
 import os
-import configparser
+from configparser import ConfigParser
 
 # this module encloses all globally accessible properties
-properties_path_prefix = ''
+ini_path_prefix = ''
 conf_dir = ''
 sync_env = ''
 var_dir = ''
@@ -14,12 +14,12 @@ ssh_host = ''
 
 
 def set_prefix(prefix):
-    global properties_path_prefix
-    properties_path_prefix = prefix
+    global ini_path_prefix
+    ini_path_prefix = prefix
 
 
 def read_config(stage, organization=''):
-    global properties_path_prefix
+    global ini_path_prefix
     global conf_dir
     global sync_env
     global var_dir
@@ -29,36 +29,37 @@ def read_config(stage, organization=''):
     global ssh_user
     global ssh_host
     if stage == 'prod':
-        properties_file_name = "server-sync.properties"
+        properties_file_name = "server-sync.ini"
     else:
-        properties_file_name = f"server-sync.{stage}.properties"
-    properties_path = os.path.join(properties_path_prefix, properties_file_name)
-    config = configparser.ConfigParser()
+        properties_file_name = f"server-sync.{stage}.ini"
+    properties_path = os.path.join(ini_path_prefix, properties_file_name)
+    config = ConfigParser()
     if not organization:
-        organization = config['config'].get('org_default', 'default')
+        organization = config.get('config', 'org_default', fallback='default')
     if os.path.isfile(properties_path):
         config.read(properties_path)
     else:
         print(f"Please create {properties_file_name} file in the project root.")
         exit(1)
-    conf_dir = config['config'].get('conf_dir', None)
+    conf_dir = config.get('config', 'conf_dir', fallback=None)
     if not conf_dir:
-        print("Please specify the path to the config files in server-sync.properties.")
+        print("Please specify the path to the config files in server-sync.ini.")
         exit(1)
-    var_dir = config['config'].get('var_dir', None)
+    var_dir = config.get('config', 'var_dir', fallback=None)
     if not var_dir:
-        print("Please specify the var_dir property in server-sync.properties.")
+        print("Please specify the var_dir property in server-sync.ini.")
         exit(1)
 
     # determine sync environment
-    if not os.environ.get('SYNC_ENV', None) and not config['config'].get('SYNC_ENV', None):
+    if not os.environ.get('SYNC_ENV', None) and not config.get('config', 'SYNC_ENV', fallback=None):
         print("Please specify the environment with --env option or as SYNC_ENV in properties file. Using 'default'")
-        config['config'].set('SYNC_ENV', 'default')
-    sync_env = config['config'].get('SYNC_ENV', None)
+        config.set('config', 'SYNC_ENV', 'default')
+    sync_env = config.get('config', 'SYNC_ENV', fallback=None)
     if not sync_env:
         sync_env = os.environ.get('SYNC_ENV', None)
-    api_base_url = f"http://{config['server'].get('API_HOST','')}:{config['server'].get('API_PORT','5010')}/api"
-    api_user = config[f"org_{organization}"].get('API_USER', '')
-    api_pw = config[f"org_{organization}"].get('API_PW', '')
-    ssh_user = config['ssh'].get('SSH_USER', None)
-    ssh_host = config['ssh'].get('SSH_HOST', None)
+    api_base_url = f"http://{config.get('server', 'API_HOST', fallback='')}" \
+                   f":{config.get('server', 'API_PORT', fallback='5010')}/api"
+    api_user = config.get(f"org_{organization}", 'API_USER', fallback='')
+    api_pw = config.get(f"org_{organization}", 'API_PW', fallback='')
+    ssh_user = config.get('ssh', 'SSH_USER', fallback=None)
+    ssh_host = config.get('ssh', 'SSH_HOST', fallback=None)

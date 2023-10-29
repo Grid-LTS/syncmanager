@@ -1,4 +1,4 @@
 ### Project
-*.properties
+*.ini
 venv
 Pipfile.lock
