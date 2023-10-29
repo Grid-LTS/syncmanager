@@ -2,6 +2,6 @@ repos
 local.conf
 others.conf
 localmod.conf
-server-sync.properties
+server-sync.ini
 /var/*
 !/var/.gitkeep
