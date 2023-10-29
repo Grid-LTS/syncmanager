@@ -31,6 +31,7 @@ syncmanager push [ -f $conf-file ]
 ```
 #### Options
 `-n, --namespace <ns>` : only sync folders under a certain names
+`--org <my organization>` : only sync repositories registered for organization
 
 
 #### Deletion of branches
@@ -46,6 +47,10 @@ for setting the config (name + email address only possible for git repos)
 ```
 syncmanager set-conf
 ```
+
+#### Options
+`--org <my organization>` : only register repository for specified organization
+
 
 ## Legacy client
 binary: syncmanager-legacy
