@@ -1,11 +1,23 @@
 import os.path as osp
 import uuid
 
+from functools import wraps
 from .git import GitRepoFs
-from flask import current_app, jsonify, request, Response
+from flask import current_app, jsonify, request
 from ..error import InvalidRequest
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth = request.authorization
+        auth_service = current_app.config['auth']
+        if not auth or not auth_service.check_credentials(auth.username, auth.password):
+            return jsonify({'message': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+@login_required
 def create_repo():
     from ..database import db
     from .model import GitRepo, UserGitReposAssoc, GitRepoFullSchema
@@ -167,6 +179,7 @@ def find_git_user_repo_assoc(git_repo_entity, client_env):
             break
     return git_user_repo_assoc
 
+@login_required
 def delete_repo(repo_id):
     from .model import GitRepo
     from ..model import User
@@ -201,7 +214,7 @@ def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):
             return user_info
     return None
 
-
+@login_required
 def get_repos(full_info=False):
     from .model import UserGitReposAssoc, UserGitReposAssocSchema, UserGitReposAssocFullSchema
     user = get_user()
@@ -259,5 +272,4 @@ class GitRepoUpdate:
         __class__.git_repo_dao = GitRepo
     
     def load_repo(self):
-        self.git_repo_entity = __class__.git_repo_dao.get_repo_by_id_and_user_id(self.repo_id, self.user.id) 
-    
+        self.git_repo_entity = __class__.git_repo_dao.get_repo_by_id_and_user_id(self.repo_id, self.user.id)

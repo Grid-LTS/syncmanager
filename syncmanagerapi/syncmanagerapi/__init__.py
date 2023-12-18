@@ -41,7 +41,7 @@ def create_app(test_config=None):
     
     with app.app_context():
         from .authentication import SyncBasicAuth
-        basic_auth = SyncBasicAuth(app)
+        app.config['auth'] = SyncBasicAuth(app)
 
     # import all modules that need app context
     @app.errorhandler(InvalidRequest)
