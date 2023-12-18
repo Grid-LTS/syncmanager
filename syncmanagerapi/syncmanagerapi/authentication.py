@@ -6,7 +6,7 @@ from .model import User
 class SyncBasicAuth(BasicAuth):
 
     def __init__(self, app):
-        BasicAuth.__init__(self, app)
+        super().__init__(app)
         self.user = None
 
     def check_credentials(self, username, password):
