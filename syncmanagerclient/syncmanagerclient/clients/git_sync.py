@@ -51,7 +51,16 @@ class GitClientSync:
             self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MAIN)
             self.principal_branch = PRINCIPAL_BRANCH_MAIN
         except GitCommandError:
-            self.principal_branch = PRINCIPAL_BRANCH_MASTER
+            try:
+                self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MASTER)
+                self.principal_branch = PRINCIPAL_BRANCH_MASTER
+            except GitCommandError:
+                try:
+                    default_branch = self.gitrepo.git.rev_parse("--abbrev-ref", "origin/HEAD")
+                    self.principal_branch = os.path.basename(default_branch)
+                except GitCommandError:
+                    print(f"Cannot determine default branch. Abort")
+                    exit(1)
         if self.principal_branch:
             if self.gitrepo.active_branch.name != self.principal_branch:
                 try:
