@@ -42,25 +42,38 @@ class GitClientSync:
 
         self.consistency_check()
 
+        is_initial_fetch = False
         if len(self.gitrepo.heads) == 0:
             # this can be the case if the local repo was cloned from an empty remote repo
             # pull in remote repo first
+            print("No local branches. initial fetch of remote branches.")
+            is_initial_fetch = True
             self.git_fetch(True)
         # checkout principal branch, this simply tests if the local workspace is in a good state
-        try:
-            self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MAIN)
-            self.principal_branch = PRINCIPAL_BRANCH_MAIN
-        except GitCommandError:
+        if PRINCIPAL_BRANCH_MAIN in self.gitrepo.heads:
+            try:
+                self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MAIN)
+                self.principal_branch = PRINCIPAL_BRANCH_MAIN
+                is_initial_fetch = False
+            except GitCommandError as e:
+                print(f"Cannot determine default branch. error={e}")
+                exit(1)
+        elif PRINCIPAL_BRANCH_MASTER in self.gitrepo.heads:
             try:
                 self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MASTER)
                 self.principal_branch = PRINCIPAL_BRANCH_MASTER
-            except GitCommandError:
-                try:
-                    default_branch = self.gitrepo.git.rev_parse("--abbrev-ref", "origin/HEAD")
-                    self.principal_branch = os.path.basename(default_branch)
-                except GitCommandError:
-                    print(f"Cannot determine default branch. Abort")
-                    exit(1)
+                is_initial_fetch = False
+            except GitCommandError as e:
+                print(f"Cannot determine default branch. error={e}")
+                exit(1)
+        if is_initial_fetch or self.principal_branch is None:
+            # initial fetch we determine the default branch from the remote repo
+            try:
+                default_branch = self.gitrepo.git.rev_parse("--abbrev-ref", "origin/HEAD")
+                self.principal_branch = os.path.basename(default_branch)
+            except GitCommandError as e:
+                print(f"Cannot determine default branch. error={e}")
+                exit(1)
         if self.principal_branch:
             if self.gitrepo.active_branch.name != self.principal_branch:
                 try:
@@ -72,8 +85,9 @@ class GitClientSync:
                     print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
                     self.initial_pull()
                     return
+            if self.action == ACTION_PUSH:
+                self.gitrepo.git.remote("set-head", self.remote_reponame, self.principal_branch)
             self.initial_pull()
-
 
         if self.action == ACTION_PULL or self.action == ACTION_PUSH:
             # PULL and PUSH are the only actions that happen online, where an actual sync with the remote repo happens
@@ -105,7 +119,6 @@ class GitClientSync:
             print(f"ERROR. Cannot pull {self.principal_branch}: {str(err)}")
             return
         print(out)
-
 
     def delete_local_branch(self, **kwargs):
         path = kwargs.get('path', None)
