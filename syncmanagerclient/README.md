@@ -6,6 +6,8 @@
 ##### 1. Install as local package
 * this will provide you the syncmanager command
 ```
+pipx install -e .[dev]
+# older python versions
 pip3 install -e .[dev] --user
 ```
 
