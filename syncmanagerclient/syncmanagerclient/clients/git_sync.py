@@ -73,7 +73,21 @@ class GitClientSync:
                 self.principal_branch = os.path.basename(default_branch)
             except GitCommandError as e:
                 print(f"Cannot determine default branch. error={e}")
-                exit(1)
+                remote_refs = [os.path.basename(x.path) for x in self.remote_gitrepo.refs]
+                if PRINCIPAL_BRANCH_MAIN in remote_refs:
+                    try:
+                        self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MAIN)
+                        self.principal_branch = PRINCIPAL_BRANCH_MAIN
+                    except GitCommandError as e:
+                        print(f"Cannot determine default branch. error={e}")
+                        exit(1)
+                elif PRINCIPAL_BRANCH_MASTER in remote_refs:
+                    try:
+                        self.gitrepo.git.checkout(PRINCIPAL_BRANCH_MASTER)
+                        self.principal_branch = PRINCIPAL_BRANCH_MASTER
+                    except GitCommandError as e:
+                        print(f"Cannot determine default branch. error={e}")
+                        exit(1)
         if self.principal_branch:
             if self.gitrepo.active_branch.name != self.principal_branch:
                 try:
