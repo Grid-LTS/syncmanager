@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "syncmanagerapi"
+version = "0.1.0"  # Replace with the actual version
+description = 'Provides Server for managing multiple synchronizations via unison, git, ...'
+authors = ["Gerd Friemel <your.email@example.com>"]  # Replace with actual authors
+license = "MIT"  # Replace with the correct license if applicable
+readme = "README.md"
+repository = "https://github.com/Grid-LTS/syncmanager"
+homepage = "https://github.com/Grid-LTS/syncmanager"
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "syncmanagerapi"
+version = "0.1.0"  # Replace with the actual version
+description = "A Python API project"
+dependencies = [
+    "gunicorn",
+    "wheel",
+    "jinja2",
+    "connexion[swagger-ui]>=2.14.2",
+    "syncmanagerapi @ file://.",
+    "flask<=2.1.4",  # Version constrained due to possible bug in 2.2.x
+    "SQLalchemy<=1.4",  # Upgrade when Flask > 2.3.x
+    "flask-marshmallow==0.14.0",
+    "marshmallow-sqlalchemy",
+    "marshmallow>=3.0.0",
+    "mysqlclient>=1.4.6",
+    "gitpython",
+    "python-dotenv",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-dependency",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.requires-python]
+# Specified Python version in the Pipfile
+python = ">=3.0"
