@@ -11,12 +11,12 @@ pipx install -e .[dev]
 pip3 install -e .[dev] --user
 ```
 
-##### 2. Install dependencies with Pipenv
-* you need to have pipenv installed `pip3 install --user pipenv`
+##### 2. Install dependencies with Poetry
+* you need to have poetry installed `pipx install poetry`
 * run
 ```
-pipenv install
-pipenv shell
+poetry install
+poetry shell
 ```
 
 ### Usage

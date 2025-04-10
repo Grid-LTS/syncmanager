@@ -9,12 +9,12 @@
 python3 -m pip install -e .[dev] --user
 ```
 
-##### 2. Install dependencies with Pipenv
-* you need to have pipenv installed `python3 -m pip install --user pipenv`
+##### 2. Install dependencies with Poetry
+* you need to have poetry installed `pipx install poetry`
 * run
 ```
-pipenv install
-pipenv shell
+poetry install
+poetry shell
 ```
 
 __Alternative:__  
@@ -28,7 +28,7 @@ running in virtual env
 
 ##### Add new packages
 Append in `requirements.txt`  
-run `pipenv install -r` for updating Pipfile
+run `poetry update` for updating dependencies
 
 #### Execution
 Execute without installing: in case you want to run in from source, replace with:
@@ -91,15 +91,16 @@ Execute tests
 #### client (legacy)
 ```
 cd <project-root>/syncmanagerclient
-pipenv shell
+poetry shell
 python -m unittest tests/test_git_sync.py
 python -m unittest tests/test_git_settings.py
 ```
 #### api server
 ```
 cd <project-root>/syncmanagerapi
-pipenv install --dev
-pipenv shell
+poetry install
+poetry shell
+poetry up --only=dev --latest
 pytest tests
 ```
 #### systemtest
