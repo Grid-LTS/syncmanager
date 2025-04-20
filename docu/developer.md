@@ -53,9 +53,20 @@ deploy/install.sh
 * local DEV environment (uses SQLite3 database)
 ```bash
 # install SQLite3
-sudo apt-get install sqlite3 
+sudo apt-get install sqlite3
+windows: choco install sqlite
 deploy/install_local.sh
 ```
+
+```
+sqlite3 syncmanagerapi.db
+
+
+$env:FLASK_APP="syncmanagerapi"
+$env:FLASK_ENV="development"
+flask run
+```
+
 
 __Known issues__  
 pip installs packages like virtualenv, only if not existing. 
@@ -78,6 +89,7 @@ on DEV
 ```
 cd syncmanagerapi
 export FLASK_APP=syncmanagerapi 
+$env:FLASK_APP="syncmanagerapi"
 flask admin-create --name <name> --password <password>
 ```
 on PROD:
@@ -92,8 +104,8 @@ Execute tests
 ```
 cd <project-root>/syncmanagerclient
 poetry shell
-python -m unittest tests/test_git_sync.py
-python -m unittest tests/test_git_settings.py
+poetry up --only=dev --latest
+pytest tests
 ```
 #### api server
 ```

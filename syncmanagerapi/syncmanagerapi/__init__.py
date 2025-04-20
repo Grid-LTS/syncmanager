@@ -26,7 +26,9 @@ def create_app(test_config=None):
     application = connexion.App(__name__, specification_dir=os.path.dirname(os.path.abspath(__file__)))
     # Read the swagger.yml file to configure the endpoints
     application.add_api('swagger.yaml')
+
     app = application.app
+    app.config['ENV'] = os.getenv('FLASK_ENV', 'development')
     if not app.config.get('SYNCMANAGER_SERVER_CONF', None) and not test_config:
         app.config['SYNCMANAGER_SERVER_CONF'] = properties_dir
     if test_config:
@@ -38,9 +40,8 @@ def create_app(test_config=None):
         app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
         app.config["SQLALCHEMY_ECHO"] = True
-
-    # initialize database tables
-    initialize_database(app, reset=app.config.get("DB_RESET", False))
+        app.config["DEBUG"]=True
+        app.debug = True
 
     with app.app_context():
         from .authentication import SyncBasicAuth
@@ -60,17 +61,20 @@ def create_app(test_config=None):
     with app.app_context():
         from .cli import create_admin_command
         app.cli.add_command(create_admin_command)
+
+    # initialize database tables
+    initialize_database(app, reset=app.config.get("DB_RESET", False))
     return app
 
 
 def initialize_database(app, reset=False):
     with app.app_context():
-        from .database import setup_context
-        setup_context(app)
+        from .database import setup_context as db_setup_context, get_database_connection, init_schema
+        db_setup_context(app)
         #if reset:
             # in test environment when module code is not reexecuted, we need to reset (empty) the database 
         #    database.reset_db_connection(app)
-        db, db_type = database.get_database_connection(app)
+        db, db_type = get_database_connection(app)
         cur = db.cursor()
         if db_type == "sqlite":
             query = "SELECT name FROM sqlite_master WHERE type='table';"
@@ -85,7 +89,7 @@ def initialize_database(app, reset=False):
             except ValueError:
                 pass
         if len(tables) > 0:
-            database.init_schema()
+            init_schema()
         db.close()
 
 

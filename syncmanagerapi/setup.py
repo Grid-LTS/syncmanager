@@ -34,7 +34,7 @@ setup(
     ],
     keywords='git unison',
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
-    package_data={'syncmanagerapi': ['swagger.yaml']},
+    package_data={'syncmanagerapi': ['openapi.yaml']},
     include_package_data=True,
     install_requires=['configparser','connexion','flask<=2.1.4',
                       'flask-marshmallow==0.14.0',
