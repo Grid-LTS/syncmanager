@@ -31,14 +31,17 @@ def create_app(test_config=None):
         app.config['SYNCMANAGER_SERVER_CONF'] = properties_dir
     if test_config:
         app.config.from_mapping(test_config)
-    properties_file_path = get_properties_path(environment=app.env,
+    properties_file_path = get_properties_path(environment=app.config["ENV"],
                                                _properties_dir=app.config['SYNCMANAGER_SERVER_CONF'])
     app.config.from_pyfile(properties_file_path, silent=True)
-    if app.env == "development" or app.env == "test":
+    if app.config["ENV"] == "development" or app.config["ENV"] == "test":
         app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
         app.config["SQLALCHEMY_ECHO"] = True
-    
+
+    # initialize database tables
+    initialize_database(app, reset=app.config.get("DB_RESET", False))
+
     with app.app_context():
         from .authentication import SyncBasicAuth
         app.config['auth'] = SyncBasicAuth(app)
@@ -57,17 +60,16 @@ def create_app(test_config=None):
     with app.app_context():
         from .cli import create_admin_command
         app.cli.add_command(create_admin_command)
-    # initialize database tables
-    initialize_database(app, reset=app.config.get("DB_RESET", False))
     return app
 
 
 def initialize_database(app, reset=False):
     with app.app_context():
-        from . import database
-        if reset:
+        from .database import setup_context
+        setup_context(app)
+        #if reset:
             # in test environment when module code is not reexecuted, we need to reset (empty) the database 
-            database.reset_db_connection()
+        #    database.reset_db_connection(app)
         db, db_type = database.get_database_connection(app)
         cur = db.cursor()
         if db_type == "sqlite":
