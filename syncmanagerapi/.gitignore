@@ -2,6 +2,8 @@ venv/
 local
 tests/local
 
+poetry.lock
+
 *.pyc
 __pycache__/
 
