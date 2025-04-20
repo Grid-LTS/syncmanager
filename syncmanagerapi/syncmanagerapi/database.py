@@ -1,6 +1,6 @@
 import os.path as osp
 
-from flask import current_app, g
+from flask import g
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 
@@ -22,7 +22,7 @@ def get_sqlite_path(conf):
 
 def get_database_url(app):
     conf = app.config
-    if app.env == 'development' or app.env == 'test':
+    if app.config["ENV"] == 'development' or app.config["ENV"] == 'test':
         path_to_db = get_sqlite_path(conf)
         return f"sqlite:///{path_to_db}"
     else:
@@ -32,7 +32,7 @@ def get_database_url(app):
 
 def get_database_connection(app):
     conf = app.config
-    if app.env == 'development' or app.env == 'test':
+    if app.config["ENV"] == 'development' or app.config["ENV"] == 'test':
         import sqlite3
         path_to_db = get_sqlite_path(conf)
         db = sqlite3.connect(path_to_db)
@@ -47,25 +47,26 @@ def get_database_connection(app):
         db_type = "mysql"
     return db, db_type
 
-def setup_context(current_app):
-    with current_app.app_context():
-        current_app.config["SQLALCHEMY_DATABASE_URI"] = get_database_url(current_app)
-        current_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-        db = SQLAlchemy(current_app)
-        # Initialize Marshmallow
-        ma = Marshmallow(current_app)
-    return db, ma
 
-db, ma = setup_context(current_app)
+db = SQLAlchemy()
+ma = Marshmallow()
 
-def reset_db_connection():
-    global current_app
-    global db
-    global ma
-    current_app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url(current_app)
-    db.init_app(current_app)
-    # Initialize Marshmallow
-    ma = Marshmallow(current_app)
+def setup_context(app):
+    """
+    Set up database and Marshmallow for the given app.
+    """
+    app.config["SQLALCHEMY_DATABASE_URI"] = get_database_url(app)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
+    db.init_app(app)
+    ma.init_app(app)
+
+
+def reset_db_connection(app):
+    """Reset the database connection."""
+    app.config['SQLALCHEMY_DATABASE_URI'] = get_database_url(app)
+    db.init_app(app)
+    ma.init_app(app)
+
 
 
 """
