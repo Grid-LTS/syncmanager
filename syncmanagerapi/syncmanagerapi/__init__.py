@@ -25,7 +25,7 @@ def create_app(test_config=None):
     # Create the application instance
     application = connexion.App(__name__, specification_dir=os.path.dirname(os.path.abspath(__file__)))
     # Read the swagger.yml file to configure the endpoints
-    application.add_api('swagger.yaml')
+    application.add_api('openapi.yaml')
 
     app = application.app
     app.config['ENV'] = os.getenv('FLASK_ENV', 'development')
