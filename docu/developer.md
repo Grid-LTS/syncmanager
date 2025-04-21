@@ -66,7 +66,7 @@ $env:FLASK_APP="syncmanagerapi"
 $env:FLASK_ENV="development"
 flask run
 ```
-
+* verify server is available at http://localhost:5000/api/ui
 
 __Known issues__  
 pip installs packages like virtualenv, only if not existing. 
@@ -80,10 +80,12 @@ sudo pip3 install --upgrade virtualenv
 
 #### Executing application
 start in DEV mode
+
 ```
 cd syncmanagerapi
 python3 -m syncmanagerapi 
 ```
+
 create admin user (only possible via CLI)  
 on DEV
 ```
