@@ -23,7 +23,7 @@ def create_app(test_config=None):
     :return: Flask instance
     """
     # Create the application instance
-    application = connexion.App(__name__, specification_dir=os.path.dirname(os.path.abspath(__file__)))
+    application = connexion.FlaskApp(__name__, specification_dir=os.path.dirname(os.path.abspath(__file__)))
     # Read the swagger.yml file to configure the endpoints
     application.add_api('openapi.yaml')
 
@@ -64,7 +64,7 @@ def create_app(test_config=None):
 
     # initialize database tables
     initialize_database(app, reset=app.config.get("DB_RESET", False))
-    return app
+    return application
 
 
 def initialize_database(app, reset=False):
@@ -101,4 +101,4 @@ def handle_error(error):
 
 def main():
     app = create_app()
-    app.run(debug=True)
+    app.run()
