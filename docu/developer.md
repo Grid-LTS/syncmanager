@@ -1,6 +1,6 @@
 # Developer space
 
-### 1. Client (syncmanagerclient)
+## 1. Client (syncmanagerclient)
 
 #### Installation
 ##### 1. Install as local package
@@ -43,9 +43,9 @@ syncmanager --stage dev <command>
 
 
 
-### 2. Server (syncmanagerapi)
+## 2. Server (syncmanagerapi)
 
-#### Installation
+### Installation
 * on PROD, require MySQL database
 ```bash
 deploy/install.sh
