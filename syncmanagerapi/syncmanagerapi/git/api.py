@@ -1,21 +1,12 @@
 import os.path as osp
 import uuid
 
-from functools import wraps
+
 from .git import GitRepoFs
-from flask import current_app, jsonify, request
+from flask import jsonify, request
 from ..error import InvalidRequest
+from ..auth import login_required
 
-
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        auth = request.authorization
-        auth_service = current_app.config['auth']
-        if not auth or not auth_service.check_credentials(auth.username, auth.password):
-            return jsonify({'message': 'Authentication required'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
 
 @login_required
 def create_repo():
