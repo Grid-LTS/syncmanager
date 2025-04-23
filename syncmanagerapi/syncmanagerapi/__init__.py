@@ -70,6 +70,8 @@ def create_app(test_config=None):
 def initialize_database(app, reset=False):
     with app.app_context():
         from .database import setup_context as db_setup_context, get_database_connection, init_schema
+        from .model import ClientEnv
+        from .git.model import GitRepo, UserGitReposAssoc
         db_setup_context(app)
         #if reset:
             # in test environment when module code is not reexecuted, we need to reset (empty) the database 

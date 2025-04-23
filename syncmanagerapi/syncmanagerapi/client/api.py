@@ -3,6 +3,8 @@ import os
 from flask import request, Response
 from ..error import InvalidRequest
 
+from ..auth import login_required
+
 
 def create_syncdir():
     body = request.data
@@ -21,7 +23,7 @@ def create_syncdir():
             raise InvalidRequest('No permissions to create resource {}'.format(target_dir), 'target_dir', 403)
     return Response(status=204)
 
-
+@login_required
 def add_client_env():
     from ..decorators import requires_auth
     from ..model import User, ClientEnv

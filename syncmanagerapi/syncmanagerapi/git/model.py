@@ -186,8 +186,8 @@ class UserGitReposAssocSchema(ma.SQLAlchemyAutoSchema):
 
 
 class UserGitReposAssocFullSchema(UserGitReposAssocSchema):
-    git_repo = fields.Nested(GitRepoSchema, default={}, many=False)
-    client_envs = fields.Nested(ClientEnvSchema, default=[], many=True)
+    git_repo = fields.Nested(GitRepoSchema, dump_default={}, load_default={}, many=False)
+    client_envs = fields.Nested(ClientEnvSchema, dump_default=[], load_default=[], many=True)
 
 
 class GitRepoFullSchema(ma.SQLAlchemyAutoSchema):
@@ -197,4 +197,4 @@ class GitRepoFullSchema(ma.SQLAlchemyAutoSchema):
         include_relationships = True
 
     server_path_absolute = fields.String()
-    userinfo = fields.Nested(UserGitReposAssocFullSchema, default=[], many=True)
+    userinfo = fields.Nested(UserGitReposAssocFullSchema, dump_default=[], load_default=[], many=True)
