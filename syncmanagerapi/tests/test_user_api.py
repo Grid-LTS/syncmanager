@@ -1,4 +1,4 @@
-from setup import SYNC_ADMIN, SYNC_ADMIN_PASSWORD, create_admin, get_admin_basic_authorization
+from setup import create_admin, get_admin_basic_authorization
 
 
 def test_create_user(client, runner):
