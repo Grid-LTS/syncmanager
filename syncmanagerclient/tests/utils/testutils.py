@@ -9,7 +9,7 @@ from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_
 from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
 import syncmanagerclient.util.globalproperties as globalproperties
 
-test_dir =  os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 var_dir_path = os.path.join(test_dir, 'var')
 # workspace and others_ws are different downstream clones of the same repo
 # these are called stations here, in reality they are on different computer
@@ -24,9 +24,9 @@ test_user_name = 'Test User'
 test_user_email = 'dummy@tests.com'
 
 TEMPLATE_ENVIRONMENT = Environment(
-        autoescape=False,
-        loader=FileSystemLoader(os.path.join(test_dir, 'templates')),
-        trim_blocks=False)
+    autoescape=False,
+    loader=FileSystemLoader(os.path.join(test_dir, 'templates')),
+    trim_blocks=False)
 
 
 def detemplate_conf(sync_env, context):

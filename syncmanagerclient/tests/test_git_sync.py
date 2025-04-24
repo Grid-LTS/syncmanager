@@ -43,8 +43,7 @@ def get_branch_name_and_repo_from_remote_path(remote_branch):
 def test_push_sync(setup_repositories):
     origin_repo, local_repo, others_repo = setup_repositories
     test_file_path = os.path.join(local_repo_path, 'next_file.txt')
-    # checkout master branch
-    local_repo.heads['master'].checkout()
+    checkout_principal_branch(local_repo)
     Path(test_file_path).touch()
     local_repo.index.add([test_file_path])
     commit_message = "New commit"
@@ -89,3 +88,21 @@ def test_delete_branch(setup_repositories):
 def test_empty_sync(setup_repositories):
     apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
     apply_sync_conf_files(test_dir, [others_conf_file_name], ACTION_PULL, False, '', ['git'])
+
+
+def checkout_principal_branch(repo):
+    # checkout principal branch
+    principal_branch = 'master'
+    try:
+        getattr(repo.heads, principal_branch)
+        repo.heads[principal_branch].checkout()
+        return principal_branch
+    except:
+        pass
+    principal_branch = 'main'
+    try:
+        getattr(repo.heads, principal_branch)
+        repo.heads[principal_branch].checkout()
+    except AttributeError as e:
+        raise e
+    return principal_branch

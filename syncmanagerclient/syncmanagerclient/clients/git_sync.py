@@ -1,4 +1,6 @@
 import os
+from pathlib import PurePosixPath
+
 from git import Repo, GitCommandError
 from ..util.system import change_dir, sanitize_path
 from .deletion_registration import DeletionRegistration
@@ -99,7 +101,12 @@ class GitClientSync:
                     print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
                     self.initial_pull()
                     return
-            if self.action == ACTION_PUSH:
+
+            try:
+                has_remote_branch = getattr(self.remote_gitrepo.refs, str(self.principal_branch))
+            except AttributeError:
+                has_remote_branch = False
+            if self.action == ACTION_PUSH and has_remote_branch:
                 self.gitrepo.git.remote("set-head", self.remote_reponame, self.principal_branch)
             self.initial_pull()
 
@@ -155,7 +162,7 @@ class GitClientSync:
         entries = deletion_registry.read_and_flush_registry(self.remote_reponame)
         entries_copy = entries[:]
         for index, entry in enumerate(entries_copy):
-            if not self.local_path == entry[0]:
+            if not self.local_path == PurePosixPath(entry[0]):
                 continue
             branch_path = entry[1]
             branch_path_full = self.remote_reponame + '/' + branch_path
