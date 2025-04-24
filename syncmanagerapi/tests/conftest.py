@@ -34,7 +34,7 @@ def client(app):
 # can call CLIck commands
 @pytest.fixture(scope="module")
 def runner(app):
-    return app.test_cli_runner()
+    return app.app.test_cli_runner()
 
 
 def empty_directory(path):
