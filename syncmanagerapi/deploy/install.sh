@@ -95,8 +95,12 @@ id -u $UNIX_USER >> /dev/null
 if [ "$?" -ne 0 ]; then
     create_user $UNIX_USER
 fi
+
+sudo systemctl stop syncmanagerapi
+
 # install system dependencies
-sudo apt-get -y install python3-dev default-libmysqlclient-dev libmysqlclient-dev
+sudo apt-get update
+sudo apt-get -y install python3-dev python3-venv default-libmysqlclient-dev libmysqlclient-dev
 
 
 # build project
@@ -105,23 +109,26 @@ rm -rf build
 # remove old build artefacts
 rm -rf dist
 
-python3 -m pip install --user pipenv
+python3 -m pip install --user pipx
+pipx install poetry
 
-pipenv_path=$(pipenv --venv) 
-if [ -d $pipenv_path ]; then
-  rm -rf $pipenv_path
+venv_path=$(poetry env info -p)
+if [ -d $venv_path ]; then
+  rm -rf $venv_path
 fi
 
-pipenv --python $(python3 -c "print(__import__('sys').version.split(' ')[0])")
-pipenv sync
+poetry lock
+poetry install
 # in production we do not need to set FLASK_ENV since the default is already 'production'
-
+venv_path=$(poetry env info -p)
 echo ""
-pipenv run python setup.py bdist_wheel
-VERSION=$(pipenv run python -c 'from properties import __version__; print(__version__)')
+poetry build
+VERSION=$(poetry run python -c 'from properties import __version__; print(__version__)')
 echo "Created project with version $VERSION"
 
 package_name="${PROJECT_DIR}/dist/syncmanagerapi-${VERSION}-py3-none-any.whl"
+
+##### Install/Deploy deploy the build file
 
 command -v virtualenv > /dev/null
 if [ ! "$?" -eq 0 ]; then
@@ -148,7 +155,7 @@ $binaries/pip install $package_name
 sudo chown root:root -R $venv_dir
 
 # create systemd file
-pipenv run python deploy/create_files.py syncmanagerapi.service
+poetry run python deploy/create_files.py syncmanagerapi.service
 
 stty -echo
 printf "MySQL password for admin user ${DB_ROOT_USER}: "
@@ -172,7 +179,7 @@ if [ -n "$query" ]; then
     fi
 fi
 # read Mysql password of the DB_USER, so that it can be stored in properties file 
-runtime_conf=$(pipenv run python deploy/create_files.py init_db.sql)
+runtime_conf=$(poetry run python deploy/create_files.py init_db.sql)
 
 # Install database if does not exist
 sudo mysql -h $DB_HOST -u $DB_ROOT_USER -h $DB_HOST -P $DB_PORT -p$db_password < deploy/init_db.sql
