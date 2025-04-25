@@ -29,7 +29,7 @@ def create_app(test_config=None):
     application.add_api('openapi.yaml')
 
     app = application.app
-    app.config['ENV'] = os.getenv('FLASK_ENV', 'development')
+    app.config['ENV'] = os.getenv('FLASK_ENV', 'production')
     if not app.config.get('SYNCMANAGER_SERVER_CONF', None) and not test_config:
         app.config['SYNCMANAGER_SERVER_CONF'] = properties_dir
     if test_config:
@@ -41,9 +41,9 @@ def create_app(test_config=None):
         app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
         app.config["SQLALCHEMY_ECHO"] = True
-    app.config["DEBUG"] = True
+        app.config["DEBUG"] = True
+        app.debug = True
     app.config["PROPAGATE_EXCEPTIONS"] = True
-    app.debug = True
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.INFO)
     app.logger.addHandler(stream_handler)
@@ -107,5 +107,7 @@ def handle_error(error):
 
 
 def main():
+    # only run this entry point in DEV environment
+    os.environ["FLASK_ENV"] = 'development'
     app = create_app()
     app.run()
