@@ -22,7 +22,7 @@ def get_sqlite_path(conf):
 
 def get_database_url(app):
     conf = app.config
-    if app.config["ENV"] == 'development' or app.config["ENV"] == 'test':
+    if app.config.get("DB_SQLITE_NAME",None) or app.config["ENV"] == 'test':
         path_to_db = get_sqlite_path(conf)
         return f"sqlite:///{path_to_db}"
     else:
@@ -32,7 +32,7 @@ def get_database_url(app):
 
 def get_database_connection(app):
     conf = app.config
-    if app.config["ENV"] == 'development' or app.config["ENV"] == 'test':
+    if app.config.get("DB_SQLITE_NAME",None) or app.config["ENV"] == 'test':
         import sqlite3
         path_to_db = get_sqlite_path(conf)
         db = sqlite3.connect(path_to_db)
