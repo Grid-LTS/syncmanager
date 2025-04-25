@@ -1,17 +1,13 @@
 import os
 from pathlib import Path
-import shutil
-import stat
-import time
 
 import pytest
 
 # Project files
 from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_for_deletion
 from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
-from syncmanagerclient.util.system import change_dir
 
-from .utils.testutils import setup_repos, test_dir, var_dir_path, repos_dir, local_repo_path, \
+from .utils.testutils import setup_repos, teardown_repos_directory, test_dir, var_dir_path, local_repo_path, \
     others_repo_path, local_conf_file_name, others_conf_file_name
 
 
@@ -20,16 +16,7 @@ def setup_repositories():
     origin_repo, local_repo = setup_repos(local_conf_file_name)
     others_repo = origin_repo.clone(others_repo_path)
     yield origin_repo, local_repo, others_repo
-    try:
-        origin_repo.close()
-        local_repo.close()
-        others_repo.close()
-        change_dir(os.path.dirname(repos_dir))
-        time.sleep(1)
-        shutil.rmtree(repos_dir,onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
-    except PermissionError as err:
-        print(f"Cannot delete {repos_dir}")
-        raise err
+    teardown_repos_directory([origin_repo, local_repo, others_repo])
 
 
 def checkout_all_upstream_branches(repo, checkout_these_branches=[]):
