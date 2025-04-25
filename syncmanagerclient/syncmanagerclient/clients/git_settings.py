@@ -2,11 +2,12 @@ import re
 from git import Repo
 
 from ..util.system import sanitize_path
+from .git_base import GitClientBase
 
-
-class GitClientSettings:
+class GitClientSettings(GitClientBase):
 
     def __init__(self):
+        super().__init__()
         self.errors = []
 
     def set_config(self, config, *args):
@@ -27,8 +28,8 @@ class GitClientSettings:
         """
         name, email = self.parse_settings()
         # change to the directory and apply git settings
-        self.repo = Repo(self.source_path)
-        conf_writer = self.repo.config_writer()
+        self.gitrepo = Repo(self.source_path)
+        conf_writer = self.gitrepo.config_writer()
         print('Set git config for \'{0}\''.format(self.source_path_short))
         command_prefix = ['git', 'config']
         try:
@@ -50,7 +51,8 @@ class GitClientSettings:
                 cw.release()
         else:
             # corresponds to 'git remote add <target_repo> <repo url>
-            self.repo.create_remote(self.target_repo, self.target_path)
+            self.gitrepo.create_remote(self.target_repo, self.target_path)
+        self.close()
 
     def parse_settings(self):
         if not self.settings:
@@ -66,6 +68,6 @@ class GitClientSettings:
 
     def get_remote_repo(self):
         try:
-            return self.repo.remote(self.target_repo)
+            return self.gitrepo.remote(self.target_repo)
         except ValueError:
             return False

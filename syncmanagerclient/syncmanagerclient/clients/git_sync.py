@@ -1,10 +1,13 @@
 import os
 from pathlib import PurePosixPath
 
+
 from git import Repo, GitCommandError
+
 from ..util.system import change_dir, sanitize_path
 from .deletion_registration import DeletionRegistration
 from .error import GitSyncError, GitErrorItem
+from .git_base import GitClientBase
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 
@@ -12,7 +15,7 @@ PRINCIPAL_BRANCH_MAIN = 'main'
 PRINCIPAL_BRANCH_MASTER = 'master'
 
 
-class GitClientSync:
+class GitClientSync(GitClientBase):
     def __init__(self, action):
         self.action = action
         self.errors = []
@@ -121,7 +124,8 @@ class GitClientSync:
             # nothing to do for ACTION_PULL as the updates have been sync with FETCH
         elif self.action == ACTION_DELETE:
             self.delete_local_branch(**kwargs)
-        change_dir(start_dir)
+        change_dir(os.path.dirname(start_dir))
+        self.close()
 
     def initial_pull(self):
         git = self.gitrepo.git
@@ -162,7 +166,7 @@ class GitClientSync:
         entries = deletion_registry.read_and_flush_registry(self.remote_reponame)
         entries_copy = entries[:]
         for index, entry in enumerate(entries_copy):
-            if not self.local_path == PurePosixPath(entry[0]):
+            if not self.local_path == sanitize_path(entry[0]):
                 continue
             branch_path = entry[1]
             branch_path_full = self.remote_reponame + '/' + branch_path
