@@ -30,6 +30,7 @@ def test_create_repo(client):
     response = client.post(create_repo_url, json=body)
     assert response.status_code == 401
     response = client.post(create_repo_url, headers=headers, json=body)
+    assert response.status_code == 200
     response_dict = response.json()
     assert response_dict["is_new_reference"]
     repo_server_path = osp.join(git_base_dir_path, response_dict["server_path_rel"])

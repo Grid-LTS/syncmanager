@@ -31,7 +31,8 @@ class GitRepoFs:
         git_subdir = osp.join(self.gitrepo_path, '.git')
         if os.path.exists(git_subdir):
             return True
-        Repo.init(self.gitrepo_path, bare=True)
+        repo = Repo.init(self.gitrepo_path, bare=True)
+        repo.close()
         return True
 
     def move_repo(self, target_path_rel):
