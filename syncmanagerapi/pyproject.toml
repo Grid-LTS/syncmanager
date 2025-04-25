@@ -9,7 +9,7 @@ repository = "https://github.com/Grid-LTS/syncmanager"
 homepage = "https://github.com/Grid-LTS/syncmanager"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 flask = "^3.1.0"
 connexion = {extras = ["flask", "swagger-ui", "uvicorn"], version = "^3.2.0"}
 dotenv = "^0.9.9"
@@ -20,7 +20,6 @@ flask-marshmallow = "^1.3.0"
 marshmallow-sqlalchemy = "^1.4.2"
 gunicorn = "^23.0.0"
 swagger-ui-bundle = "^1.1.0"
-waitress = {version = "^3.0.2", platform = "win32"}
 mysqlclient = "^2.2.7"
 jinja2 = "^3.1.6"
 
@@ -36,17 +35,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "syncmanagerapi"
 version = "0.1.0"  # Replace with the actual version
-description = "A Python API project"
-dependencies = [
-    "gunicorn",
-    "wheel",
-    "jinja2",
-    #"syncmanagerapi @ file://.",
-    #"flask<=2.1.4",  # Version constrained due to possible bug in 2.2.x
-    "mysqlclient>=1.4.6",
-    "gitpython",
-    "python-dotenv",
-]
+description = "Provides Server for managing multiple synchronizations via unison, git, ..."
 
 
 [tool.setuptools.packages.find]
