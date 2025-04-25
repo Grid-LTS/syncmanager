@@ -1,5 +1,6 @@
 import os
 from flask import jsonify
+import logging
 
 import connexion
 
@@ -40,8 +41,12 @@ def create_app(test_config=None):
         app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
         app.config["SQLALCHEMY_ECHO"] = True
-        app.config["DEBUG"]=True
-        app.debug = True
+    app.config["DEBUG"] = True
+    app.config["PROPAGATE_EXCEPTIONS"] = True
+    app.debug = True
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO)
+    app.logger.addHandler(stream_handler)
 
     with app.app_context():
         from .authentication import SyncBasicAuth
@@ -73,8 +78,8 @@ def initialize_database(app, reset=False):
         from .model import ClientEnv
         from .git.model import GitRepo, UserGitReposAssoc
         db_setup_context(app)
-        #if reset:
-            # in test environment when module code is not reexecuted, we need to reset (empty) the database 
+        # if reset:
+        # in test environment when module code is not reexecuted, we need to reset (empty) the database
         #    database.reset_db_connection(app)
         db, db_type = get_database_connection(app)
         cur = db.cursor()

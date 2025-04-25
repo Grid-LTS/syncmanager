@@ -105,10 +105,13 @@ sudo apt-get -y install python3-dev python3-venv default-libmysqlclient-dev libm
 
 # build project
 cd $PROJECT_DIR
-rm -rf build
 # remove old build artefacts
+echo "Cleanup dist/"
 rm -rf dist
-
+echo "Cleanup build/"
+rm -rf build
+source $VIRTUAL_ENV/bin/activate # make sure you are not running in any virtual env
+deactivate
 python3 -m pip install --user pipx
 pipx install poetry
 
@@ -150,6 +153,8 @@ sudo chown $USER:$USER $venv_dir
 virtualenv -p $(which python3) $venv_dir
 binaries=$venv_dir/bin
 $binaries/pip install --upgrade gunicorn
+$binaries/pip install --upgrade uvicorn
+echo "install application $(basename $package_name)"
 $binaries/pip install $package_name
 
 sudo chown root:root -R $venv_dir
@@ -214,14 +219,11 @@ else
     sudo systemctl start syncmanagerapi
 fi
 sudo systemctl status syncmanagerapi
+# check also journal journalctl -u syncmanagerapi.service
+
 
 sudo -E deploy/create_admin.sh
 
 if [ -n "$unix_password" ]; then
     echo "The unix user has password $unix_password"
 fi
-
-echo "Cleanup dist/"
-rm -rf dist
-echo "Cleanup build/"
-rm -rf build
