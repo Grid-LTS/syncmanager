@@ -51,6 +51,7 @@ syncmanager --stage dev <command>
 deploy/install.sh
 ```
 * local DEV environment (uses SQLite3 database)
+
 ```bash
 # install SQLite3
 sudo apt-get install sqlite3
@@ -60,13 +61,7 @@ deploy/install_local.sh
 
 ```
 sqlite3 syncmanagerapi.db
-
-
-$env:FLASK_APP="syncmanagerapi"
-$env:FLASK_ENV="development"
-flask run
 ```
-* verify server is available at http://localhost:5000/api/ui
 
 __Known issues__  
 pip installs packages like virtualenv, only if not existing. 
@@ -78,7 +73,7 @@ pip3 install --upgrade virtualenv --user
 sudo pip3 install --upgrade virtualenv
 ```
 
-#### Executing application
+### Executing application
 start in DEV mode
 
 ```
@@ -86,21 +81,26 @@ cd syncmanagerapi
 python3 -m syncmanagerapi 
 ```
 
+* verify server is available at http://localhost:8000/api/ui
+
+
 create admin user (only possible via CLI)  
 on DEV
+
 ```
 cd syncmanagerapi
 export FLASK_APP=syncmanagerapi 
 $env:FLASK_APP="syncmanagerapi"
 flask admin-create --name <name> --password <password>
 ```
+
 on PROD:
 ```bash
 sudo deploy/create_admin.sh
 ```
 
 
-### Tests
+### Tests AND Continuous integration
 Execute tests
 #### client (legacy)
 ```

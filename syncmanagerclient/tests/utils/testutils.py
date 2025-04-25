@@ -1,8 +1,10 @@
-from jinja2 import Environment, FileSystemLoader
-from git import Repo
 import os
 import shutil
+import stat
 from pathlib import Path
+
+from jinja2 import Environment, FileSystemLoader
+from git import Repo
 
 # Project files
 from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_for_deletion
@@ -65,7 +67,7 @@ def setup_repos(local_conf_file_name):
     globalproperties.set_prefix(os.path.dirname(test_dir))
     globalproperties.read_config('test')
     repos_dir = os.path.join(test_dir, 'repos')
-    shutil.rmtree(repos_dir, ignore_errors=True)
+    shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
     if not os.path.exists(repos_dir):
         os.mkdir(repos_dir)
         # setup repos
