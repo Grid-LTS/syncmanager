@@ -1,6 +1,4 @@
 import os
-from pathlib import PurePosixPath
-
 
 from git import Repo, GitCommandError
 
