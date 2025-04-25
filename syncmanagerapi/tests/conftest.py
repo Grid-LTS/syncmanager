@@ -1,4 +1,8 @@
 import os, shutil
+import time
+from threading import Thread
+
+
 import pytest
 import tempfile
 
@@ -20,11 +24,18 @@ def app():
         'DB_RESET': True
     })
     yield app
+    with app.app.app_context():
+        db_instance = app.app.extensions["sqlalchemy"]
+        db_instance.session.close()
+        db_instance.engine.dispose()
     # tear down code
-    os.close(db_file_descriptor)
-    os.unlink(db_path)
+    try:
+        os.close(db_file_descriptor)
+        os.unlink(db_path)
+    except PermissionError as perm:
+        print(f"Database file could not be cleaned up")
+        raise perm
     empty_directory(git_base_dir_path)
-
 
 @pytest.fixture(scope="module")
 def client(app):

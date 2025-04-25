@@ -2,11 +2,13 @@ import os
 import re
 from git import Repo
 import syncmanagerclient.util.globalproperties as globalproperties
+from .git_base import GitClientBase
 
 
-class DeletionRegistration:
+class DeletionRegistration(GitClientBase):
 
     def __init__(self, **kwargs):
+        super().__init__()
         self.branch_path = kwargs.get('branch_path', None)
         self.registry_dir = globalproperties.var_dir
         # first check if directory is a git working tree
@@ -14,6 +16,7 @@ class DeletionRegistration:
         self.configs = []
         self.mode = kwargs.get('mode', None)
         self.local_branch_exists = False
+
 
     def get_mode(self):
         if os.path.isdir(os.path.join(self.dir, '.git')):
@@ -25,6 +28,7 @@ class DeletionRegistration:
                 return
             self.mode = 'git'
             self.local_branch_exists = True
+            self.close()
             return
         # to be implemented: Unison check
 
