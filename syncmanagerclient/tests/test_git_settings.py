@@ -1,6 +1,8 @@
 import os
 import pytest
-from .utils.testutils import setup_repos, teardown_repos_directory, local_conf_file_name, test_dir, local_repo_path, origin_repo_path, detemplate_conf
+
+from .utils.testutils import local_conf_file_name, test_dir, local_repo_path, origin_repo_path
+from .utils.conffileutils import setup_repos, teardown_repos_directory, detemplate_conf
 from syncmanagerclient.main import apply_sync_conf_files
 from syncmanagerclient.clients import ACTION_SET_CONF
 
