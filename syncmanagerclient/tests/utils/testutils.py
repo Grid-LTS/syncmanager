@@ -30,3 +30,20 @@ def teardown_repos_directory(repos=[]):
     except PermissionError as err:
         print(f"Cannot delete {repos_dir}")
         raise err
+
+def checkout_principal_branch(repo):
+    # checkout principal branch
+    principal_branch = 'master'
+    try:
+        getattr(repo.heads, principal_branch)
+        repo.heads[principal_branch].checkout()
+        return principal_branch
+    except:
+        pass
+    principal_branch = 'main'
+    try:
+        getattr(repo.heads, principal_branch)
+        repo.heads[principal_branch].checkout()
+    except AttributeError as e:
+        raise e
+    return principal_branch
