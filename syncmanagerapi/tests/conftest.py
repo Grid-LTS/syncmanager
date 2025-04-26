@@ -1,10 +1,15 @@
-import os, shutil
-import time
-from threading import Thread
-
+import os
+import sys
 
 import pytest
 import tempfile
+
+test_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(os.path.dirname(test_dir))
+sys.path.insert(0, project_dir)
+
+from testlib.fixtures import empty_directory
+
 
 sync_manager_server_conf = os.path.dirname(os.path.abspath(__file__))
 var_dir_path = os.path.join("local", "var")
@@ -37,26 +42,3 @@ def app():
         raise perm
     empty_directory(git_base_dir_path)
 
-@pytest.fixture(scope="module")
-def client(app):
-    return app.test_client()
-
-
-# can call CLIck commands
-@pytest.fixture(scope="module")
-def runner(app):
-    return app.app.test_cli_runner()
-
-
-def empty_directory(path):
-    if os.path.isdir(path):
-        for filename in os.listdir(path):
-            file_path = os.path.join(path, filename)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print(e)
-                assert False, f"Cannot delete directory {path}"

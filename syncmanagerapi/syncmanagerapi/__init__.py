@@ -1,5 +1,5 @@
 import os
-from flask import jsonify
+from flask import jsonify, request
 import logging
 
 import connexion
@@ -37,7 +37,7 @@ def create_app(test_config=None):
     properties_file_path = get_properties_path(environment=app.config["ENV"],
                                                _properties_dir=app.config['SYNCMANAGER_SERVER_CONF'])
     app.config.from_pyfile(properties_file_path, silent=True)
-    if app.config["ENV"] == "development" or app.config["ENV"] == "test":
+    if app.config["ENV"] in ['test', 'e2e', "development"]:
         app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
         app.config["SQLALCHEMY_ECHO"] = True

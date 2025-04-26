@@ -1,9 +1,17 @@
+import os
 import os.path as osp
+import sys
 
 import pytest
-from setup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization
 from conftest import git_base_dir_path
 
+test_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(os.path.dirname(test_dir))
+testlib_dir = os.path.join(project_dir)
+sys.path.insert(0, project_dir)
+
+from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization
+from testlib.fixtures import client, runner
 
 @pytest.mark.dependency()
 def test_setup(client, runner):
