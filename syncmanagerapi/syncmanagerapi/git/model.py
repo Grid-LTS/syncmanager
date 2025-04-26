@@ -2,12 +2,17 @@ from datetime import datetime
 import os.path as osp
 import uuid
 
+from flask import current_app
+
 from ..database import db, ma
-from .git import GitRepoFs
 from ..model import User, ClientEnv, ClientEnvSchema
 from ..error import DataInconsistencyException
 from marshmallow import fields
 
+
+def get_bare_repo_fs_path(server_path_relative):
+    fs_root_dir = current_app.config['FS_ROOT']
+    return osp.join(osp.join(fs_root_dir, 'git'), server_path_relative)
 
 class GitRepo(db.Model):
     __tablename__ = "git_repos"
@@ -24,7 +29,7 @@ class GitRepo(db.Model):
 
     @property
     def server_path_absolute(self):
-        return GitRepoFs.get_bare_repo_fs_path(self.server_path_rel)
+        return get_bare_repo_fs_path(self.server_path_rel)
 
     @staticmethod
     def get_server_path_rel(server_path_rel, user_id):
@@ -54,7 +59,6 @@ class GitRepo(db.Model):
         return new_reference
 
     def remove(self):
-        GitRepoFs(self).delete_from_fs()
         db.session.delete(self)
         db.session.commit()
 

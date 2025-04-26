@@ -33,6 +33,7 @@ def test_create_repo(client):
     assert response.status_code == 200
     response_dict = response.json()
     assert response_dict["is_new_reference"]
+    assert response_dict["last_commit_date"] is None
     repo_server_path = osp.join(git_base_dir_path, response_dict["server_path_rel"])
     assert response_dict["server_path_absolute"] == repo_server_path
     assert response_dict["remote_name"] == "origin"
@@ -40,6 +41,8 @@ def test_create_repo(client):
     assert len(response_dict["userinfo"]) == 1
     user_git_repo_id = response_dict["userinfo"][0]['id']
     assert bool(repo_id)
+    response = client.patch(f"/api/git/repos/{repo_id}", headers=headers)
+    assert response.status_code == 400
     # fetch all repos
     repo_list_resp = client.get(get_clientenv_repos_url, headers=headers)
     repo_list = repo_list_resp.json()

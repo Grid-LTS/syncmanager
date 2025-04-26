@@ -172,16 +172,38 @@ def find_git_user_repo_assoc(git_repo_entity, client_env):
 
 @login_required
 def delete_repo(repo_id):
+    git_repo_entity = load_git_repo_by_user_and_id(repo_id)
+    if not git_repo_entity:
+        return
+    git_repo_entity.remove()
+    GitRepoFs(git_repo_entity).delete_from_fs()
+
+@login_required
+def update_repo(repo_id):
+    git_repo_entity = load_git_repo_by_user_and_id(repo_id)
+    if not git_repo_entity:
+        return
+    from ..database import db
+    from .model import GitRepoFullSchema
+    fs_git_repo = GitRepoFs(git_repo_entity)
+    is_updated = fs_git_repo.update()
+    if is_updated:
+        db.session.add(git_repo_entity)
+        db.session.commit()
+        gitrepo_schema = GitRepoFullSchema()
+        return gitrepo_schema.dump(git_repo_entity)
+    message = f"The repo {repo_id} has no commits."
+    raise InvalidRequest(message=message, field='repo_id')
+
+def load_git_repo_by_user_and_id(repo_id):
     from .model import GitRepo
     from ..model import User
     from ..decorators import requires_auth
     requires_auth()
     auth = request.authorization
     user = User.user_by_username(auth['username'])
-    git_repo_entity = GitRepo.get_repo_by_id_and_user_id(repo_id, user.id)
-    if not git_repo_entity:
-        return
-    git_repo_entity.remove()
+    return GitRepo.get_repo_by_id_and_user_id(repo_id, user.id)
+
 
 def delete_repo_assoc_for_clientenv(repo_id, client_env):
     from .model import GitRepo

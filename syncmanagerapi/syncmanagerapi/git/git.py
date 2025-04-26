@@ -4,18 +4,18 @@ import shutil
 import pathlib
 
 from git import Repo
-from flask import current_app
 
 from ..error import FsConflictError
-
+from .model import GitRepo, get_bare_repo_fs_path
 
 class GitRepoFs:
     gitrepo_entity = None
     gitrepo_path = ''
 
-    def __init__(self, gitrepo_entity):
+    def __init__(self, gitrepo_entity : GitRepo):
         self.gitrepo_entity = gitrepo_entity
-        self.gitrepo_path = GitRepoFs.get_bare_repo_fs_path(gitrepo_entity.server_path_rel)
+        self.gitrepo_path = get_bare_repo_fs_path(gitrepo_entity.server_path_rel)
+        self.gitrepo = None
 
     def create_bare_repo(self):
         # first check if directory exists
@@ -31,12 +31,12 @@ class GitRepoFs:
         git_subdir = osp.join(self.gitrepo_path, '.git')
         if os.path.exists(git_subdir):
             return True
-        repo = Repo.init(self.gitrepo_path, bare=True)
-        repo.close()
+        self.gitrepo = Repo.init(self.gitrepo_path, bare=True)
+        self.gitrepo.close()
         return True
 
     def move_repo(self, target_path_rel):
-        target_path = GitRepoFs.get_bare_repo_fs_path(target_path_rel)
+        target_path = get_bare_repo_fs_path(target_path_rel)
         if os.path.exists(target_path):
             raise FsConflictError('Upstream repository could not be moved', self.gitrepo_entity.server_path_rel,
                                   target_path)
@@ -53,6 +53,17 @@ class GitRepoFs:
         shutil.rmtree(self.gitrepo_path)
         GitRepoFs.remove_empty_dir_tree_recursively(self.gitrepo_entity.server_path_rel)
 
+    def update(self):
+        self.gitrepo = Repo(self.gitrepo_path)
+        if self.gitrepo .bare:
+            return False
+        # Get the latest commit from the active branch
+        last_commit = self.gitrepo.head.commit
+        last_commit_date = last_commit.committed_datetime
+        self.gitrepo_entity.last_commit_date = last_commit_date
+        self.gitrepo.close()
+        return True
+
     @staticmethod
     def remove_first_path_part(path):
         p = pathlib.Path(path)
@@ -64,17 +75,12 @@ class GitRepoFs:
         return p.parent
 
     @staticmethod
-    def get_bare_repo_fs_path(server_path_relative):
-        fs_root_dir = current_app.config['FS_ROOT']
-        return osp.join(osp.join(fs_root_dir, 'git'), server_path_relative)
-
-    @staticmethod
     def remove_empty_dir_tree_recursively(dir_path):
         p = pathlib.Path(dir_path)
         # by design the depth of a repo is at minimum 2, we keep all files at depth 1 
         if len(p.parts) < 2:
             return None
-        absolute_path = GitRepoFs.get_bare_repo_fs_path(dir_path)
+        absolute_path = get_bare_repo_fs_path(dir_path)
         if os.path.exists(absolute_path):
             files = os.listdir(absolute_path)
             if len(files) != 0:

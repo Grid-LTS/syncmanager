@@ -88,20 +88,26 @@ paths:
         200:
           description: "List of Git repositories"
   /git/repos/{repo_id}:
-    delete:
-      operationId: syncmanagerapi.git.api.delete_repo
-      summary: "Deletes the server repository"
-      description: ""
-      parameters:
+    parameters:
       - name: repo_id
         in: path
         description: identifier for the server repository
         schema:
           type: string
         required: true
+    delete:
+      operationId: syncmanagerapi.git.api.delete_repo
+      summary: "Deletes the server repository"
+      description: ""
       responses:
         204:
           description: "server repo deleted"
+    patch:
+      operationId: syncmanagerapi.git.api.update_repo
+      summary: "Refreshes repo data"
+      responses:
+        200:
+          description: "server repo updated"
   /git/repos/{repo_id}/{client_env}:
     put:
       operationId: "syncmanagerapi.git.api.update_repo_for_clientenv"
