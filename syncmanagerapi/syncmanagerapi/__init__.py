@@ -38,7 +38,10 @@ def create_app(test_config=None):
                                                _properties_dir=app.config['SYNCMANAGER_SERVER_CONF'])
     app.config.from_pyfile(properties_file_path, silent=True)
     if app.config["ENV"] in ['test', 'e2e', "development"]:
-        app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
+        if app.config["ENV"] == "development":
+            app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
+        else:
+            app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "tests")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
         app.config["SQLALCHEMY_ECHO"] = True
         app.config["DEBUG"] = True

@@ -5,15 +5,17 @@ from threading import Thread
 
 import pytest
 
-from .utils.testutils import local_repo_path
+
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
 sys.path.insert(0, project_dir)
 
 from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization
-from testlib.fixtures import client, runner
+from testlib.fixtures import client, runner, empty_directory
 
+from .utils.testutils import local_repo_path, teardown_repos_directory
+from .utils.e2eutils import setup_local_repo
 
 @pytest.fixture(scope="module")
 def app():
@@ -28,16 +30,33 @@ def app():
         'DB_SQLITE_PATH': db_path,
         'SYNCMANAGER_SERVER_CONF': syncmanagerapi_dir,
         'DB_RESET': True,
-        'SERVER_PORT' : 5100
+        'SERVER_PORT' : 8010
     })
-    thread = Thread(target=app.run, daemon=True, kwargs=dict(host='localhost', port=5100))
+    thread = Thread(target=app.run, daemon=True, kwargs=dict(host='localhost', port=8010))
     thread.start()
     yield app
+    git_base_dir_path = app.app.config["FS_ROOT"]
+    with app.app.app_context():
+        db_instance = app.app.extensions["sqlalchemy"]
+        db_instance.session.close()
+        db_instance.engine.dispose()
+    # tear down code
+    try:
+        os.close(db_file_descriptor)
+        os.unlink(db_path)
+    except PermissionError as perm:
+        print(f"Database file could not be cleaned up")
+        raise perm
+    empty_directory(git_base_dir_path)
 
-@pytest.mark.dependency()
-def test_setup(client, runner):
+@pytest.fixture(scope="module")
+def local_repo(client, runner):
     setup_users_and_env(client, runner)
+    local_repo = setup_local_repo()
+    yield local_repo
+    teardown_repos_directory([local_repo])
 
-@pytest.mark.dependency(depends=["test_setup"])
-def test_push_sync(app):
+
+@pytest.mark.dependency(depends=["local_repo"])
+def test_push_sync(app, local_repo):
     test_file_path = os.path.join(local_repo_path, 'next_file.txt')

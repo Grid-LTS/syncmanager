@@ -1,4 +1,20 @@
+from jinja2 import Environment, FileSystemLoader
+from git import Repo
+
+import shutil
+import stat
+import time
+
+from pathlib import Path
+
+
+# Project files
+from syncmanagerclient.main import apply_sync_conf_files
+from syncmanagerclient.clients import ACTION_PUSH
+import syncmanagerclient.util.globalproperties as globalproperties
+
 from .testutils import *
+
 
 TEMPLATE_ENVIRONMENT = Environment(
     autoescape=False,
@@ -57,13 +73,4 @@ def setup_repos(local_conf_file_name):
     apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
     return origin_repo, local_repo
 
-def teardown_repos_directory(repos=[]):
-    try:
-        for repo in repos:
-            repo.close()
-        change_dir(os.path.dirname(repos_dir))
-        time.sleep(1)
-        shutil.rmtree(repos_dir,onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
-    except PermissionError as err:
-        print(f"Cannot delete {repos_dir}")
-        raise err
+
