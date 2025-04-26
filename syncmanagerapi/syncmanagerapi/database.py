@@ -12,16 +12,16 @@ def init_schema():
 
 
 def get_sqlite_path(conf):
-    if not conf.get('DB_SQLITE_NAME', None):
-        exit(1)
     if conf.get("DB_SQLITE_PATH", None):
         return conf["DB_SQLITE_PATH"]
+    if not conf.get('DB_SQLITE_NAME', None):
+        exit(1)
     return osp.join(osp.join(properties_dir, conf.get('INSTALL_DIR')), conf.get('DB_SQLITE_NAME'))
 
 
 def get_database_url(app):
     conf = app.config
-    if app.config.get("DB_SQLITE_NAME",None) or app.config["ENV"] == 'test':
+    if app.config.get("DB_SQLITE_NAME",None) or app.config["ENV"] in ['test', 'e2e'] :
         path_to_db = get_sqlite_path(conf)
         return f"sqlite:///{path_to_db}"
     else:
@@ -31,7 +31,7 @@ def get_database_url(app):
 
 def get_database_connection(app):
     conf = app.config
-    if app.config.get("DB_SQLITE_NAME",None) or app.config["ENV"] == 'test':
+    if app.config.get("DB_SQLITE_NAME",None) or app.config["ENV"] in ['test', 'e2e']:
         import sqlite3
         path_to_db = get_sqlite_path(conf)
         db = sqlite3.connect(path_to_db)
