@@ -15,6 +15,7 @@ class GitRepo(db.Model):
     server_path_rel = db.Column(db.Text(), nullable=False)
     created = db.Column(db.DateTime, default=datetime.utcnow())
     updated = db.Column(db.DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow())
+    last_commit_date = db.Column(db.DateTime, nullable=True)
     user_id = None
 
     def __init__(self, server_path_rel, user_id):
@@ -105,6 +106,7 @@ class GitRepoSchema(ma.SQLAlchemyAutoSchema):
         include_relationships = True
 
     server_path_absolute = fields.String()
+    last_commit_date = fields.DateTime()
 
 
 # identifies the user's client environments
@@ -197,4 +199,5 @@ class GitRepoFullSchema(ma.SQLAlchemyAutoSchema):
         include_relationships = True
 
     server_path_absolute = fields.String()
+    last_commit_date = fields.DateTime()
     userinfo = fields.Nested(UserGitReposAssocFullSchema, dump_default=[], load_default=[], many=True)
