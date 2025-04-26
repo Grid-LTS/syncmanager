@@ -13,7 +13,7 @@ import syncmanagerclient.util.system as system
 class SyncDirRegistration:
     mode = None
 
-    def __init__(self, local_path, sync_env):
+    def __init__(self, local_path, sync_env, remote_name=None, namespace=None):
         system_home_dir=PurePosixPath(Path(system.home_dir))
         local_path_posix = PurePosixPath(local_path)
         if osp.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
@@ -29,6 +29,8 @@ class SyncDirRegistration:
         self.server_repo_ref = None
         self.other_envs_repos = None
         self.server_path_rels_of_other_repo = []
+        self.remote_name = remote_name
+        self.namespace = namespace
 
     def get_mode(self):
         if self.local_path.joinpath('.git').resolve().is_dir():
@@ -73,14 +75,12 @@ class SyncDirRegistration:
         is_update = self.server_repo_ref is not None
         # check if the repo might be registered under the default env
         server_repo_ref_default = self.find_server_repo_for_env('default', existing_repos_all)
-        server_path_rel = ''
+        server_path_rel = self.namespace
         if server_repo_ref_default:
             namespace_parts = pathlib.Path(server_repo_ref_default['git_repo']['server_path_rel']).parts[1:-1]
-            if len(namespace_parts) == 0:
-                server_path_rel = ''
-            elif len(namespace_parts) == 1:
+            if len(namespace_parts) == 1:
                 server_path_rel = namespace_parts[0]
-            else:
+            elif len(namespace_parts) > 1:
                 server_path_rel = osp.join(namespace_parts[0], *namespace_parts[1:])
         self.print_other_env_repos()
         if is_update:
@@ -122,9 +122,9 @@ class SyncDirRegistration:
         return server_repo_ref['user'] == self.first_path_part(server_repo_ref['git_repo']['server_path_rel'])
 
     def prompt_for_repo_name(self):
-        repo_name = input('Enter directory name of bare repository (optional): ').strip()
-        if not repo_name:
-            repo_name = osp.basename(self.local_path_short)
+        repo_name = osp.basename(self.local_path_short)
+        if not globalproperties.test_mode:
+            repo_name = input('Enter directory name of bare repository (optional): ').strip()
         if repo_name[-4:] != '.git':
             repo_name += '.git'
         return repo_name
@@ -134,23 +134,22 @@ class SyncDirRegistration:
             server_path_rel = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
         else:
             server_path_rel = _server_path_rel
-        remote_name = ''
         is_overwrite = False
-        while not remote_name:
-            remote_name = input('Name of remote repo (default: origin): ').strip()
-            if not remote_name:
-                remote_name = 'origin'
+        while not self.remote_name:
+            self.remote_name = input('Name of remote repo (default: origin): ').strip()
+            if not self.remote_name:
+                self.remote_name = 'origin'
             try:
-                self.gitrepo.remote(remote_name)
-                print(f"Remote repository with identifier {remote_name} already exists.")
+                self.gitrepo.remote(self.remote_name)
+                print(f"Remote repository with identifier {self.remote_name} already exists.")
                 confirm = input(
-                    f"Overwrite url of remote '{remote_name}'?. 'Y/y/yes' or other input for 'no': ").strip()
+                    f"Overwrite url of remote '{self.remote_name}'?. 'Y/y/yes' or other input for 'no': ").strip()
                 if confirm in ['Y', 'y', 'yes']:
                     is_overwrite = True
                     break
 
                 else:
-                    remote_name = ''
+                    self.remote_name = ''
                 print("")
             except ValueError:
                 pass
@@ -159,7 +158,7 @@ class SyncDirRegistration:
         all_sync_env = False
         # in case the desired remote repo is already created and registered for other environments, we only
         # register this env as client
-        if not server_path in self.server_path_rels_of_other_repo:
+        if not server_path in self.server_path_rels_of_other_repo and not globalproperties.test_mode:
             all_envs = input("Should all environments sync this repo? 'Y/y/yes' or other input for 'no': ").strip()
             if all_envs in ['Y', 'y', 'yes']:
                 all_sync_env = True
@@ -168,16 +167,16 @@ class SyncDirRegistration:
                 f"Your repo at {self.local_path_short} is registered as a downstream repo of the existing remote under namespace " +
                 f"{server_path} for the environment {self.sync_env}.")
         response = self.api_service.create_remote_repository(self.local_path_short, server_path_rel,
-                                                             repo_name, remote_name, all_sync_env)
+                                                             repo_name, self.remote_name, all_sync_env)
         if response['is_new_reference']:
             remote_url = SyncDirRegistration.get_remote_url(response['server_path_absolute'])
             if is_overwrite:
-                remote = self.gitrepo.remote(remote_name)
+                remote = self.gitrepo.remote(self.remote_name)
                 remote.set_url(remote_url)
-                print(f"Set URL at path {response['server_path_absolute']} for remote {remote_name}.")
+                print(f"Set URL at path {response['server_path_absolute']} for remote {self.remote_name}.")
             else:
-                self.gitrepo.create_remote(remote_name, remote_url)
-                print(f"Bare repo at path {response['server_path_absolute']} is registered as remote {remote_name}.")
+                self.gitrepo.create_remote(self.remote_name, remote_url)
+                print(f"Bare repo at path {response['server_path_absolute']} is registered as remote {self.remote_name}.")
         else:
             print(f"Bare repo at path {response['server_path_absolute']} is already registered as remote.")
 

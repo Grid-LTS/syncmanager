@@ -155,10 +155,10 @@ def main():
     parser.add_argument("-o","--org", default="",
                         help="Specifies organization to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
-    parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
-    for act in ['push', 'pull', 'set-remote', 'add-env']:
+    for act in ['push', 'pull', 'add-env', 'set-remote']:
         sub_parser_std_action = sub_parser_action.add_parser(act)
+    sub_parser_std_action.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_delete = sub_parser_action.add_parser('delete')
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
@@ -169,37 +169,37 @@ def main():
         sync_env = args.env
     else:
         sync_env = globalproperties.sync_env
+    execute_command(args.action, args.client, sync_env, args.namespace, args.path, args.force)
 
-    if args.action in [ACTION_PULL, ACTION_PUSH]:
-        action = args.action
+
+def execute_command(action, client, sync_env, namespace, remote_name=None, path=None, force=False):
     # Todo save git config on server
     # elif args.action in ACTION_SET_CONF_ALIASES:
     #    action = ACTION_SET_CONF
-    elif args.action in ACTION_SET_REMOTE_ALIASES:
+    if action in ACTION_SET_REMOTE_ALIASES:
         local_path = Path(os.getcwd())
-        new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env)
+        new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env, remote_name=remote_name, namespace=namespace)
         new_sync_dir.register()
-        exit(0)
-    elif args.action in ACTION_ADD_ENV_ALIASES:
+        return
+    elif action in ACTION_ADD_ENV_ALIASES:
         new_sync_env = SyncEnvRegistration()
         new_sync_env.register()
-        exit(0)
-    elif args.action == ACTION_DELETE:
-        path = args.path
+        return
+    elif action == ACTION_DELETE:
         git_repo_path = os.getcwd()
         register_local_branch_for_deletion(path, git_repo_path)
-        exit(0)
+        return
+    elif action in [ACTION_PULL, ACTION_PUSH]:
+        pass
     else:
-        print('Unknown command \'{0}\'. Abort.'.format(args.action))
+        print('Unknown command \'{0}\'. Abort.'.format(action))
         exit(1)
-    force = args.force
-
-    if args.client:
-        clients_enabled = [args.client]
+    if client:
+        clients_enabled = [client]
     else:
         clients_enabled = clients
     print('Enabled clients: ' + ', '.join(clients_enabled))
     for mode in clients_enabled:
         print(f"Syncing client {mode}")
-        sync_client = SyncClient(mode, action, sync_env, force, args.namespace)
+        sync_client = SyncClient(mode, action, sync_env, force, namespace)
         sync_client.get_and_sync_repos()

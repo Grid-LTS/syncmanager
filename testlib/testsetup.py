@@ -5,7 +5,8 @@ SYNC_ADMIN_PASSWORD = "pw1234"
 
 USER = "eggs"
 USER_PASSWORD = "secret"
-USER_CLIENT_ENV = "intregationtest"
+USER_CLIENT_ENV = "integrationtest"
+USER_CLIENT_ENV_DEFAULT = "default"
 
 
 def create_admin(runner):
@@ -31,10 +32,10 @@ def create_user(client):
     client.post(create_user_url, json=body, headers=headers)
 
 
-def create_client_env(client):
+def create_client_env(client, env_name):
     create_clientenv_url = "/api/clientenv"
     body = {
-        'client_env_name': "intregationtest"
+        'client_env_name': env_name
     }
     headers = {"Authorization": get_user_basic_authorization()}
     client.post(create_clientenv_url, json=body, headers=headers)
@@ -43,4 +44,5 @@ def create_client_env(client):
 def setup_users_and_env(client, runner):
     create_admin(runner)
     create_user(client)
-    create_client_env(client)
+    create_client_env(client, USER_CLIENT_ENV_DEFAULT)
+    create_client_env(client, USER_CLIENT_ENV)
