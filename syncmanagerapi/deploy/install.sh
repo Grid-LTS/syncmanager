@@ -96,12 +96,10 @@ if [ "$?" -ne 0 ]; then
     create_user $UNIX_USER
 fi
 
+
+##### 1. reset, clean up and preparation #####
+
 sudo systemctl stop syncmanagerapi
-
-# install system dependencies
-sudo apt-get update
-sudo apt-get -y install python3-dev python3-venv default-libmysqlclient-dev libmysqlclient-dev
-
 
 # build project
 cd $PROJECT_DIR
@@ -112,7 +110,45 @@ echo "Cleanup build/"
 rm -rf build
 source $VIRTUAL_ENV/bin/activate # make sure you are not running in any virtual env
 deactivate
-python3 -m pip install --user pipx
+
+##### 2.  build tools #####
+
+# install system dependencies
+sudo apt-get update
+sudo apt-get -y install python3-dev python3-pip python-is-python3 default-libmysqlclient-dev libmysqlclient-dev
+
+pipx --version
+if [ "$?" -ne 0 ]; then
+  sudo apt-get -y install pipx
+fi
+
+# install pipx with the package-pix so we get the latest version of pipx
+pipx ensurepath
+source ~/.bashrc
+pipx install pipx
+# And optional remove the obsolete apt pipx!
+sudo apt-get -y purge --autoremove pipx
+
+# we need to make sure that the pipx module is located
+minor_vers=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+pipx_package="$HOME/.local/pipx/venvs/pipx/lib/python$minor_vers/site-packages"
+if [ -z "${PYTHONPATH}" ]; then
+  export PYTHONPATH="$pipx_package"
+else
+  export PYTHONPATH="${PYTHONPATH}:$pipx_package"
+fi
+pipx ensurepath
+source ~/.bashrc
+
+pipx --version
+if [ "$?" -ne 0 ]; then
+  python3 -m pip install --user pipx
+fi
+pipx_version=$(pipx --version)
+echo "Pipx installed in version $pipx_version"
+
+pipx reinstall-all
+
 pipx install poetry
 
 venv_path=$(poetry env info -p)
@@ -135,28 +171,36 @@ package_name="${PROJECT_DIR}/dist/syncmanagerapi-${VERSION}-py3-none-any.whl"
 
 command -v virtualenv > /dev/null
 if [ ! "$?" -eq 0 ]; then
-    pip3 install --upgrade virtualenv
-    if [ "$?" -ne 0 ]; then
-        python3 -m pip install --upgrade virtualenv
-        if [ "$?" -ne 0 ]; then
-            echo "Cannot install virtualenv package. Make sure you have pip3 installed."
-            echo "Using the system package for pip is recommended, e.g. sudo apt-get install python3-pip"
-            exit 1
-        fi
+    pipx install virtualenv
+    if [ ! "$?" -eq 0 ]; then
+      pip3 install --upgrade virtualenv --user
+      if [ "$?" -ne 0 ]; then
+          python3 -m pip install --upgrade virtualenv --user
+          if [ "$?" -ne 0 ]; then
+              echo "Cannot install virtualenv package. Make sure you have pip3 installed."
+              echo "Using the system package for pip is recommended, e.g. sudo apt-get install python3-pip"
+              exit 1
+          fi
+      fi
     fi
 fi
+
+unset PYTHONPATH
+
+##### 3. INSTALLATION #####
 
 venv_dir=${INSTALL_DIR}/venv
 sudo rm -r $venv_dir
 sudo mkdir -p $venv_dir
 sudo chown $USER:$USER $venv_dir
 virtualenv -p $(which python3) $venv_dir
-binaries=$venv_dir/bin
-$binaries/pip install --upgrade gunicorn
-$binaries/pip install --upgrade uvicorn
+source $venv_dir/bin/activate
+pip install --upgrade gunicorn
+pip install --upgrade uvicorn
+pip install --upgrade click
 echo "install application $(basename $package_name)"
-$binaries/pip install $package_name
-
+pip install $package_name
+deactivate
 sudo chown root:root -R $venv_dir
 
 # create systemd file
