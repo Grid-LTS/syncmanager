@@ -207,4 +207,6 @@ class SyncDirRegistration:
 
     @staticmethod
     def get_remote_url(remote_repo_path):
-        return f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{remote_repo_path}"
+        if globalproperties.ssh_user and globalproperties.ssh_host:
+            return f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{remote_repo_path}"
+        return f"file:///{remote_repo_path}"

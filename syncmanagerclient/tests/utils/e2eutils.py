@@ -1,6 +1,3 @@
-import shutil
-import stat
-
 from git import Repo
 from pathlib import Path
 
@@ -13,10 +10,10 @@ import syncmanagerclient.util.globalproperties as globalproperties
 from testlib.testsetup import USER_CLIENT_ENV
 
 
-
 def setup_local_repo():
     repos_dir = os.path.join(test_dir, 'repos')
-    shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
+    shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE),
+                                                                                func(path)))
     if not os.path.exists(repos_dir):
         os.mkdir(repos_dir)
     local_repo = Repo.init(local_repo_path)
