@@ -1,19 +1,10 @@
 import os
+
 import shutil
 import stat
 import time
 
-from pathlib import Path
 from syncmanagerclient.util.system import change_dir
-
-
-from jinja2 import Environment, FileSystemLoader
-from git import Repo
-
-# Project files
-from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_for_deletion
-from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
-import syncmanagerclient.util.globalproperties as globalproperties
 
 test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 var_dir_path = os.path.join(test_dir, 'var')
@@ -29,3 +20,13 @@ others_conf_file_name = 'others.conf'
 test_user_name = 'Test User'
 test_user_email = 'dummy@tests.com'
 
+def teardown_repos_directory(repos=[]):
+    try:
+        for repo in repos:
+            repo.close()
+        change_dir(os.path.dirname(repos_dir))
+        time.sleep(1)
+        shutil.rmtree(repos_dir,onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
+    except PermissionError as err:
+        print(f"Cannot delete {repos_dir}")
+        raise err

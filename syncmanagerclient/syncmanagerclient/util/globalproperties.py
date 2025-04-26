@@ -11,6 +11,7 @@ api_user = ''
 api_pw = ''
 ssh_user = ''
 ssh_host = ''
+test_mode = False
 
 
 def set_prefix(prefix):
@@ -39,16 +40,28 @@ def read_config(stage, organization=''):
     if os.path.isfile(properties_path):
         config.read(properties_path)
     else:
-        print(f"Please create {properties_file_name} file in the project root.")
-        exit(1)
+        message = f"Please create {properties_file_name} file in the project root {ini_path_prefix}."
+        if not test_mode:
+            print(message)
+            exit(1)
+        else:
+            raise FileNotFoundError(message)
     conf_dir = config.get('config', 'conf_dir', fallback=None)
     if not conf_dir:
-        print("Please specify the path to the config files in server-sync.ini.")
-        exit(1)
+        message= "Please specify the path to the config files in server-sync.ini."
+        if not test_mode:
+            print(message)
+            exit(1)
+        else:
+            raise RuntimeError(message)
     var_dir = config.get('config', 'var_dir', fallback=None)
     if not var_dir:
-        print("Please specify the var_dir property in server-sync.ini.")
-        exit(1)
+        message = "Please specify the var_dir property in server-sync.ini."
+        if not test_mode:
+            print(message)
+            exit(1)
+        else:
+            raise RuntimeError(message)
 
     # determine sync environment
     if not os.environ.get('SYNC_ENV', None) and not config.get('config', 'SYNC_ENV', fallback=None):
