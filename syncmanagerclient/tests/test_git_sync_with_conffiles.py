@@ -8,8 +8,9 @@ from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_
 from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
 
 from .utils.testutils import test_dir, var_dir_path, local_repo_path, \
-    others_repo_path, local_conf_file_name, others_conf_file_name
-from .utils.conffileutils import setup_repos, teardown_repos_directory
+    others_repo_path, local_conf_file_name, others_conf_file_name, checkout_principal_branch, teardown_repos_directory
+from .utils.conffileutils import setup_repos
+
 
 @pytest.fixture(scope="module")
 def setup_repositories():
@@ -88,21 +89,3 @@ def test_delete_branch(setup_repositories):
 def test_empty_sync_with_conf_files(setup_repositories):
     apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
     apply_sync_conf_files(test_dir, [others_conf_file_name], ACTION_PULL, False, '', ['git'])
-
-
-def checkout_principal_branch(repo):
-    # checkout principal branch
-    principal_branch = 'master'
-    try:
-        getattr(repo.heads, principal_branch)
-        repo.heads[principal_branch].checkout()
-        return principal_branch
-    except:
-        pass
-    principal_branch = 'main'
-    try:
-        getattr(repo.heads, principal_branch)
-        repo.heads[principal_branch].checkout()
-    except AttributeError as e:
-        raise e
-    return principal_branch
