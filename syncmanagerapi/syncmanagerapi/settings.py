@@ -26,7 +26,8 @@ def get_properties_path(environment, _properties_dir=properties_dir):
         mappers = {
             'production': 'prod',
             'development': 'dev',
-            'test': "test"
+            'test': "test",
+            'e2e': "e2e"
         }
         # in local DEV setup
     return os.path.join(_properties_dir, f"application.{mappers[environment]}.cfg")

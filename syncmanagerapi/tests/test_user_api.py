@@ -1,5 +1,12 @@
-from setup import create_admin, get_admin_basic_authorization
+import os
+import sys
 
+test_dir = os.path.dirname(os.path.abspath(__file__))
+project_dir = os.path.dirname(os.path.dirname(test_dir))
+sys.path.insert(0, project_dir)
+
+from testlib.testsetup import create_admin, get_admin_basic_authorization
+from testlib.fixtures import client, runner
 
 def test_create_user(client, runner):
     create_admin(runner)
