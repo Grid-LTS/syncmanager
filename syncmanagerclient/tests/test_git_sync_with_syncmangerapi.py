@@ -40,7 +40,7 @@ def get_branch_name_and_repo_from_remote_path(remote_branch):
     return '/'.join(parts[1:]), parts[0]
 
 
-def test_push_sync(setup_repositories):
+def test_push_sync_with_conffiles(setup_repositories):
     origin_repo, local_repo, others_repo = setup_repositories
     test_file_path = os.path.join(local_repo_path, 'next_file.txt')
     checkout_principal_branch(local_repo)
@@ -85,7 +85,7 @@ def test_delete_branch(setup_repositories):
     assert getattr(others_repo.heads, test_branch, None) is None
 
 
-def test_empty_sync(setup_repositories):
+def test_empty_sync_with_conf_files(setup_repositories):
     apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])
     apply_sync_conf_files(test_dir, [others_conf_file_name], ACTION_PULL, False, '', ['git'])
 
