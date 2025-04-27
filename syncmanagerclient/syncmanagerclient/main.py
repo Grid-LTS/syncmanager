@@ -155,10 +155,11 @@ def main():
     parser.add_argument("-o","--org", default="",
                         help="Specifies organization to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
+    parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in ['push', 'pull', 'add-env', 'set-remote']:
+        # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
         sub_parser_std_action = sub_parser_action.add_parser(act)
-    sub_parser_std_action.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_delete = sub_parser_action.add_parser('delete')
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
@@ -169,7 +170,11 @@ def main():
         sync_env = args.env
     else:
         sync_env = globalproperties.sync_env
-    execute_command(args.action, args.client, sync_env, args.namespace, args.path, args.force)
+    if args.action == ACTION_DELETE:
+        path = args.path
+    else:
+        path = None
+    execute_command(args.action, args.client, sync_env, args.namespace, path, args.force)
 
 
 def execute_command(action, client, sync_env, namespace, remote_name=None, path=None, force=False):
