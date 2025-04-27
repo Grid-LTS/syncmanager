@@ -1,7 +1,10 @@
 venv/
 local/**
 !local/.gitkeep
-tests/local
+tests/local/**
+tests/var/**
+tests/tests/**
+
 
 poetry.lock
 
