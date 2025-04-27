@@ -16,7 +16,7 @@ class ApiService:
     def list_repos_by_client_env(self, full=False):
         query_params = {
             "clientenv" : self.sync_env,
-            "retention_years" : 3,
+            "retention_years" : 2,
             'full_info': full
         }
         return self.list_repos(self.get_repos_url, query_params)
