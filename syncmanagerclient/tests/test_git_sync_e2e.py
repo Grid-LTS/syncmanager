@@ -62,7 +62,6 @@ def local_repo(client, runner):
     teardown_repos_directory([local_repo])
 
 
-@pytest.mark.dependency(depends=["local_repo"])
 def test_push_sync(app, local_repo, client):
     get_clientenv_repos_url = f"/api/git/repos"
     headers = {"Authorization": get_user_basic_authorization()}

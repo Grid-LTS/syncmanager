@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import os.path as osp
 import uuid
 from dateutil.relativedelta import relativedelta
@@ -20,8 +20,8 @@ class GitRepo(db.Model):
     __tablename__ = "git_repos"
     id = db.Column(db.String(36), primary_key=True)
     server_path_rel = db.Column(db.Text(), nullable=False)
-    created = db.Column(db.DateTime, default=datetime.utcnow())
-    updated = db.Column(db.DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow())
+    created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     last_commit_date = db.Column(db.DateTime, nullable=True)
     user_id = None
 

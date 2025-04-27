@@ -14,7 +14,6 @@ sys.path.insert(0, project_dir)
 from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization
 from testlib.fixtures import client, runner
 
-@pytest.mark.dependency()
 def test_setup(client, runner):
     setup_users_and_env(client, runner)
 
