@@ -44,11 +44,21 @@ if os.path.isfile(properties_path):
             context = {
                 'db_schema_name': config['default_section'].get('DB_SCHEMA_NAME', 'syncmanerapi').strip('"\''),
                 'db_user': db_user_name,
-                'db_user_password': passw
+                'db_user_password': passw,
+                'db_host': config['default_section'].get('DB_HOST', 'localhost').strip('"\''),
+                'db_port': config['default_section'].get('DB_PORT', '3306').strip('"\''),
             }
+            context[
+                'database_url'] = (f"mysql://{context['db_user']}:{context['db_user_password']}"
+                                   f"@{context['db_host']}:{context['db_port']}/{context['db_schema_name']}")
 
             conf_file = TEMPLATE_ENVIRONMENT.get_template('{}.j2'.format(init_db_file)).render(context)
             f = open(os.path.join(deploy_dir, init_db_file), 'w')
             f.write(conf_file)
             f.close()
             print(f"DB_PASSWORD=\"{passw}\"")
+            alembic_conf_file = TEMPLATE_ENVIRONMENT.get_template('alembic.ini.j2'.format(init_db_file)).render(
+                context)
+            f_alembic = open(os.path.join(deploy_dir, "alembic.ini"), 'w')
+            f_alembic.write(alembic_conf_file)
+            f_alembic.close()
