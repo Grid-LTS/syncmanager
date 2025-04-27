@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 
@@ -10,8 +10,8 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     role = db.Column(db.String(32), nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    created = db.Column(db.DateTime, default=datetime.utcnow())
-    updated = db.Column(db.DateTime, default=datetime.utcnow(), onupdate=datetime.utcnow())
+    created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     @property
     def password(self):
@@ -62,7 +62,7 @@ class ClientEnv(db.Model):
 
     id = db.Column(db.String(36), primary_key=True)
     env_name = db.Column(db.String(100), nullable=False)
-    created = db.Column(db.DateTime, default=datetime.utcnow())
+    created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user_id = db.Column(db.String(36), db.ForeignKey('user.id'))
 
     user = db.relationship(User, backref="client_envs")

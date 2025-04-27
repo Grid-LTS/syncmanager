@@ -1,6 +1,5 @@
 import requests as req
 import json
-import urllib
 
 import syncmanagerclient.util.globalproperties as globalproperties
 
@@ -20,8 +19,7 @@ class ApiService:
             "retention_years" : 3,
             'full_info': full
         }
-        url = f"{self.get_repos_url}?{urllib.parse.urlencode(query_params)}"
-        return self.list_repos(url, query_params)
+        return self.list_repos(self.get_repos_url, query_params)
 
     def list_repos_all_client_envs(self, full=False):
         url = self.get_repos_by_clientenv_url
