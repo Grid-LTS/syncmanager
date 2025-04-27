@@ -21,7 +21,7 @@ def test_setup(client, runner):
 @pytest.mark.dependency(depends=["test_setup"])
 def test_create_repo(client):
     client_env = USER_CLIENT_ENV
-    get_clientenv_repos_url = f"/api/git/repos/{client_env}"
+    get_clientenv_repos_url = f"/api/git/repos?clientenv={client_env}"
     headers = {"Authorization": get_user_basic_authorization()}
     response = client.get(get_clientenv_repos_url, headers=headers)
     assert response.status_code == 200

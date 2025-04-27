@@ -11,8 +11,8 @@ sys.path.insert(0, project_dir)
 from testlib.fixtures import empty_directory
 
 
-sync_manager_server_conf = os.path.dirname(os.path.abspath(__file__))
-var_dir_path = os.path.join("local", "var")
+sync_manager_server_conf = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+var_dir_path = os.path.join("tests", "var")
 sync_base_dir_path = os.path.join(sync_manager_server_conf, var_dir_path)
 git_base_dir_path = os.path.join(sync_base_dir_path, "git")
 
