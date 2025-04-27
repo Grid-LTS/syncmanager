@@ -5,7 +5,6 @@ tests/local/**
 tests/var/**
 tests/tests/**
 
-
 poetry.lock
 
 *.pyc
@@ -17,6 +16,7 @@ instance/
 application.cfg
 **/.env
 application.prod.cfg
+alembic.ini
 
 .pytest_cache/
 .coverage
