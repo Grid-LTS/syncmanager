@@ -77,6 +77,10 @@ class ApiService:
         url = f"{globalproperties.api_base_url}/clientenv"
         return req.post(url, data=json.dumps(body), auth=self.auth)
 
+    def update_server_repo(self, server_repo_id):
+        url = f"{self.base_api_url}/repos/{server_repo_id}"
+        return req.patch(url, data='{}', auth=self.auth)
+
     @staticmethod
     def check_response(response, desired_status_code):
         if response.status_code != desired_status_code:

@@ -223,7 +223,7 @@ class GitClientSync(GitClientBase):
             if not remote_branch or not remote_branch in self.remote_gitrepo.refs:
                 print('Push new local branch \'{0}\' to repo.'.format(str(branch)))
                 # use git directly, second argument is refspec
-                output = git.push(self.remote_gitrepo, '{}:{}'.format(str(branch), str(branch)), porcelain=True)
+                output = git.push("--set-upstream", self.remote_gitrepo, str(branch), porcelain=True)
                 # alternatively
                 # push_info = self.remote_gitrepo.push(refspec='{}:{}'.format(str(branch), str(branch)))
                 # get the newly created remote branch
