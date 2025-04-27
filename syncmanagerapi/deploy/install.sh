@@ -173,8 +173,10 @@ command -v virtualenv > /dev/null
 if [ ! "$?" -eq 0 ]; then
     pipx install virtualenv
     if [ ! "$?" -eq 0 ]; then
+      echo "RUN: pip3 install --upgrade virtualenv --user"
       pip3 install --upgrade virtualenv --user
       if [ "$?" -ne 0 ]; then
+          echo "RUN: python3 -m pip install --upgrade virtualenv --user"
           python3 -m pip install --upgrade virtualenv --user
           if [ "$?" -ne 0 ]; then
               echo "Cannot install virtualenv package. Make sure you have pip3 installed."
@@ -223,7 +225,7 @@ if [ -n "$query" ]; then
     printf "MySQL user ${DB_USER} exists. Should the user be deleted?(Y, any other key for No)"
     read confirm
     
-    if [ $confirm='Y' ] || [ $confirm='yes' ]; then
+    if [[ "$confirm" == "Y" || "$confirm" == "yes" ]]; then
         echo "Delete database user ${DB_USER}"
         sudo mysql -h $DB_HOST -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "DROP USER IF EXISTS ${DB_USER}"
     fi
