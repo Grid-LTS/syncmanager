@@ -1,8 +1,8 @@
-openapi: "3.0.0"
+openapi: 3.0.0
 info:
   description: Swagger specification for syncmanager api
-  version: "1.0.0"
-  title: Swagger REST Article
+  version: 1.0.0
+  title: Syncmanager API
 
 servers:
   - url: "/api"
@@ -51,6 +51,12 @@ paths:
         schema:
           type: string
         required: true
+      - name: retention_years
+        description: "time window in years which includes only repos that had an update in that time"
+        in: query
+        schema:
+          type: integer
+        required: false
       - name: full_info
         description: whether to provide full repo information.
         in: query

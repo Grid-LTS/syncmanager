@@ -1,6 +1,7 @@
 from datetime import datetime
 import os.path as osp
 import uuid
+from dateutil.relativedelta import relativedelta
 
 from flask import current_app
 
@@ -8,6 +9,7 @@ from ..database import db, ma
 from ..model import User, ClientEnv, ClientEnvSchema
 from ..error import DataInconsistencyException
 from marshmallow import fields
+from sqlalchemy import or_
 
 
 def get_bare_repo_fs_path(server_path_relative):
@@ -172,6 +174,19 @@ class UserGitReposAssoc(db.Model):
     def get_user_repos_by_client_env_name(_user_id, _client_env_name):
         return UserGitReposAssoc.query.join(UserGitReposAssoc.client_envs).filter_by(user_id=_user_id) \
             .filter(ClientEnv.env_name == _client_env_name).all()
+
+    @staticmethod
+    def get_user_repos_by_client_env_name_and_retention(_user_id, _client_env_name, _retention_years):
+        retention_date = datetime.now() - relativedelta(years=_retention_years)
+        return (UserGitReposAssoc.query
+                    .join(UserGitReposAssoc.client_envs)
+                    .join(GitRepo, UserGitReposAssoc.repo_id == GitRepo.id)
+                    .filter(UserGitReposAssoc.user_id==_user_id) \
+                    .filter(ClientEnv.env_name == _client_env_name)
+                    .filter(or_(
+                        GitRepo.last_commit_date >= retention_date,
+                        GitRepo.last_commit_date == None
+                    )).all())
 
     @staticmethod
     def get_user_repos(_user_id):
