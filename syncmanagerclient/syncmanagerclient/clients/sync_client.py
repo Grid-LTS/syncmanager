@@ -67,6 +67,7 @@ class SyncClient:
                 'url': SyncDirRegistration.get_remote_url(remote_repo['git_repo']['server_path_absolute'])
             }
             self.sync_with_remote_repo(config)
+            api_service.update_server_repo(remote_repo['git_repo']['id'])
         if self.errors:
             print('')
             print('#####################################################################################')

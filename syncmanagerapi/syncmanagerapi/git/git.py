@@ -8,11 +8,12 @@ from git import Repo
 from ..error import FsConflictError
 from .model import GitRepo, get_bare_repo_fs_path
 
+
 class GitRepoFs:
     gitrepo_entity = None
     gitrepo_path = ''
 
-    def __init__(self, gitrepo_entity : GitRepo):
+    def __init__(self, gitrepo_entity: GitRepo):
         self.gitrepo_entity = gitrepo_entity
         self.gitrepo_path = get_bare_repo_fs_path(gitrepo_entity.server_path_rel)
         self.gitrepo = None
@@ -55,12 +56,13 @@ class GitRepoFs:
 
     def update(self):
         self.gitrepo = Repo(self.gitrepo_path)
-        if self.gitrepo .bare:
-            return False
         # Get the latest commit from the active branch
-        last_commit = self.gitrepo.head.commit
-        last_commit_date = last_commit.committed_datetime
-        self.gitrepo_entity.last_commit_date = last_commit_date
+        try:
+            last_commit = getattr(self.gitrepo.head, "commit")
+            last_commit_date = last_commit.committed_datetime
+            self.gitrepo_entity.last_commit_date = last_commit_date
+        except ValueError as e:
+            return False
         self.gitrepo.close()
         return True
 
