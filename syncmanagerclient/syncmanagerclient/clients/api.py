@@ -8,26 +8,34 @@ class ApiService:
     def __init__(self, mode=None, sync_env=None):
         self.base_api_url = f"{globalproperties.api_base_url}/{mode}"
         self.get_repos_url = f"{self.base_api_url}/repos"
+        self.get_repos_by_clientenv_url = f"{self.base_api_url}/repos_by_clientenv"
         self.sync_env = sync_env
         self.auth = globalproperties.api_user, globalproperties.api_pw
 
     def list_repos_by_client_env(self, full=False):
-        url = f"{self.get_repos_url}/{self.sync_env}"
+        url = f"{self.get_repos_url}?clientenv={self.sync_env}"
         return self.list_repos(url, full)
 
     def list_repos_all_client_envs(self, full=False):
-        url = self.get_repos_url
+        url = self.get_repos_by_clientenv_url
         return self.list_repos(url, full)
 
     def list_repos(self, url, full=False):
         query_payload = {'full_info': full}
         response = req.get(url, params=query_payload, auth=self.auth)
         if response.status_code == 404:
-            print(f"The sync environment '{self.sync_env}' is not registered on the server.")
-            exit(1)
+            message = f"The sync environment '{self.sync_env}' is not registered on the server."
+            if globalproperties.test_mode:
+                raise ValueError(message)
+            else:
+                print(message)
+                exit(1)
         if response.status_code >= 400 and response.status_code != 404:
-            print(f"{response.text}")
-            exit(1)
+            if globalproperties.test_mode:
+                raise ValueError(response.text)
+            else:
+                print(f"{response.text}")
+                exit(1)
         if not response.json():
             return []
         return response.json()
@@ -53,7 +61,7 @@ class ApiService:
     def update_server_repo_reference(self, server_repo_id, local_path, server_path_rel):
         body = {
             'local_path': local_path,
-            'server_path_rel' : server_path_rel
+            'server_path_rel': server_path_rel
         }
         url = f"{self.base_api_url}/repos/{server_repo_id}/{self.sync_env}"
         response = req.put(url, json=body, auth=self.auth)
@@ -83,5 +91,3 @@ class ApiService:
                 # existing reference found, abort lookup
                 return server_repo_ref
         return None
-                
-    
