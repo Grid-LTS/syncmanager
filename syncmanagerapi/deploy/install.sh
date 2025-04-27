@@ -223,15 +223,17 @@ if [ -n "$query" ]; then
     printf "MySQL user ${DB_USER} exists. Should the user be deleted?(Y, any other key for No)"
     read confirm
     
-    if [ $confirm='Y' ] ||  [ $confirm='yes' ]; then
+    if [ $confirm='Y' ] || [ $confirm='yes' ]; then
+        echo "Delete database user ${DB_USER}"
         sudo mysql -h $DB_HOST -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "DROP USER IF EXISTS ${DB_USER}"
     fi
 fi
 # read Mysql password of the DB_USER, so that it can be stored in properties file 
 runtime_conf=$(poetry run python deploy/create_files.py init_db.sql)
+sudo mysql -h $DB_HOST -u $DB_ROOT_USER -h $DB_HOST -P $DB_PORT -p$db_password < deploy/init_db.sql
+./deploy/db_migrate.sh
 
 # Install database if does not exist
-sudo mysql -h $DB_HOST -u $DB_ROOT_USER -h $DB_HOST -P $DB_PORT -p$db_password < deploy/init_db.sql
 echo $runtime_conf | sudo tee $vars_file > /dev/null
 # write out all other runtime variables
 echo "DB_USER=\"${DB_USER}\"" | sudo tee -a $vars_file > /dev/null
