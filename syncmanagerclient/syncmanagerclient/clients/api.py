@@ -1,6 +1,8 @@
-import syncmanagerclient.util.globalproperties as globalproperties
 import requests as req
 import json
+import urllib
+
+import syncmanagerclient.util.globalproperties as globalproperties
 
 
 class ApiService:
@@ -13,15 +15,22 @@ class ApiService:
         self.auth = globalproperties.api_user, globalproperties.api_pw
 
     def list_repos_by_client_env(self, full=False):
-        url = f"{self.get_repos_url}?clientenv={self.sync_env}"
-        return self.list_repos(url, full)
+        query_params = {
+            "clientenv" : self.sync_env,
+            "retention_years" : 3,
+            'full_info': full
+        }
+        url = f"{self.get_repos_url}?{urllib.parse.urlencode(query_params)}"
+        return self.list_repos(url, query_params)
 
     def list_repos_all_client_envs(self, full=False):
         url = self.get_repos_by_clientenv_url
-        return self.list_repos(url, full)
+        query_params = {
+            'full_info': full
+        }
+        return self.list_repos(url, query_params)
 
-    def list_repos(self, url, full=False):
-        query_payload = {'full_info': full}
+    def list_repos(self, url, query_payload):
         response = req.get(url, params=query_payload, auth=self.auth)
         if response.status_code == 404:
             message = f"The sync environment '{self.sync_env}' is not registered on the server."

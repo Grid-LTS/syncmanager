@@ -11,6 +11,7 @@ homepage = "https://github.com/Grid-LTS/syncmanager"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"
+python-dateutil = "^2.9.0.post0"
 
 [tool.poetry.dependencies]
 python = "^3.8"

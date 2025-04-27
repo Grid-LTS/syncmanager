@@ -1,6 +1,7 @@
 import os
 import os.path as osp
 import sys
+import urllib
 
 import pytest
 from conftest import git_base_dir_path
@@ -21,9 +22,9 @@ def test_setup(client, runner):
 @pytest.mark.dependency(depends=["test_setup"])
 def test_create_repo(client):
     client_env = USER_CLIENT_ENV
-    get_clientenv_repos_url = f"/api/git/repos?clientenv={client_env}"
+    get_clientenv_repos_url = f"/api/git/repos"
     headers = {"Authorization": get_user_basic_authorization()}
-    response = client.get(get_clientenv_repos_url, headers=headers)
+    response = client.get(get_clientenv_repos_url + f"?clientenv={client_env}", headers=headers)
     assert response.status_code == 200
     assert response.json() == []
     # create repo unauthorized
@@ -51,19 +52,27 @@ def test_create_repo(client):
     assert bool(repo_id)
     response = client.patch(f"/api/git/repos/{repo_id}", headers=headers)
     assert response.status_code == 400
+
+    # test that repo is returned even with applied retention_years filter
+    query_params = {
+        "clientenv" : USER_CLIENT_ENV,
+        "retention_years" : 3
+    }
     # fetch all repos
-    repo_list_resp = client.get(get_clientenv_repos_url, headers=headers)
+    repo_list_resp = client.get(get_clientenv_repos_url + "?" + urllib.parse.urlencode(query_params), headers=headers)
+    assert repo_list_resp.status_code == 200
     repo_list = repo_list_resp.json()
     assert len(repo_list) == 1
     fetched_created_repo = repo_list[0]
     assert fetched_created_repo['git_repo'] == repo_id
     assert fetched_created_repo['id'] == user_git_repo_id
+
     # delete repo
     delete_repo_url = f"/api/git/repos/{repo_id}"
     assert osp.exists(repo_server_path)
     response = client.delete(delete_repo_url, headers=headers)
     assert response.status_code == 204
-    repo_list_resp2 = client.get(get_clientenv_repos_url, headers=headers)
+    repo_list_resp2 = client.get(get_clientenv_repos_url + f"?clientenv={client_env}", headers=headers)
     repo_list2 = repo_list_resp2.json()
     assert len(repo_list2) == 0
     assert not osp.exists(repo_server_path)

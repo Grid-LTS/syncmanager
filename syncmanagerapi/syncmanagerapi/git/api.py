@@ -233,7 +233,7 @@ def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):
 
 
 @login_required
-def get_repos(clientenv, full_info=False):
+def get_repos(clientenv, retention_years=None, full_info=False):
     from .model import UserGitReposAssoc, UserGitReposAssocSchema, UserGitReposAssocFullSchema, ClientEnv
     user = get_user()
     if full_info:
@@ -245,7 +245,12 @@ def get_repos(clientenv, full_info=False):
         if not client_env_entity:
             message = f"The client environment {clientenv} does not exist for your user."
             raise InvalidRequest(message=message, field='client_env', status_code=404)
-        repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _client_env_name=clientenv)
+        if retention_years is None:
+            repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _client_env_name=clientenv,)
+        else:
+            repos = UserGitReposAssoc.get_user_repos_by_client_env_name_and_retention(_user_id=user.id,
+                                                                                      _client_env_name=clientenv,
+                                                                                      _retention_years=retention_years)
     else:
         message = f"The client environment {clientenv} is not given."
         raise InvalidRequest(message=message, field='client_env', status_code=400)
