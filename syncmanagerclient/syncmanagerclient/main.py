@@ -157,7 +157,7 @@ def main():
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
-    for act in ['push', 'pull', 'add-env', 'set-remote']:
+    for act in ['push', 'pull', 'add-env', 'set-remote', 'set-conf', 'set-config']:
         # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
         sub_parser_std_action = sub_parser_action.add_parser(act)
     sub_parser_delete = sub_parser_action.add_parser('delete')

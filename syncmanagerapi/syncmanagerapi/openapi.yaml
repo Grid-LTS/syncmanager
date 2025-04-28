@@ -118,7 +118,7 @@ paths:
       operationId: "syncmanagerapi.git.api.update_repo_for_clientenv"
       tags:
       - "Git"
-      summary: "Updates the client reference of server repository"
+      summary: "Updates the server repository: file system location and also the association to its client environments"
       description: ""
       parameters:
       - name: repo_id
@@ -133,6 +133,7 @@ paths:
         schema:
           type: string
         required: true
+
       responses:
         200:
           description: "Returns updated server repo reference"
@@ -151,14 +152,35 @@ paths:
           required: true
         - name: client_env
           in: path
-          description: env descriptor of the synchronization evironment
+          description: env descriptor of the synchronization environment
           schema:
             type: string
           required: true
       responses:
         204:
           description: "User git repo association deleted for the given environment"
-      
+  /git/clientrepos/{client_repo_id}:
+    put:
+      operationId: syncmanagerapi.git.api.update_client_repo
+      tags:
+      - "Git"
+      summary: "Updates only the client repo = association of server repository with a client env"
+      description: ""
+      parameters:
+        - name: client_repo_id
+          in: path
+          description: identifier for client repo
+          schema:
+            type: string
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        200:
+          description: "Returns updated server repo reference"
   /admin/user:
     get:
       operationId: syncmanagerapi.admin.controller.get_standard_users
