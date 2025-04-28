@@ -158,6 +158,24 @@ def update_repo_for_clientenv(repo_id, client_env):
     user_gitrepo_schema = GitRepoFullSchema(many=False)
     return user_gitrepo_schema.dump(git_repo_entity)
 
+@login_required
+def update_client_repo(client_repo_id):
+    from .model import UserGitReposAssoc, UserGitReposAssocSchema
+    from ..database import db
+    payload = request.get_json(force=True)
+    client_repo = UserGitReposAssoc.query_gitrepo_assoc_by_id(client_repo_id)
+    if not client_repo:
+        message = f"The client repo {client_repo_id} does not exist for your user."
+        raise InvalidRequest(message=message, field='client_repo_id', status_code=404)
+    # do not update nested objects as this may destroy consistency with the file system
+    client_repo.user_email_config = payload["user_email_config"]
+    client_repo.user_name_config = payload["user_name_config"]
+    client_repo.local_path_rel = payload["local_path_rel"]
+    client_repo.remote_name = payload["remote_name"]
+    db.session.add(client_repo)
+    db.session.commit()
+    serializer = UserGitReposAssocSchema(many=False)
+    return serializer.dump(client_repo)
 
 def find_git_user_repo_assoc(git_repo_entity, client_env):
     # find the reference to git repo for this user

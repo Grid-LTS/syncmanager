@@ -133,7 +133,9 @@ class UserGitReposAssoc(db.Model):
     user_id = db.Column(db.String(36), db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
     repo_id = db.Column(db.String(36), db.ForeignKey('git_repos.id', ondelete='CASCADE'), nullable=False)
     local_path_rel = db.Column(db.Text(), nullable=False)
-    remote_name = db.Column(db.String(100), nullable=False)  # name of remote
+    remote_name = db.Column(db.String(100), nullable=False)  # name of remote git repo
+    user_name_config = db.Column(db.String(50), nullable=True)
+    user_email_config = db.Column(db.String(100), nullable=True)
     # Todo move this relationship to User entity as deletion might not work with every DB engine
     user = db.relationship(User, backref=db.backref("gitrepos", passive_deletes=True))
     client_envs = db.relationship(ClientEnv,
@@ -164,6 +166,10 @@ class UserGitReposAssoc(db.Model):
     def remove(self):
         db.session.delete(self)
         db.session.commit()
+
+    @staticmethod
+    def query_gitrepo_assoc_by_id(_client_repo_id):
+        return UserGitReposAssoc.query.filter_by(id=_client_repo_id).one_or_none()
 
     @staticmethod
     def query_gitrepo_assoc_by_user_id_and_repo_id_and_local_path(_user_id, _repo_id, _local_path_rel):
