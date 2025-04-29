@@ -13,6 +13,14 @@ ssh_user = ''
 ssh_host = ''
 test_mode = False
 
+class GitConfig:
+
+    def __init__(self, username=None, email=None):
+        self.username = username
+        self.email = email
+
+gitconfig = GitConfig()
+
 
 def set_prefix(prefix):
     global ini_path_prefix
@@ -76,3 +84,5 @@ def read_config(stage, organization=''):
     api_pw = config.get(f"org_{organization}", 'API_PW', fallback='')
     ssh_user = config.get('ssh', 'SSH_USER', fallback=None)
     ssh_host = config.get('ssh', 'SSH_HOST', fallback=None)
+    gitconfig.username = config.get('git', 'user_default', fallback=None)
+    gitconfig.email = config.get('git', 'email_default', fallback=None)

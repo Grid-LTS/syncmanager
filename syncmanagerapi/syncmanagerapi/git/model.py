@@ -16,12 +16,14 @@ def get_bare_repo_fs_path(server_path_relative):
     fs_root_dir = current_app.config['FS_ROOT']
     return osp.join(osp.join(fs_root_dir, 'git'), server_path_relative)
 
+
 class GitRepo(db.Model):
     __tablename__ = "git_repos"
     id = db.Column(db.String(36), primary_key=True)
     server_path_rel = db.Column(db.Text(), nullable=False)
     created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
-    updated = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
     last_commit_date = db.Column(db.DateTime, nullable=True)
     user_id = None
 
@@ -54,10 +56,32 @@ class GitRepo(db.Model):
     def load_by_server_path(_server_path_rel):
         return GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
 
-    def add(self, _local_path_rel, _remote_name, _client_envs):
-        git_repo, new_reference = GitRepo.persist_git_repo(self, _local_path_rel=_local_path_rel,
-                                                           _remote_name=_remote_name,
-                                                           _client_envs=_client_envs)
+    def add(self, _local_path_rel, _remote_name, _client_envs, _git_config_user=None,
+            _git_config_email=None):
+        # check first if the repo is already registered
+        result = GitRepo.query.outerjoin(UserGitReposAssoc) \
+            .filter(GitRepo.server_path_rel == self.server_path_rel) \
+            .filter(UserGitReposAssoc.user_id == self.user_id) \
+            .one_or_none()
+        # if the repo is referenced by an association aka clientrepo, it is not again referenced in order to avoid conflicts
+        # therefore no filtering by _local_path_rel since this would dismiss other local references
+        # no filtering by client_env: client env just multiplies the reference to a different machine but does
+        # not imply a unique new reference in which we are interested in.
+        # only filter by user id, to make sure that this  is a unique new server repo and local repo for the current user
+        if not result:
+            assoc_id = str(uuid.uuid4())
+            user_gitrepo_assoc = UserGitReposAssoc.create_user_gitrepo_assoc(
+                _id=assoc_id,
+                _user_id=self.user_id,
+                _local_path_rel=_local_path_rel,
+                _remote_name=_remote_name,
+                _client_envs=_client_envs,
+                _git_config_user=_git_config_user,
+                _git_config_email=_git_config_email)
+            self._persist(user_gitrepo_assoc)
+            new_reference = True
+        else:
+            new_reference = False
         return new_reference
 
     def remove(self):
@@ -65,41 +89,24 @@ class GitRepo(db.Model):
         db.session.commit()
 
     @staticmethod
-    def add_git_repo(_server_path_rel, _user_id, _local_path_rel, _remote_name, _client_envs):
+    def add_git_repo(_server_path_rel, _user_id, _local_path_rel, _remote_name, _client_envs, _git_config_user=None,
+                     _git_config_email=None):
         git_repo = GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
         if not git_repo:
             git_repo = GitRepo(server_path_rel=_server_path_rel, user_id=_user_id)
-        return GitRepo.persist_git_repo(git_repo, _local_path_rel=_local_path_rel, _remote_name=_remote_name,
-                                        _client_envs=_client_envs)
+        new_reference = git_repo.add(_local_path_rel=_local_path_rel, _remote_name=_remote_name,
+                                     _client_envs=_client_envs, _git_config_user=_git_config_user,
+                                     _git_config_email=_git_config_email)
+        return git_repo, new_reference
 
-    @staticmethod
-    def persist_git_repo(git_repo_obj, _local_path_rel, _remote_name, _client_envs):
-        result = GitRepo.query.outerjoin(UserGitReposAssoc) \
-            .filter(GitRepo.server_path_rel == git_repo_obj.server_path_rel) \
-            .filter(UserGitReposAssoc.user_id == git_repo_obj.user_id) \
-            .one_or_none()
-        # if the repo is referenced by an association, it is not again referenced in order to avoid conflicts
-        # therefore no filtering by _local_path_rel since this would dismiss other local references
-        # no filtering by client_env: client env just multiplies the reference on the to a different machine but does
-        # not imply a unique new reference in which we are interested in
-        if not result:
-            if not _client_envs:
-                raise DataInconsistencyException('No client env given')
-            _assoc_id = str(uuid.uuid4())
-            if not git_repo_obj.id:
-                git_repo_obj.id = str(uuid.uuid4())
-            user_gitrepo_assoc = UserGitReposAssoc(id=_assoc_id, user_id=git_repo_obj.user_id,
-                                                   local_path_rel=_local_path_rel,
-                                                   remote_name=_remote_name,
-                                                   client_envs=_client_envs)
-            git_repo_obj.userinfo.append(user_gitrepo_assoc)
-            db.session.add(git_repo_obj)
-            db.session.commit()
-            new_reference = True
-        else:
-            new_reference = False
-            git_repo_obj = result
-        return git_repo_obj, new_reference
+    def _persist(self, _git_user_repo_assoc):
+        if not _git_user_repo_assoc.client_envs:
+            raise DataInconsistencyException('No client env given')
+        if not self.id:
+            self.id = str(uuid.uuid4())
+        self.userinfo.append(_git_user_repo_assoc)
+        db.session.add(self)
+        db.session.commit()
 
     def __repr__(self):
         return '<GitRepo %r>' % self.repo_id
@@ -142,7 +149,26 @@ class UserGitReposAssoc(db.Model):
                                   secondary=user_clientenv_gitrepo_table)
 
     @staticmethod
-    def add_user_gitrepo_assoc(_user_id, _repo_id, _local_path_rel, _client_envs):
+    def create_user_gitrepo_assoc(_user_id, _local_path_rel, _remote_name, _client_envs,
+                                  _repo_id=None,  # can be set by foreign key relation when persisting sqlalchemy
+                                  _id=None,
+                                  _git_config_user=None,
+                                  _git_config_email=None):
+        if not _client_envs:
+            raise DataInconsistencyException('No client environment given')
+        if not _id:
+            _id = uuid.uuid4()
+        new_gitrep_assoc = UserGitReposAssoc(id=str(_id), user_id=_user_id,
+                                             repo_id=_repo_id,
+                                             local_path_rel=_local_path_rel,
+                                             remote_name=_remote_name,
+                                             user_name_config=_git_config_user,
+                                             user_email_config=_git_config_email)
+        new_gitrep_assoc.client_envs.extend(_client_envs)
+        return new_gitrep_assoc
+
+    @staticmethod
+    def save_user_gitrepo_assoc(_user_id, _repo_id, _local_path_rel, _remote_name, _client_envs):
         """
         sets an entry in the association table. This should only be used when associating an existing repository to 
         another the user, given by id. When creating the repo in the database do not use this function, but create an
@@ -153,12 +179,8 @@ class UserGitReposAssoc(db.Model):
         :param _client_envs: list of db entities for the client environments of the user
         :return: 
         """
-        if not _client_envs:
-            raise DataInconsistencyException('No client environment given')
-        _id = uuid.uuid4()
-        new_gitrep_assoc = UserGitReposAssoc(id=str(_id), user_id=_user_id, repo_id=_repo_id,
-                                             local_path_rel=_local_path_rel)
-        new_gitrep_assoc.client_envs.extend(_client_envs)
+        new_gitrep_assoc = UserGitReposAssoc.create_user_gitrepo_assoc(_user_id, _repo_id, _local_path_rel,
+                                                                       _remote_name, _client_envs)
         db.session.add(new_gitrep_assoc)
         db.session.commit()
         return new_gitrep_assoc
@@ -185,14 +207,14 @@ class UserGitReposAssoc(db.Model):
     def get_user_repos_by_client_env_name_and_retention(_user_id, _client_env_name, _retention_years):
         retention_date = datetime.now() - relativedelta(years=_retention_years)
         return (UserGitReposAssoc.query
-                    .join(UserGitReposAssoc.client_envs)
-                    .join(GitRepo, UserGitReposAssoc.repo_id == GitRepo.id)
-                    .filter(UserGitReposAssoc.user_id==_user_id) \
-                    .filter(ClientEnv.env_name == _client_env_name)
-                    .filter(or_(
-                        GitRepo.last_commit_date >= retention_date,
-                        GitRepo.last_commit_date == None
-                    )).all())
+                .join(UserGitReposAssoc.client_envs)
+                .join(GitRepo, UserGitReposAssoc.repo_id == GitRepo.id)
+                .filter(UserGitReposAssoc.user_id == _user_id) \
+                .filter(ClientEnv.env_name == _client_env_name)
+                .filter(or_(
+            GitRepo.last_commit_date >= retention_date,
+            GitRepo.last_commit_date == None
+        )).all())
 
     @staticmethod
     def get_user_repos(_user_id):
