@@ -62,8 +62,11 @@ def create_repo():
         desired_client_env_entities = [client_env_entity]
     fs_git_repo = GitRepoFs(git_repo_entity)
     fs_git_repo.create_bare_repo()
-    new_reference = git_repo_entity.add(_local_path_rel=local_path, _remote_name=remote_name,
-                                        _client_envs=desired_client_env_entities)
+    new_reference = git_repo_entity.add(_local_path_rel=local_path,
+                                        _remote_name=remote_name,
+                                        _client_envs=desired_client_env_entities,
+                                        _git_config_user=data.get("user_name_config", None),
+                                        _git_config_email=data.get("user_email_config", None))
     if not new_reference:
         is_env_referenced = False
         git_user_repo_assoc = None

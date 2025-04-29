@@ -20,7 +20,6 @@ from .utils.e2eutils import app, local_repo
 system_tz = dt.datetime.now().astimezone().tzinfo
 
 
-
 def test_push_sync(app, local_repo, client):
     get_clientenv_repos_url = f"/api/git/repos"
     headers = {"Authorization": get_user_basic_authorization()}
@@ -31,6 +30,9 @@ def test_push_sync(app, local_repo, client):
     response = client.get(get_clientenv_repos_url + "?" + urllib.parse.urlencode(query_params), headers=headers)
     assert response.status_code == 200
     local_repo_api = response.json()[0]
+    assert local_repo_api['user_name_config']
+    assert local_repo_api['user_email_config']
+
     remote_repo_api = local_repo_api['git_repo']
     response = client.patch(f"/api/git/repos/{remote_repo_api["id"]}", headers=headers)
     assert response.status_code == 400
