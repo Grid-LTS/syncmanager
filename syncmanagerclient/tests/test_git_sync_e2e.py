@@ -12,17 +12,21 @@ project_dir = os.path.dirname(os.path.dirname(test_dir))
 sys.path.insert(0, project_dir)
 
 from testlib.testsetup import USER_CLIENT_ENV, get_user_basic_authorization
-from testlib.fixtures import client, runner
 
-from .utils.testutils import local_repo_path, checkout_principal_branch
-from .utils.e2eutils import app, local_repo
+from .utils.testutils import checkout_principal_branch
+# from .conftest import app_initialized, local_repo # DO NOT IMPORT, rely on pytest discovery mechanism
 
 system_tz = dt.datetime.now().astimezone().tzinfo
 
 
-def test_push_sync(app, local_repo, client):
+"""
+Define or import fixtures functions only in conftest.py
+"""
+
+
+def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     get_clientenv_repos_url = f"/api/git/repos"
-    headers = {"Authorization": get_user_basic_authorization()}
+    headers = {"Authorization": get_user_basic_authorization(sync_api_user)}
     query_params = {
         "clientenv": USER_CLIENT_ENV,
         "full_info": True
@@ -40,23 +44,23 @@ def test_push_sync(app, local_repo, client):
     # 2. test first sync
     execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
 
-    remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV)
+    remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     # verify that the remote repo has been updated
     assert remote_repo_api["last_commit_date"] is not None
 
     checkout_principal_branch(local_repo)
-    test_file_path = os.path.join(local_repo_path, 'next_file.txt')
+    test_file_path = os.path.join(local_repo.working_dir, 'next_file.txt')
 
     Path(test_file_path).touch()
     local_repo.index.add([test_file_path])
     commit_message = "New commit"
     new_commit = local_repo.index.commit(commit_message)
     execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
-    remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV)
+    remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     assert dt.datetime.fromisoformat(remote_repo_api["last_commit_date"]).replace( tzinfo=system_tz) == new_commit.committed_datetime
 
-def fetch_server_repo(client, client_env):
-    headers = {"Authorization": get_user_basic_authorization()}
+def fetch_server_repo(client, client_env, sync_api_user):
+    headers = {"Authorization": get_user_basic_authorization(sync_api_user)}
     query_params = {
         "clientenv": client_env,
         "full_info": True

@@ -37,6 +37,7 @@ def read_config(stage, organization=''):
     global api_pw
     global ssh_user
     global ssh_host
+    global test_mode
     if stage == 'prod':
         properties_file_name = "server-sync.ini"
     else:
