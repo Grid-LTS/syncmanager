@@ -33,7 +33,13 @@ def detemplate_properties(context):
     f.close()
 
 
-def setup_repos(local_conf_file_name):
+def setup_repos(local_conf_file_name, repo_prefix):
+    if not repo_prefix:
+        raise ValueError(f"Base dir for repos must not be empty")
+    repos_dir = os.path.join(test_dir, 'repos', repo_prefix)
+    local_repo_path = get_local_repo_path(repos_dir)
+    origin_repo_path = get_origin_repo_path(repos_dir)
+    others_repo_path = get_others_repo_path(repos_dir)
     context = {
         'local_path': local_repo_path,
         'others_path': others_repo_path,
@@ -53,10 +59,10 @@ def setup_repos(local_conf_file_name):
     # setup global properties file
     globalproperties.set_prefix(os.path.dirname(test_dir))
     globalproperties.read_config('test')
-    repos_dir = os.path.join(test_dir, 'repos')
+
     shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
     if not os.path.exists(repos_dir):
-        os.mkdir(repos_dir)
+        os.makedirs(repos_dir)
     origin_repo = Repo.init(origin_repo_path, bare=True)
     local_repo = Repo.init(local_repo_path)
     local_repo.create_remote('origin', url=os.path.abspath(origin_repo.working_dir))

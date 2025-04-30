@@ -8,28 +8,31 @@ from pathlib import Path
 import pytest
 
 
-from .testutils import *
+from .utils.testutils import *
 
 from syncmanagerclient.main import execute_command
 from syncmanagerclient.util.system import change_dir
 import syncmanagerclient.util.globalproperties as globalproperties
 
-test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
 if not project_dir in sys.path:
     sys.path.insert(0, project_dir)
 
-from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization
-from testlib.fixtures import client, runner, empty_directory
+from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization, create_admin
+from testlib.fixtures import empty_directory, sync_api_user
 
+"""
+Define fixtures only here. DO NOT import any fixture functions into the test_* classes !!
+"""
 
-
-def setup_local_repo():
-    repos_dir = os.path.join(test_dir, 'repos')
+def setup_local_repo(sync_user):
+    repos_dir = os.path.join(test_dir, "repos", sync_user["username"])
     shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE),
                                                                                 func(path)))
     if not os.path.exists(repos_dir):
         os.mkdir(repos_dir)
+    local_repo_path = get_local_repo_path(repos_dir)
     local_repo = Repo.init(local_repo_path)
     change_dir(local_repo_path)
     # create file and commit
@@ -38,12 +41,14 @@ def setup_local_repo():
     local_repo.index.add([test_file_path])
     local_repo.index.commit("Initial commit on pricipal branch")
     globalproperties.set_prefix(os.path.dirname(test_dir))
-    globalproperties.read_config('e2e')
     globalproperties.test_mode = True
+    globalproperties.read_config('e2e')
+    globalproperties.api_user = sync_user["username"]
+    globalproperties.api_pw = sync_user["password"]
     execute_command('set-remote', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
     return local_repo
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="package")
 def app():
     test_dir = os.path.dirname(os.path.abspath(__file__))
     project_dir = os.path.dirname(os.path.dirname(test_dir))
@@ -75,9 +80,24 @@ def app():
         raise perm
     empty_directory(git_base_dir_path)
 
+# can call CLIck commands
+@pytest.fixture(scope="package")
+def runner(app):
+    return app.app.test_cli_runner()
+
+@pytest.fixture(scope="package")
+def client(app):
+    return app.test_client()
+
+@pytest.fixture(scope="package")
+def app_initialized(app, runner):
+    create_admin(runner)
+    return app
+
 @pytest.fixture(scope="module")
-def local_repo(client, runner):
-    setup_users_and_env(client, runner)
-    local_repo = setup_local_repo()
+def local_repo(client, sync_api_user):
+    user = sync_api_user
+    setup_users_and_env(client, user)
+    local_repo = setup_local_repo(user)
     yield local_repo
     teardown_repos_directory([local_repo])

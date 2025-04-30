@@ -7,15 +7,15 @@ import pytest
 from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_for_deletion
 from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
 
-from .utils.testutils import test_dir, var_dir_path, local_repo_path, \
-    others_repo_path, local_conf_file_name, others_conf_file_name, checkout_principal_branch, teardown_repos_directory
+from .utils.testutils import test_dir, var_dir_path, \
+    get_others_repo_path, local_conf_file_name, others_conf_file_name, checkout_principal_branch, teardown_repos_directory
 from .utils.conffileutils import setup_repos
 
 
 @pytest.fixture(scope="module")
-def setup_repositories():
-    origin_repo, local_repo = setup_repos(local_conf_file_name)
-    others_repo = origin_repo.clone(others_repo_path)
+def setup_repositories(request):
+    origin_repo, local_repo = setup_repos(local_conf_file_name, request.module.__name__.split(".")[-1])
+    others_repo = origin_repo.clone(get_others_repo_path(os.path.dirname(local_repo.working_dir)))
     yield origin_repo, local_repo, others_repo
     teardown_repos_directory([origin_repo, local_repo, others_repo])
 
@@ -43,7 +43,7 @@ def get_branch_name_and_repo_from_remote_path(remote_branch):
 
 def test_push_sync_with_conffiles(setup_repositories):
     origin_repo, local_repo, others_repo = setup_repositories
-    test_file_path = os.path.join(local_repo_path, 'next_file.txt')
+    test_file_path = os.path.join(local_repo.working_dir, 'next_file.txt')
     checkout_principal_branch(local_repo)
     Path(test_file_path).touch()
     local_repo.index.add([test_file_path])
@@ -73,7 +73,7 @@ def test_delete_branch(setup_repositories):
     assert hasattr(others_repo.heads, test_branch)
 
     # delete the created branch and sync
-    register_local_branch_for_deletion(test_branch, local_repo_path)
+    register_local_branch_for_deletion(test_branch, local_repo.working_dir)
     # tests that deleted branch register is present
     assert os.path.exists(os.path.join(var_dir_path, 'git.origin.txt'))
     apply_sync_conf_files(test_dir, [local_conf_file_name], ACTION_PUSH, False, '', ['git'])

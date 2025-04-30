@@ -8,8 +8,8 @@ test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
 sys.path.insert(0, project_dir)
 
-from testlib.fixtures import empty_directory
-
+from testlib.fixtures import sync_api_user, client, runner, empty_directory
+from testlib.testsetup import create_admin
 
 sync_manager_server_conf = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 var_dir_path = os.path.join("tests", "var")
@@ -41,4 +41,8 @@ def app():
         print(f"Database file could not be cleaned up")
         raise perm
     empty_directory(git_base_dir_path)
+
+@pytest.fixture(scope="module")
+def initialized_app(app, runner):
+    create_admin(runner)
 

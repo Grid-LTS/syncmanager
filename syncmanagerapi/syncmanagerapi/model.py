@@ -43,6 +43,7 @@ class User(db.Model):
             user.role = _role
         db.session.add(user)
         db.session.commit()
+        return user
 
     @staticmethod
     def has_role(username, role):
