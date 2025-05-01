@@ -49,9 +49,7 @@ def setup_local_repo(sync_user):
     local_repo.index.add([test_file_path])
     local_repo.index.commit("Initial commit on principal branch")
     if not globalproperties.loaded:
-        globalproperties.set_prefix(os.path.dirname(test_dir))
-        globalproperties.test_mode = True
-        globalproperties.read_config('e2e')
+        load_global_properties()
     globalproperties.api_user = sync_user["username"]
     globalproperties.api_pw = sync_user["password"]
     execute_command('set-remote', "git", USER_CLIENT_ENV, "e2e_repo", "origin")

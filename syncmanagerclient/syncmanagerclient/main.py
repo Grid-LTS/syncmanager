@@ -192,7 +192,7 @@ def execute_command(action, client, sync_env, namespace, remote_name=None, path=
         register_local_branch_for_deletion(path, git_repo_path)
         return
     elif action in ACTION_SET_CONF_ALIASES:
-        return
+        pass
     elif action in [ACTION_PULL, ACTION_PUSH]:
         pass
     else:
