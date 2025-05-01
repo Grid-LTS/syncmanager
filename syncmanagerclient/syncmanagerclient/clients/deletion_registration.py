@@ -2,6 +2,7 @@ import os
 import re
 from git import Repo
 import syncmanagerclient.util.globalproperties as globalproperties
+from syncmanagerclient.util.gitconfig import GitConfig
 from .git_base import GitClientBase
 
 
@@ -52,10 +53,10 @@ class DeletionRegistration(GitClientBase):
                         print(f"No remote url defined. Skip")
                         continue
                     remote_url = remote_urls[0]
-                    config = dict()
-                    config['source'] = self.dir
-                    config['url'] = remote_url
-                    config['remote_repo'] = remote.name
+                    config = GitConfig()
+                    config.local_path = self.dir
+                    config.remote_repo_url = remote_url
+                    config.remote_repo = remote.name
                     self.configs.append(config)
         elif self.mode == 'unison':
             # to be implemented
@@ -65,7 +66,7 @@ class DeletionRegistration(GitClientBase):
         self.get_config()
         if self.mode == 'git':
             for config in self.configs:
-                remote_repo_name = config.get('remote_repo', None)
+                remote_repo_name = config.remote_repo
                 if not remote_repo_name:
                     continue
                 registry_file = self.get_registry_file_path(remote_repo_name)
