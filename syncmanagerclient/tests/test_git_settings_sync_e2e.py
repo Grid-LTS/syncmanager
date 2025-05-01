@@ -8,6 +8,7 @@ import pytest
 
 from syncmanagerclient.main import execute_command, init_global_properties
 from syncmanagerclient.clients.git_settings import GitClientSettings
+from .utils.testutils import load_global_properties
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
@@ -19,7 +20,6 @@ from testlib.api_utility import fetch_client_repo_from_api, get_clientenv_repos_
 import syncmanagerclient.util.globalproperties as globalproperties
 from syncmanagerclient.util.syncconfig import SyncConfig
 
-from .utils.testutils import get_local_repo_path, checkout_principal_branch
 # from .conftest import local_repo, client # DO NOT IMPORT, rely on pytest discovery mechanism via conftest.py
 
 system_tz = dt.datetime.now().astimezone().tzinfo
@@ -43,8 +43,11 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
 
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
+    origin_url = local_repo.remotes["origin"].url
 
-    init_global_properties("e2e")
+    load_global_properties()
+    globalproperties.api_user = sync_api_user["username"]
+    globalproperties.api_pw = sync_api_user["password"]
 
     assert globalproperties.allconfig.username != USER_NAME
     assert globalproperties.allconfig.email != USER_EMAIL
@@ -59,7 +62,7 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     execute_command('set-config', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
-
+    assert local_repo.remotes["origin"].url == origin_url
 
 def fetch_server_repo(client, client_env, sync_api_user):
     headers = {"Authorization": get_user_basic_authorization(sync_api_user)}

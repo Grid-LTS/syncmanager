@@ -5,6 +5,8 @@ import stat
 import time
 
 from syncmanagerclient.util.system import change_dir
+import syncmanagerclient.util.globalproperties as globalproperties
+from syncmanagerclient.main import init_global_properties
 
 test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 var_dir_path = os.path.join(test_dir, 'var')
@@ -19,6 +21,10 @@ others_conf_file_name = 'others.conf'
 test_user_name = 'Test User'
 test_user_email = 'dummy@tests.com'
 
+def load_global_properties():
+    init_global_properties("e2e")
+    globalproperties.set_prefix(os.path.dirname(test_dir))
+    globalproperties.test_mode = True
 
 def build_local_repo_path(parent_dir, base):
     if not parent_dir:

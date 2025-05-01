@@ -1,6 +1,6 @@
 import pathlib
 
-from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF
+from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF_ALIASES
 
 from .git_settings import GitClientSettings
 from .git_sync import GitClientSync
@@ -25,12 +25,14 @@ class SyncClient:
         self.force = force
         self.namespace = namespace
         self.errors = []
+        self.is_update = False
 
     def get_instance(self, config: SyncConfig = None):
         if self.mode == 'git':
-            if self.action == ACTION_SET_CONF:
+            if self.action in ACTION_SET_CONF_ALIASES:
                 return GitClientSettings(config)
             elif self.action in [ACTION_PUSH, ACTION_PULL, ACTION_DELETE]:
+                self.is_update = True
                 return GitClientSync(self.action, config, force=self.force)
             else:
                 raise Exception('Unknown command \'' + self.action + '\'.')
@@ -71,9 +73,11 @@ class SyncClient:
             config.remote_repo = remote_repo['remote_name']
             config.remote_repo_url = SyncDirRegistration.get_remote_url(
                 remote_repo['git_repo']['server_path_absolute'])
-
+            config.username = remote_repo["user_name_config"]  if remote_repo["user_name_config"]   else config.username
+            config.email = remote_repo["user_email_config"]  if remote_repo["user_email_config"]   else config.email
             self.sync_with_remote_repo(config)
-            api_service.update_server_repo(remote_repo['git_repo']['id'])
+            if self.is_update:
+                api_service.update_server_repo(remote_repo['git_repo']['id'])
         if self.errors:
             print('')
             print('#####################################################################################')
