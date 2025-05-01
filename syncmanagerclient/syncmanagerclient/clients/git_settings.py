@@ -1,23 +1,27 @@
-import re
 from git import Repo
 
 from ..util.system import sanitize_path
-from ..util.gitconfig import GitConfig
+from ..util.syncconfig import SyncConfig
 from .git_base import GitClientBase
 
 class GitClientSettings(GitClientBase):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, config : SyncConfig, gitrepo = None):
+        super().__init__(gitrepo)
         self.errors = []
-        self.config = None
+        if config:
+            self.set_config(config)
+            self.config = config
 
-    def set_config(self, config : GitConfig, *args):
+    def set_config(self, config : SyncConfig, *args):
         self.local_path_short = config.local_path
         self.local_path = sanitize_path(self.local_path_short)
         self.config = config
 
     def apply(self):
+        if not self.gitrepo:
+            # change to the directory and apply git settings
+            self.gitrepo = Repo(self.local_path)
         self.set_settings()
 
     def set_settings(self):
@@ -26,20 +30,9 @@ class GitClientSettings(GitClientBase):
         - also sets the remote repository url
         :return:
         """
-        # change to the directory and apply git settings
-        self.gitrepo = Repo(self.local_path)
-        conf_writer = self.gitrepo.config_writer()
         print('Set git config for \'{0}\''.format(self.local_path_short))
         command_prefix = ['git', 'config']
-        try:
-            conf_writer.set_value('user', 'name', self.config.username)
-        except Exception as err:
-            print('Git config \'user.name\' could not be set. Error: ' + str(err))
-        try:
-            conf_writer.set_value('user', 'email', self.config.email)
-        except Exception as err:
-            print('Git config \'user.email\' could not be set. Error: ' + str(err))
-        conf_writer.release()
+        self.set_user_config()
         # check remote repository urls
         # if remote repo is not set, add it
         remote_repo = self.get_remote_repo()
@@ -52,6 +45,18 @@ class GitClientSettings(GitClientBase):
             # corresponds to 'git remote add <target_repo> <repo url>
             self.gitrepo.create_remote(self.config.remote_repo, self.config.remote_repo_url)
         self.close()
+
+    def set_user_config(self):
+        conf_writer = self.gitrepo.config_writer()
+        try:
+            conf_writer.set_value('user', 'name', self.config.username)
+        except Exception as err:
+            print('Git config \'user.name\' could not be set. Error: ' + str(err))
+        try:
+            conf_writer.set_value('user', 'email', self.config.email)
+        except Exception as err:
+            print('Git config \'user.email\' could not be set. Error: ' + str(err))
+        conf_writer.release()
 
 
     def get_remote_repo(self):

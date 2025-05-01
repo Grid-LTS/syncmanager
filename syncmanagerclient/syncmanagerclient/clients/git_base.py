@@ -1,8 +1,8 @@
 
 class GitClientBase:
 
-    def __init__(self):
-        self.gitrepo = None
+    def __init__(self, gitrepo = None):
+        self.gitrepo = gitrepo
 
     def close(self):
         if self.gitrepo:

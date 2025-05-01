@@ -1,7 +1,7 @@
 import os
 from configparser import ConfigParser
 
-from .gitconfig import GitConfig
+from .syncconfig import SyncAllConfig
 
 # this module encloses all globally accessible properties
 ini_path_prefix = ''
@@ -14,10 +14,11 @@ api_pw = ''
 ssh_user = ''
 ssh_host = ''
 test_mode = False
+loaded = False
 
 
 
-gitconfig = GitConfig()
+allconfig = SyncAllConfig()
 
 
 def set_prefix(prefix):
@@ -36,6 +37,8 @@ def read_config(stage, organization=''):
     global ssh_user
     global ssh_host
     global test_mode
+    global loaded
+    loaded = True
     if stage == 'prod':
         properties_file_name = "server-sync.ini"
     else:
@@ -83,5 +86,5 @@ def read_config(stage, organization=''):
     api_pw = config.get(f"org_{organization}", 'API_PW', fallback='')
     ssh_user = config.get('ssh', 'SSH_USER', fallback=None)
     ssh_host = config.get('ssh', 'SSH_HOST', fallback=None)
-    gitconfig.username = config.get('git', 'user_default', fallback=None)
-    gitconfig.email = config.get('git', 'email_default', fallback=None)
+    allconfig.username = config.get('git', 'user_default', fallback=None)
+    allconfig.email = config.get('git', 'email_default', fallback=None)

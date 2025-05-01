@@ -2,10 +2,12 @@ import os.path as osp
 
 import pathlib
 from pathlib import PurePosixPath, Path
+
 from ..util.system import sanitize_path
 from git import Repo
 
 from .api import ApiService
+from .git_settings import GitClientSettings
 import syncmanagerclient.util.globalproperties as globalproperties
 import syncmanagerclient.util.system as system
 
@@ -13,13 +15,14 @@ import syncmanagerclient.util.system as system
 class SyncDirRegistration:
     mode = None
 
-    def __init__(self, local_path, sync_env, remote_name=None, namespace=None):
+    def __init__(self, local_path, sync_env, namespace=None, sync_config=None):
         system_home_dir=PurePosixPath(Path(system.home_dir))
         local_path_posix = PurePosixPath(local_path)
         if osp.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
             self.local_path_short = '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())
         else:
             self.local_path_short = local_path
+        sync_config.local_path = self.local_path_short
         self.local_path = sanitize_path(local_path)
         self.gitrepo = None
         self.sync_env = sync_env
@@ -29,8 +32,10 @@ class SyncDirRegistration:
         self.server_repo_ref = None
         self.other_envs_repos = None
         self.server_path_rels_of_other_repo = []
-        self.remote_name = remote_name
+        self.sync_config = sync_config
+        self.remote_name = sync_config.remote_repo
         self.namespace = namespace
+
 
     def get_mode(self):
         if self.local_path.joinpath('.git').resolve().is_dir():
@@ -87,6 +92,9 @@ class SyncDirRegistration:
             self.update_reference()
         else:
             self.create_reference(server_path_rel)
+        # update the git config
+        gitsettings = GitClientSettings(self.sync_config, self.gitrepo)
+        gitsettings.set_user_config()
 
     def print_other_env_repos(self):
         other_env_repos = dict()
@@ -203,6 +211,8 @@ class SyncDirRegistration:
         remote_name = gitrepo_reference['remote_name']
         remote = self.gitrepo.remote(remote_name)
         remote.set_url(remote_url)
+        self.sync_config.remote_repo = remote_name
+        self.sync_config.remote_repo_url = remote_url
         print(f"Set URL at path {git_repo['server_path_absolute']} for remote {remote_name}.")
 
     @staticmethod

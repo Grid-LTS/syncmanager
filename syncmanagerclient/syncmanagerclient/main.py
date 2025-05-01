@@ -4,7 +4,7 @@ from os.path import dirname
 from pathlib import Path
 
 import syncmanagerclient.util.globalproperties as globalproperties
-
+from .util.syncconfig import SyncConfig
 from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
@@ -58,9 +58,8 @@ def register_local_branch_for_deletion(path, git_repo_path):
         exit(1)
     config = configs[0]
     if delete_action.local_branch_exists:
-        client_factory = SyncClient(client, ACTION_DELETE)
-        client_instance = client_factory.get_instance()
-        client_instance.set_config(config, False)
+        client_factory = SyncClient(client, ACTION_DELETE, force=False)
+        client_instance = client_factory.get_instance(config)
         # delete the local branches
         client_instance.apply(path=path)
     else:
@@ -178,12 +177,10 @@ def main():
 
 
 def execute_command(action, client, sync_env, namespace, remote_name=None, path=None, force=False):
-    # Todo save git config on server
-    # elif args.action in ACTION_SET_CONF_ALIASES:
-    #    action = ACTION_SET_CONF
     if action in ACTION_SET_REMOTE_ALIASES:
         local_path = Path(os.getcwd())
-        new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env, remote_name=remote_name, namespace=namespace)
+        gitconfig = SyncConfig.init(remote_repo=remote_name, allconfig = globalproperties.allconfig)
+        new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env, namespace=namespace, sync_config=gitconfig)
         new_sync_dir.register()
         return
     elif action in ACTION_ADD_ENV_ALIASES:
@@ -193,6 +190,8 @@ def execute_command(action, client, sync_env, namespace, remote_name=None, path=
     elif action == ACTION_DELETE:
         git_repo_path = os.getcwd()
         register_local_branch_for_deletion(path, git_repo_path)
+        return
+    elif action in ACTION_SET_CONF_ALIASES:
         return
     elif action in [ACTION_PULL, ACTION_PUSH]:
         pass
