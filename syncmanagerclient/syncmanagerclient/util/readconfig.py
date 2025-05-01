@@ -1,10 +1,11 @@
 import re
 
+from .gitconfig import GitConfig
 
 class ConfigParser:
 
     def __init__(self, path):
-        self.config = {}
+        self.config = GitConfig()
         self.mode = None
         self.path = path
 
@@ -35,13 +36,13 @@ class ConfigParser:
                     conffile.close()
                     raise StopIteration
                 continue
-            self.config['source'] = source
+            self.config.local_path = source
             if self.mode == 'git':
                 # split url in remote repo descriptor and url
                 self.parse_remote_repo_descriptor(url)
             else:
-                self.config['url'] = url
-            self.config['settings'] = rest
+                self.config.remote_repo_url = url
+            self.config.username, self.config.email = self.parse_settings(rest)
             if not self.mode:
                 print(f"No client specified in the config file '{self.path}'. File is ignored")
                 conffile.close()
@@ -58,11 +59,18 @@ class ConfigParser:
         else:
             repo_name = parts[0].strip()
             repo_url = parts[1]
-        self.config['remote_repo'] = repo_name
-        self.config['url'] = repo_url
+        self.config.remote_repo = repo_name
+        self.config.remote_repo_url = repo_url
 
-    def parse_settings(self):
-        pass
+    def parse_settings(self, settings):
+        settings = settings.strip()
+        if settings[0] == '"':
+            parts = re.split('"', settings[1:], maxsplit=1)
+        else:
+            parts = re.split(' ', settings, maxsplit=1)
+        name = parts[0]
+        email = parts[1].strip()
+        return name, email
 
 
 def environment_parse(path):

@@ -3,6 +3,7 @@ import os
 from git import Repo, GitCommandError
 
 from ..util.system import change_dir, sanitize_path
+from ..util.gitconfig import GitConfig
 from .deletion_registration import DeletionRegistration
 from .error import GitSyncError, GitErrorItem
 from .git_base import GitClientBase
@@ -18,13 +19,12 @@ class GitClientSync(GitClientBase):
         self.action = action
         self.errors = []
 
-    def set_config(self, config, force):
-        self.local_path_short = config.get('source', None)
+    def set_config(self, config: GitConfig, force):
+        self.local_path_short = config.local_path
         self.local_path = sanitize_path(self.local_path_short)
         self.local_reponame = os.path.basename(self.local_path)
-        self.remote_reponame = config.get('remote_repo', None)
-        self.remote_path = config.get('url', None)
-        self.settings = config.get('settings', None)
+        self.remote_reponame = config.remote_repo
+        self.remote_path = config.remote_repo_url
         self.principal_branch = None
         self.force = force
 

@@ -8,6 +8,7 @@ from .sync_dir_registration import SyncDirRegistration
 from .unison_sync import UnisonClientSync
 
 import syncmanagerclient.util.globalproperties as globalproperties
+from syncmanagerclient.util.gitconfig import GitConfig
 
 from .api import ApiService
 
@@ -40,7 +41,7 @@ class SyncClient:
             print('Unknown client')
             return None
 
-    def sync_with_remote_repo(self, config):
+    def sync_with_remote_repo(self, config: GitConfig):
         client_instance = self.get_instance()
         if not client_instance:
             return
@@ -61,11 +62,12 @@ class SyncClient:
                 p = pathlib.Path(*p.parts[1:])
                 if not str(p).startswith(str(p_ns)):
                     continue
-            config = {
-                'source': remote_repo['local_path_rel'],
-                'remote_repo': remote_repo['remote_name'],
-                'url': SyncDirRegistration.get_remote_url(remote_repo['git_repo']['server_path_absolute'])
-            }
+            config = GitConfig(local_path = remote_repo['local_path_rel'],
+                               remote_repo = remote_repo['remote_name'],
+                               remote_repo_url = SyncDirRegistration.get_remote_url(
+                                   remote_repo['git_repo']['server_path_absolute'])
+                               )
+
             self.sync_with_remote_repo(config)
             api_service.update_server_repo(remote_repo['git_repo']['id'])
         if self.errors:

@@ -14,7 +14,8 @@ sys.path.insert(0, project_dir)
 from testlib.testsetup import USER_CLIENT_ENV, get_user_basic_authorization
 
 from .utils.testutils import checkout_principal_branch
-# from .conftest import app_initialized, local_repo # DO NOT IMPORT, rely on pytest discovery mechanism
+# from .conftest import app_initialized, local_repo,  client # DO NOT IMPORT, rely on pytest discovery mechanism via
+# conftest.py
 
 system_tz = dt.datetime.now().astimezone().tzinfo
 

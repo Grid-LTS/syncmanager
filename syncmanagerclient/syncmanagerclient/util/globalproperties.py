@@ -1,6 +1,8 @@
 import os
 from configparser import ConfigParser
 
+from .gitconfig import GitConfig
+
 # this module encloses all globally accessible properties
 ini_path_prefix = ''
 conf_dir = ''
@@ -13,11 +15,7 @@ ssh_user = ''
 ssh_host = ''
 test_mode = False
 
-class GitConfig:
 
-    def __init__(self, username=None, email=None):
-        self.username = username
-        self.email = email
 
 gitconfig = GitConfig()
 
