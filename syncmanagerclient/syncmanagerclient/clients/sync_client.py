@@ -8,7 +8,7 @@ from .sync_dir_registration import SyncDirRegistration
 from .unison_sync import UnisonClientSync
 
 import syncmanagerclient.util.globalproperties as globalproperties
-from syncmanagerclient.util.gitconfig import GitConfig
+from syncmanagerclient.util.syncconfig import SyncConfig
 
 from .api import ApiService
 
@@ -26,12 +26,12 @@ class SyncClient:
         self.namespace = namespace
         self.errors = []
 
-    def get_instance(self):
+    def get_instance(self, config: SyncConfig = None):
         if self.mode == 'git':
             if self.action == ACTION_SET_CONF:
-                return GitClientSettings()
+                return GitClientSettings(config)
             elif self.action in [ACTION_PUSH, ACTION_PULL, ACTION_DELETE]:
-                return GitClientSync(self.action)
+                return GitClientSync(self.action, config, force=self.force)
             else:
                 raise Exception('Unknown command \'' + self.action + '\'.')
         elif self.mode == 'unison':
@@ -41,11 +41,15 @@ class SyncClient:
             print('Unknown client')
             return None
 
-    def sync_with_remote_repo(self, config: GitConfig):
-        client_instance = self.get_instance()
+    def sync_with_remote_repo(self, config: SyncConfig):
+        """
+        config obj corresponds to local instance (aka local repo), it contains all information necessary for syncing
+        :param config:
+        :return:
+        """
+        client_instance = self.get_instance(config)
         if not client_instance:
             return
-        client_instance.set_config(config, self.force)
         client_instance.apply()
         if client_instance.errors:
             self.errors.extend(client_instance.errors)
@@ -62,11 +66,11 @@ class SyncClient:
                 p = pathlib.Path(*p.parts[1:])
                 if not str(p).startswith(str(p_ns)):
                     continue
-            config = GitConfig(local_path = remote_repo['local_path_rel'],
-                               remote_repo = remote_repo['remote_name'],
-                               remote_repo_url = SyncDirRegistration.get_remote_url(
-                                   remote_repo['git_repo']['server_path_absolute'])
-                               )
+            config = SyncConfig.init(allconfig=globalproperties.allconfig)
+            config.local_path = remote_repo['local_path_rel']
+            config.remote_repo = remote_repo['remote_name']
+            config.remote_repo_url = SyncDirRegistration.get_remote_url(
+                remote_repo['git_repo']['server_path_absolute'])
 
             self.sync_with_remote_repo(config)
             api_service.update_server_repo(remote_repo['git_repo']['id'])

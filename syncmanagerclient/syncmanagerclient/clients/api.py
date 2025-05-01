@@ -53,8 +53,8 @@ class ApiService:
             'local_path': local_path,
             'remote_name': remote_name,
             'client_env': self.sync_env,
-            'user_name_config' : globalproperties.gitconfig.username,
-            'user_email_config' : globalproperties.gitconfig.email,
+            'user_name_config' : globalproperties.allconfig.username,
+            'user_email_config' : globalproperties.allconfig.email,
         }
         # optional fields
         if server_parent_path_relative:
@@ -71,8 +71,8 @@ class ApiService:
         body = {
             'local_path': local_path,
             'server_path_rel': server_path_rel,
-            'user_name_config' : globalproperties.gitconfig.username,
-            'user_email_config' : globalproperties.gitconfig.email,
+            'user_name_config' : globalproperties.allconfig.username,
+            'user_email_config' : globalproperties.allconfig.email,
         }
         url = f"{self.base_api_url}/repos/{server_repo_id}/{self.sync_env}"
         response = req.put(url, json=body, auth=self.auth)

@@ -1,11 +1,12 @@
 import re
 
-from .gitconfig import GitConfig
+from .syncconfig import SyncConfig
+import syncmanagerclient.util.globalproperties as globalproperties
 
 class ConfigParser:
 
     def __init__(self, path):
-        self.config = GitConfig()
+        self.config = SyncConfig.init(allconfig=globalproperties.allconfig)
         self.mode = None
         self.path = path
 

@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 from .utils.testutils import *
 
 from syncmanagerclient.main import execute_command
@@ -26,6 +25,15 @@ from testlib.fixtures import empty_directory, sync_api_user
 Define fixtures only here. DO NOT import any fixture functions into the test_* classes !!
 """
 
+
+@pytest.fixture(scope="module")
+def init_test():
+    """
+    to be overwritten in the test modules by redeclaration
+    """
+    pass
+
+
 def setup_local_repo(sync_user):
     repos_dir = os.path.join(test_dir, "repos", sync_user["username"])
     shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE),
@@ -39,14 +47,16 @@ def setup_local_repo(sync_user):
     test_file_path = os.path.join(local_repo_path, 'file.txt')
     Path(test_file_path).touch()
     local_repo.index.add([test_file_path])
-    local_repo.index.commit("Initial commit on pricipal branch")
-    globalproperties.set_prefix(os.path.dirname(test_dir))
-    globalproperties.test_mode = True
-    globalproperties.read_config('e2e')
+    local_repo.index.commit("Initial commit on principal branch")
+    if not globalproperties.loaded:
+        globalproperties.set_prefix(os.path.dirname(test_dir))
+        globalproperties.test_mode = True
+        globalproperties.read_config('e2e')
     globalproperties.api_user = sync_user["username"]
     globalproperties.api_pw = sync_user["password"]
     execute_command('set-remote', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
     return local_repo
+
 
 @pytest.fixture(scope="package")
 def app():
@@ -80,22 +90,26 @@ def app():
         raise perm
     empty_directory(git_base_dir_path)
 
+
 # can call CLIck commands
 @pytest.fixture(scope="package")
 def runner(app):
     return app.app.test_cli_runner()
 
+
 @pytest.fixture(scope="package")
 def client(app):
     return app.test_client()
+
 
 @pytest.fixture(scope="package")
 def app_initialized(app, runner):
     create_admin(runner)
     return app
 
+
 @pytest.fixture(scope="module")
-def local_repo(client, sync_api_user):
+def local_repo(init_test, client, sync_api_user):
     user = sync_api_user
     setup_users_and_env(client, user)
     local_repo = setup_local_repo(user)

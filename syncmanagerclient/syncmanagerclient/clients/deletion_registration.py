@@ -2,7 +2,7 @@ import os
 import re
 from git import Repo
 import syncmanagerclient.util.globalproperties as globalproperties
-from syncmanagerclient.util.gitconfig import GitConfig
+from syncmanagerclient.util.syncconfig import SyncConfig
 from .git_base import GitClientBase
 
 
@@ -53,7 +53,7 @@ class DeletionRegistration(GitClientBase):
                         print(f"No remote url defined. Skip")
                         continue
                     remote_url = remote_urls[0]
-                    config = GitConfig()
+                    config = SyncConfig()
                     config.local_path = self.dir
                     config.remote_repo_url = remote_url
                     config.remote_repo = remote.name
