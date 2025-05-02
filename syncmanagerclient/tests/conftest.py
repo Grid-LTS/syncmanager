@@ -11,6 +11,7 @@ from .utils.testutils import *
 
 from syncmanagerclient.main import execute_command
 from syncmanagerclient.util.system import change_dir
+from syncmanagerclient.util.syncconfig import SyncConfig
 import syncmanagerclient.util.globalproperties as globalproperties
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -52,7 +53,9 @@ def setup_local_repo(sync_user):
         load_global_properties()
     globalproperties.api_user = sync_user["username"]
     globalproperties.api_pw = sync_user["password"]
-    execute_command('set-remote', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
+    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    execute_command('set-remote', "git", USER_CLIENT_ENV, "e2e_repo", sync_config,
+                    remote_name = "origin")
     return local_repo
 
 

@@ -18,7 +18,6 @@ class GitClientSync(GitClientBase):
     def __init__(self, action, config: SyncConfig=None, force=False):
         super().__init__()
         self.action = action
-        self.errors = []
         self.set_config(config)
         self.force = force
 
