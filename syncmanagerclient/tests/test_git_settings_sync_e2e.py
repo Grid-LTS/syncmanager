@@ -59,7 +59,8 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     assert local_repo.config_reader().get_value("user", "name") == globalproperties.allconfig.username
     assert local_repo.config_reader().get_value("user", "email") == globalproperties.allconfig.email
 
-    execute_command('set-config', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
+    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    execute_command('set-config', "git", USER_CLIENT_ENV, "e2e_repo", sync_config, remote_name="origin")
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
     assert local_repo.remotes["origin"].url == origin_url

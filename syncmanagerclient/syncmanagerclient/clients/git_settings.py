@@ -1,8 +1,9 @@
-from git import Repo
+from git import Repo, InvalidGitRepositoryError
 
 from ..util.system import sanitize_path
 from ..util.syncconfig import SyncConfig
 from .git_base import GitClientBase
+from .error import GitErrorItem
 
 class GitClientSettings(GitClientBase):
 
@@ -21,7 +22,13 @@ class GitClientSettings(GitClientBase):
     def apply(self):
         if not self.gitrepo:
             # change to the directory and apply git settings
-            self.gitrepo = Repo(self.local_path)
+            try:
+                self.gitrepo = Repo(self.local_path)
+            except InvalidGitRepositoryError as err:
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, "Invalid local repo")
+                )
+                return
         self.set_settings()
 
     def set_settings(self):

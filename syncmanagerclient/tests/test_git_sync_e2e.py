@@ -6,6 +6,8 @@ import urllib
 import datetime as dt
 
 from syncmanagerclient.main import execute_command
+from syncmanagerclient.util.syncconfig import SyncConfig
+import syncmanagerclient.util.globalproperties as globalproperties
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
@@ -43,7 +45,8 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     assert response.status_code == 400
 
     # 2. test first sync
-    execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
+    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", sync_config, remote_name="origin")
 
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     # verify that the remote repo has been updated
@@ -56,7 +59,7 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     local_repo.index.add([test_file_path])
     commit_message = "New commit"
     new_commit = local_repo.index.commit(commit_message)
-    execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", "origin")
+    execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", sync_config, remote_name="origin")
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     assert dt.datetime.fromisoformat(remote_repo_api["last_commit_date"]).replace( tzinfo=system_tz) == new_commit.committed_datetime
 

@@ -155,6 +155,7 @@ def main():
                         help="Specifies organization to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
+    parser.add_argument("-ry", "--retention_years", help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in ['push', 'pull', 'add-env', 'set-remote', 'set-conf', 'set-config']:
         # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
@@ -173,14 +174,17 @@ def main():
         path = args.path
     else:
         path = None
-    execute_command(args.action, args.client, sync_env, args.namespace, path, args.force)
+    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    if args.retention_years:
+        sync_config.retention_years = int(args.retention_years)
+    execute_command(args.action, args.client, sync_env, args.namespace, sync_config, path=path, force=args.force)
 
 
-def execute_command(action, client, sync_env, namespace, remote_name=None, path=None, force=False):
+def execute_command(action, client, sync_env, namespace, sync_config:  SyncConfig, remote_name=None, path=None, force=False):
     if action in ACTION_SET_REMOTE_ALIASES:
         local_path = Path(os.getcwd())
-        gitconfig = SyncConfig.init(remote_repo=remote_name, allconfig = globalproperties.allconfig)
-        new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env, namespace=namespace, sync_config=gitconfig)
+        sync_config.remote_repo = remote_name
+        new_sync_dir = SyncDirRegistration(local_path=local_path, sync_env=sync_env, namespace=namespace, sync_config=sync_config)
         new_sync_dir.register()
         return
     elif action in ACTION_ADD_ENV_ALIASES:
@@ -206,4 +210,4 @@ def execute_command(action, client, sync_env, namespace, remote_name=None, path=
     for mode in clients_enabled:
         print(f"Syncing client {mode}")
         sync_client = SyncClient(mode, action, sync_env, force, namespace)
-        sync_client.get_and_sync_repos()
+        sync_client.get_and_sync_repos(sync_config)

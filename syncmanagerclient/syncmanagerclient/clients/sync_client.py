@@ -56,9 +56,9 @@ class SyncClient:
         if client_instance.errors:
             self.errors.extend(client_instance.errors)
 
-    def get_and_sync_repos(self):
+    def get_and_sync_repos(self, config: SyncConfig):
         api_service = ApiService(self.mode, self.sync_env)
-        remote_repos = api_service.list_repos_by_client_env(full=True)
+        remote_repos = api_service.list_repos_by_client_env(config.retention_years, full=True)
         if self.namespace:
             print(f"Only syncing repos in namespace {self.namespace}")
         for remote_repo in remote_repos:
@@ -68,7 +68,6 @@ class SyncClient:
                 p = pathlib.Path(*p.parts[1:])
                 if not str(p).startswith(str(p_ns)):
                     continue
-            config = SyncConfig.init(allconfig=globalproperties.allconfig)
             config.local_path = remote_repo['local_path_rel']
             config.remote_repo = remote_repo['remote_name']
             config.remote_repo_url = SyncDirRegistration.get_remote_url(

@@ -15,7 +15,7 @@ ssh_user = ''
 ssh_host = ''
 test_mode = False
 loaded = False
-
+retention_years = None
 
 
 allconfig = SyncAllConfig()
@@ -38,6 +38,7 @@ def read_config(stage, organization=''):
     global ssh_host
     global test_mode
     global loaded
+    global retention_years
     loaded = True
     if stage == 'prod':
         properties_file_name = "server-sync.ini"
@@ -72,6 +73,8 @@ def read_config(stage, organization=''):
             exit(1)
         else:
             raise RuntimeError(message)
+
+    allconfig.retention_years = int(config.get('config', 'retention_years', fallback=2))
 
     # determine sync environment
     if not os.environ.get('SYNC_ENV', None) and not config.get('config', 'SYNC_ENV', fallback=None):
