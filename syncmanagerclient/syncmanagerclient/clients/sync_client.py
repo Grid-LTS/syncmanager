@@ -72,8 +72,8 @@ class SyncClient:
             config.remote_repo = remote_repo['remote_name']
             config.remote_repo_url = SyncDirRegistration.get_remote_url(
                 remote_repo['git_repo']['server_path_absolute'])
-            config.username = remote_repo["user_name_config"]  if remote_repo["user_name_config"]   else config.username
-            config.email = remote_repo["user_email_config"]  if remote_repo["user_email_config"]   else config.email
+            config.username = remote_repo["user_name_config"]  if remote_repo["user_name_config"] else config.username
+            config.email = remote_repo["user_email_config"]  if remote_repo["user_email_config"]  else config.email
             self.sync_with_remote_repo(config)
             if self.is_update:
                 api_service.update_server_repo(remote_repo['git_repo']['id'])

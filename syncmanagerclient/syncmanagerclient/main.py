@@ -156,11 +156,12 @@ def main():
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     parser.add_argument("-ry", "--retention_years", help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
+    allowed_actions = [ACTION_PUSH, ACTION_PULL] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
-    for act in ['push', 'pull', 'add-env', 'set-remote', 'set-conf', 'set-config']:
+    for act in allowed_actions:
         # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
         sub_parser_std_action = sub_parser_action.add_parser(act)
-    sub_parser_delete = sub_parser_action.add_parser('delete')
+    sub_parser_delete = sub_parser_action.add_parser(ACTION_DELETE)
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
     args = parser.parse_args()

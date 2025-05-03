@@ -1,11 +1,11 @@
 # this file contains global properties (host, ssh login) needed for the sync manager app
 
 [config]
-conf_dir="<directory with conf files>"
-var_dir="<directory for operation files>"
+conf_dir=<directory with conf files>
+var_dir=<directory for operation files>
 # working environment for which the files should be synced (e.g. 'home', 'work', 'special',...)
 # optional, can also be defined in environment variable with the same name
-SYNC_ENV="home"
+SYNC_ENV=home
 org_default=default
 [server]
 API_HOST=myserver # hostname of syncing api
@@ -18,3 +18,7 @@ API_PW=secret
 [ssh]
 SSH_USER=syncmanager # see properties as configured for syncmanagerapi
 SSH_HOST=myserver
+
+[git_default]
+user_default=Your git config user.name
+email_default=your git config user.email

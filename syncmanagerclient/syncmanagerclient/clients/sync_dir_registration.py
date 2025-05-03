@@ -130,9 +130,12 @@ class SyncDirRegistration:
         return server_repo_ref['user'] == self.first_path_part(server_repo_ref['git_repo']['server_path_rel'])
 
     def prompt_for_repo_name(self):
-        repo_name = osp.basename(self.local_path_short)
         if not globalproperties.test_mode:
             repo_name = input('Enter directory name of bare repository (optional): ').strip()
+        else:
+            repo_name = ''
+        if not repo_name:
+            repo_name = osp.basename(self.local_path_short)
         if repo_name[-4:] != '.git':
             repo_name += '.git'
         return repo_name
