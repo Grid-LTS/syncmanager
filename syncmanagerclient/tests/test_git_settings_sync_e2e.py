@@ -8,7 +8,7 @@ import pytest
 
 from syncmanagerclient.main import execute_command, init_global_properties
 from syncmanagerclient.clients.git_settings import GitClientSettings
-from .utils.testutils import load_global_properties
+from .utils.testutils import load_global_properties, ArgumentsTest
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
@@ -53,14 +53,17 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     assert globalproperties.allconfig.email != USER_EMAIL
 
     # artificially overwrite the git config of the repo
-    sync_settings = GitClientSettings(SyncConfig.init(local_path=local_repo.working_dir, allconfig=globalproperties.allconfig), local_repo)
+    sync_settings = GitClientSettings(SyncConfig.init(local_path_short=local_repo.working_dir, allconfig=globalproperties.allconfig), local_repo)
     sync_settings.set_user_config()
 
     assert local_repo.config_reader().get_value("user", "name") == globalproperties.allconfig.username
     assert local_repo.config_reader().get_value("user", "email") == globalproperties.allconfig.email
 
     sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
-    execute_command('set-config', "git", USER_CLIENT_ENV, "e2e_repo", sync_config, remote_name="origin")
+
+    args = ArgumentsTest()
+    args.action = "set-config"
+    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name="origin")
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
     assert local_repo.remotes["origin"].url == origin_url

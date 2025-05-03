@@ -21,6 +21,15 @@ others_conf_file_name = 'others.conf'
 test_user_name = 'Test User'
 test_user_email = 'dummy@tests.com'
 
+class ArgumentsTest:
+
+    def __init__(self):
+        self.action = None
+        self.namespace = "e2e_repo"
+        self.force = False
+        self.client = 'git'
+
+
 def load_global_properties():
     init_global_properties("e2e")
     globalproperties.set_prefix(os.path.dirname(test_dir))

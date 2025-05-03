@@ -1,4 +1,8 @@
+import os.path as osp
 
+from pathlib import PurePosixPath, Path
+from ..util.system import sanitize_path
+import syncmanagerclient.util.system as system
 
 class SyncAllConfig:
     """
@@ -18,15 +22,57 @@ class SyncConfig(SyncAllConfig):
     overwritten and configured dynamically via command line parameter
     """
 
-    def __init__(self, local_path=None, remote_repo=None, remote_repo_url=None, username=None, email=None,
+    def __init__(self, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, username=None, email=None,
                  settings=None, retention_years=None):
         super().__init__(username=username, email=email,
                                 settings=settings, retention_years=retention_years)
         self.remote_repo = remote_repo
         self.remote_repo_url = remote_repo_url
-        self.local_path = local_path
+        self._local_path_short = None
+        self._local_path = None
+        if local_path_short:
+            self.local_path_short = local_path_short
+        if local_path:
+            self.local_path = local_path
 
     @classmethod
-    def init(cls, local_path=None, remote_repo=None, remote_repo_url=None, allconfig : SyncAllConfig = None):
-       return cls(local_path=local_path, remote_repo=remote_repo, remote_repo_url=remote_repo_url, username=allconfig.username, email=allconfig.email,
+    def init(cls, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, allconfig : SyncAllConfig = None):
+       return cls(local_path_short=local_path_short, local_path=local_path,  remote_repo=remote_repo,
+                  remote_repo_url=remote_repo_url, username=allconfig.username, email=allconfig.email,
                   settings=allconfig.settings, retention_years=allconfig.retention_years)
+
+
+    @property
+    def local_path(self) -> Path:
+        return self._local_path
+
+    @property
+    def local_path_short(self) -> str:
+        return self._local_path_short
+
+    @local_path.setter
+    def local_path(self, path):
+        path = sanitize_path(path)
+        self._local_path_short = SyncConfig.determine_local_path_short(path)
+        self._local_path = path
+
+    @local_path_short.setter
+    def local_path_short(self, value: str):
+        if isinstance(value, Path):
+            self._local_path_short = SyncConfig.determine_local_path_short(value)
+            self._local_path = value
+        else:
+            self._local_path_short = value
+            self._local_path = sanitize_path(value)
+
+    @staticmethod
+    def determine_local_path_short(path):
+        system_home_dir=PurePosixPath(Path(system.home_dir))
+        local_path_posix = PurePosixPath(path)
+        if osp.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
+             return '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())
+        else:
+            return str(path)
+
+
+

@@ -24,6 +24,11 @@ def run(command, listen=False, *args, **kwargs):
 
 
 def sanitize_path(path):
+    """
+    makes it a valid posix path
+    :param path:
+    :return:
+    """
     if isinstance(path, Path):
         return path
     posix = PurePosixPath(path)

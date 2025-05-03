@@ -9,8 +9,6 @@ class GitClientSettings(GitClientBase):
     def __init__(self, config : SyncConfig, gitrepo = None):
         super().__init__(config, gitrepo)
 
-
-
     def apply(self):
         if not self.gitrepo:
             # change to the directory and apply git settings

@@ -1,29 +1,23 @@
 import os.path as osp
 
 import pathlib
-from pathlib import PurePosixPath, Path
 
-from ..util.system import sanitize_path
+from ..util.syncconfig import SyncConfig
+
 from git import Repo
 
 from .api import ApiService
 from .git_settings import GitClientSettings
 import syncmanagerclient.util.globalproperties as globalproperties
-import syncmanagerclient.util.system as system
+
 
 
 class SyncDirRegistration:
     mode = None
 
-    def __init__(self, local_path, sync_env, namespace=None, sync_config=None):
-        system_home_dir=PurePosixPath(Path(system.home_dir))
-        local_path_posix = PurePosixPath(local_path)
-        if osp.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
-            self.local_path_short = '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())
-        else:
-            self.local_path_short = local_path
-        sync_config.local_path = self.local_path_short
-        self.local_path = sanitize_path(local_path)
+    def __init__(self, sync_env, namespace=None, sync_config : SyncConfig=None):
+        self.local_path = sync_config.local_path
+        self.local_path_short = sync_config.local_path_short
         self.gitrepo = None
         self.sync_env = sync_env
         self.mode = self.get_mode()

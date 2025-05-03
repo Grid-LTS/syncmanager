@@ -36,7 +36,7 @@ class SyncClient:
                 self.is_update = True
                 return GitClientSync(self.action, config, force=self.force)
             elif self.action == ACTION_ARCHIVE_IGNORED_FILES:
-                return GitArchiveIgnoredFiles(self.action, config, force=self.force)
+                return GitArchiveIgnoredFiles(config)
             else:
                 raise Exception('Unknown command \'' + self.action + '\'.')
         elif self.mode == 'unison':

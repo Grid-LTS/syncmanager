@@ -15,7 +15,7 @@ sys.path.insert(0, project_dir)
 
 from testlib.testsetup import USER_CLIENT_ENV, get_user_basic_authorization
 
-from .utils.testutils import checkout_principal_branch
+from .utils.testutils import checkout_principal_branch, ArgumentsTest
 # from .conftest import app_initialized, local_repo,  client # DO NOT IMPORT, rely on pytest discovery mechanism via
 # conftest.py
 
@@ -46,7 +46,11 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
 
     # 2. test first sync
     sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
-    execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", sync_config, remote_name="origin")
+
+    args = ArgumentsTest()
+    args.action = "push"
+    args.namespace = "e2e_repo"
+    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name="origin")
 
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     # verify that the remote repo has been updated
@@ -59,7 +63,10 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     local_repo.index.add([test_file_path])
     commit_message = "New commit"
     new_commit = local_repo.index.commit(commit_message)
-    execute_command('push', "git", USER_CLIENT_ENV, "e2e_repo", sync_config, remote_name="origin")
+
+    args = ArgumentsTest()
+    args.action = "push"
+    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name="origin")
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     assert dt.datetime.fromisoformat(remote_repo_api["last_commit_date"]).replace( tzinfo=system_tz) == new_commit.committed_datetime
 

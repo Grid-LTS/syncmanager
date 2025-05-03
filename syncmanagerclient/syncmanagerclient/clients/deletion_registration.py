@@ -1,7 +1,8 @@
 import os
 import re
 
-from typing import List
+from pathlib import Path
+from typing import List, cast
 
 from git import Repo
 import syncmanagerclient.util.globalproperties as globalproperties
@@ -18,14 +19,14 @@ class DeletionRegistrationEntry(GitClientBase):
 
 
 
-class DeletionRegistration():
+class DeletionRegistration:
 
     def __init__(self, **kwargs):
         super().__init__()
         self.branch_path = kwargs.get('branch_path', None)
         self.registry_dir = globalproperties.var_dir
         # first check if directory is a git working tree
-        self.dir = kwargs.get('git_repo_path')
+        self.dir = cast(Path, kwargs.get('git_repo_path', None))
         self.entries : List[DeletionRegistrationEntry] = []
         self.mode = kwargs.get('mode', None)
         self.local_branch_exists = False
