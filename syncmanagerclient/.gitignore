@@ -3,3 +3,6 @@
 !server-sync.e2e.ini
 venv
 Pipfile.lock
+
+local/**
+!local/.gitkeep
