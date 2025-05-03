@@ -89,5 +89,5 @@ def read_config(stage, organization=''):
     api_pw = config.get(f"org_{organization}", 'API_PW', fallback='')
     ssh_user = config.get('ssh', 'SSH_USER', fallback=None)
     ssh_host = config.get('ssh', 'SSH_HOST', fallback=None)
-    allconfig.username = config.get('git', 'user_default', fallback=None)
-    allconfig.email = config.get('git', 'email_default', fallback=None)
+    allconfig.username = config.get(f"git_{organization}", 'user_default', fallback=None)
+    allconfig.email = config.get(f"git_{organization}", 'email_default', fallback=None)
