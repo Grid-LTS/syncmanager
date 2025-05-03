@@ -54,8 +54,10 @@ def setup_local_repo(sync_user):
     globalproperties.api_user = sync_user["username"]
     globalproperties.api_pw = sync_user["password"]
     sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
-    execute_command('set-remote', "git", USER_CLIENT_ENV, "e2e_repo", sync_config,
-                    remote_name = "origin")
+
+    args = ArgumentsTest()
+    args.action = "set-remote"
+    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name = "origin")
     return local_repo
 
 
