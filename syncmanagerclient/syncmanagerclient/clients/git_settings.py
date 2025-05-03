@@ -1,6 +1,5 @@
 from git import Repo, InvalidGitRepositoryError
 
-from ..util.system import sanitize_path
 from ..util.syncconfig import SyncConfig
 from .git_base import GitClientBase
 from .error import GitErrorItem
@@ -8,16 +7,9 @@ from .error import GitErrorItem
 class GitClientSettings(GitClientBase):
 
     def __init__(self, config : SyncConfig, gitrepo = None):
-        super().__init__(gitrepo)
-        self.errors = []
-        if config:
-            self.set_config(config)
-            self.config = config
+        super().__init__(config, gitrepo)
 
-    def set_config(self, config : SyncConfig, *args):
-        self.local_path_short = config.local_path
-        self.local_path = sanitize_path(self.local_path_short)
-        self.config = config
+
 
     def apply(self):
         if not self.gitrepo:

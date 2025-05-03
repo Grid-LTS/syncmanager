@@ -8,7 +8,7 @@ from .util.syncconfig import SyncConfig
 from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
-    ACTION_SET_CONF_ALIASES, ACTION_DELETE
+    ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES
 from .clients.sync_client import SyncClient
 from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
@@ -53,17 +53,17 @@ def register_local_branch_for_deletion(path, git_repo_path):
     if not client:
         print("Cannot determine sync client.", file=sys.stderr)
         exit(1)
-    configs = delete_action.configs
-    if not len(configs) > 0:
+    entries = delete_action.entries
+    if not len(entries) > 0:
         exit(1)
-    config = configs[0]
+    entry = entries[0]
     if delete_action.local_branch_exists:
         client_factory = SyncClient(client, ACTION_DELETE, force=False)
-        client_instance = client_factory.get_instance(config)
+        client_instance = client_factory.get_instance(entry.config)
         # delete the local branches
         client_instance.apply(path=path)
     else:
-        print("Warning: you have not checked out this branch, but it will be completely wiped from "
+        print(f"Warning: you have not checked out this branch '{path}', but it will be completely wiped from "
               "all machines on the next sync.")
 
 
@@ -199,6 +199,8 @@ def execute_command(action, client, sync_env, namespace, sync_config:  SyncConfi
     elif action in ACTION_SET_CONF_ALIASES:
         pass
     elif action in [ACTION_PULL, ACTION_PUSH]:
+        pass
+    elif action == ACTION_ARCHIVE_IGNORED_FILES:
         pass
     else:
         print('Unknown command \'{0}\'. Abort.'.format(action))
