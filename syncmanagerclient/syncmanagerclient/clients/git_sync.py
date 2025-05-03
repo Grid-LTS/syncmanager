@@ -16,14 +16,12 @@ PRINCIPAL_BRANCH_MASTER = 'master'
 
 class GitClientSync(GitClientBase):
     def __init__(self, action, config: SyncConfig=None, force=False):
-        super().__init__()
+        super().__init__(config)
         self.action = action
-        self.set_config(config)
         self.force = force
 
-    def set_config(self, config: SyncConfig):
-        self.local_path_short = config.local_path
-        self.local_path = sanitize_path(self.local_path_short)
+    def set_config(self, config: SyncConfig, *args):
+        super().set_config(config)
         self.local_reponame = os.path.basename(self.local_path)
         self.remote_reponame = config.remote_repo
         self.remote_path = config.remote_repo_url

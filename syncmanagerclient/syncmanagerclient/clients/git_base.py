@@ -1,9 +1,21 @@
 
+from ..util.system import change_dir, sanitize_path
+
+from ..util.syncconfig import SyncConfig
+
 class GitClientBase:
 
-    def __init__(self, gitrepo = None):
+    def __init__(self, config : SyncConfig, gitrepo = None):
         self.gitrepo = gitrepo
         self.errors = []
+        if config:
+            self.set_config(config)
+
+    def set_config(self, config : SyncConfig, *args):
+        self.local_path_short = config.local_path
+        self.local_path = sanitize_path(self.local_path_short)
+        self.config = config
+
 
     def close(self):
         if self.gitrepo:

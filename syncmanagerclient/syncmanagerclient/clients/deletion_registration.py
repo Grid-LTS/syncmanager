@@ -1,12 +1,24 @@
 import os
 import re
+
+from typing import List
+
 from git import Repo
 import syncmanagerclient.util.globalproperties as globalproperties
 from syncmanagerclient.util.syncconfig import SyncConfig
 from .git_base import GitClientBase
 
+class DeletionRegistrationEntry(GitClientBase):
 
-class DeletionRegistration(GitClientBase):
+    def __init__(self, config: SyncConfig, gitrepo=None):
+        super().__init__(config, gitrepo)
+
+    def get_remote_repo(self):
+        return self.config.remote_repo
+
+
+
+class DeletionRegistration():
 
     def __init__(self, **kwargs):
         super().__init__()
@@ -14,9 +26,10 @@ class DeletionRegistration(GitClientBase):
         self.registry_dir = globalproperties.var_dir
         # first check if directory is a git working tree
         self.dir = kwargs.get('git_repo_path')
-        self.configs = []
+        self.entries : List[DeletionRegistrationEntry] = []
         self.mode = kwargs.get('mode', None)
         self.local_branch_exists = False
+        self.gitrepo = None
 
 
     def get_mode(self):
@@ -30,14 +43,12 @@ class DeletionRegistration(GitClientBase):
             self.mode = 'git'
             self.local_branch_exists = True
             self.close()
-            return
-        # to be implemented: Unison check
+
 
     def get_config(self):
         self.get_mode()
         if not self.mode:
             return None
-        configs = []
         # get remote repo
         if self.mode == 'git':
             # fetch url of origin
@@ -57,7 +68,8 @@ class DeletionRegistration(GitClientBase):
                     config.local_path = self.dir
                     config.remote_repo_url = remote_url
                     config.remote_repo = remote.name
-                    self.configs.append(config)
+                    entry = DeletionRegistrationEntry(config, self.gitrepo)
+                    self.entries.append(entry)
         elif self.mode == 'unison':
             # to be implemented
             pass
@@ -65,14 +77,14 @@ class DeletionRegistration(GitClientBase):
     def register_path(self):
         self.get_config()
         if self.mode == 'git':
-            for config in self.configs:
-                remote_repo_name = config.remote_repo
+            for entry in self.entries:
+                remote_repo_name = entry.get_remote_repo()
                 if not remote_repo_name:
                     continue
                 registry_file = self.get_registry_file_path(remote_repo_name)
                 f = open(registry_file, 'a+')
-                entry = self.dir + '\t' + self.branch_path + '\n'
-                f.write(entry)
+                registry_entry = self.dir + '\t' + self.branch_path + '\n'
+                f.write(registry_entry)
                 f.close()
 
     def get_registry_file_path(self, repo_name):
@@ -109,3 +121,8 @@ class DeletionRegistration(GitClientBase):
             line = '\t'.join(entry) + '\n'
             f.write(line)
         f.close()
+
+
+    def close(self):
+        if self.gitrepo:
+            self.gitrepo.close()
