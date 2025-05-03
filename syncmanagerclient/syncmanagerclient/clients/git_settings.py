@@ -55,14 +55,16 @@ class GitClientSettings(GitClientBase):
 
     def set_user_config(self):
         conf_writer = self.gitrepo.config_writer()
-        try:
-            conf_writer.set_value('user', 'name', self.config.username)
-        except Exception as err:
-            print('Git config \'user.name\' could not be set. Error: ' + str(err))
-        try:
-            conf_writer.set_value('user', 'email', self.config.email)
-        except Exception as err:
-            print('Git config \'user.email\' could not be set. Error: ' + str(err))
+        if self.config.username:
+            try:
+                conf_writer.set_value('user', 'name', self.config.username)
+            except Exception as err:
+                print('Git config \'user.name\' could not be set. Error: ' + str(err))
+        if self.config.email:
+            try:
+                conf_writer.set_value('user', 'email', self.config.email)
+            except Exception as err:
+                print('Git config \'user.email\' could not be set. Error: ' + str(err))
         conf_writer.release()
 
 
