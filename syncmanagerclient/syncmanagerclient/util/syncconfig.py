@@ -1,7 +1,7 @@
 import os.path as osp
 
 from pathlib import PurePosixPath, Path
-from ..util.system import sanitize_path
+from ..util.system import sanitize_posix_path
 import syncmanagerclient.util.system as system
 
 class SyncAllConfig:
@@ -56,7 +56,7 @@ class SyncConfig(SyncAllConfig):
 
     @local_path.setter
     def local_path(self, path):
-        path = sanitize_path(path)
+        path = sanitize_posix_path(path)
         self._local_path_short = SyncConfig.determine_local_path_short(path)
         self._local_path = path
 
@@ -67,7 +67,7 @@ class SyncConfig(SyncAllConfig):
             self._local_path = value
         else:
             self._local_path_short = value
-            self._local_path = sanitize_path(value)
+            self._local_path = sanitize_posix_path(value)
 
     @staticmethod
     def determine_local_path_short(path):

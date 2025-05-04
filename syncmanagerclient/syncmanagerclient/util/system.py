@@ -23,7 +23,7 @@ def run(command, listen=False, *args, **kwargs):
         return exitcode, process_errors
 
 
-def sanitize_path(path):
+def sanitize_posix_path(path):
     """
     makes it a valid posix path
     :param path:
@@ -37,6 +37,20 @@ def sanitize_path(path):
         parts[0] = home_dir
     ret_path = pathlib.Path(*parts)
     return ret_path
+
+def sanitize_path(path:str) -> Path:
+    """
+    makes it a valid posix path
+    :param path:
+    :return:
+    """
+    if isinstance(path, Path):
+        return path
+    if path.startswith("~"):
+        sanitized = Path(home_dir).joinpath(*Path(path).parts[1:])
+    else:
+        sanitized = Path(path)
+    return sanitized
 
 
 def change_dir(path):

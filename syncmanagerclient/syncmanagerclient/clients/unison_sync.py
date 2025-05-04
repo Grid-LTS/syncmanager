@@ -12,8 +12,8 @@ class UnisonClientSync:
         self.errors = []
 
     def set_config(self, config, force):
-        self.local_path = system.sanitize_path(config.get('source', None))
-        self.server_path = system.sanitize_path(config.get('source', None))
+        self.local_path = system.sanitize_posix_path(config.get('source', None))
+        self.server_path = system.sanitize_posix_path(config.get('source', None))
         self.settings = self.parse_settings(config.get('settings', None))
         self.force = force
 
