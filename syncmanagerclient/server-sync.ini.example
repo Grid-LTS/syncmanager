@@ -2,7 +2,8 @@
 
 [config]
 conf_dir=<directory with conf files>
-var_dir=<directory for operation files>
+var_dir=~/.syncmanager/var #directory for operation files
+archive_dir_relative=<relative path to var_dir for archiving files>
 # working environment for which the files should be synced (e.g. 'home', 'work', 'special',...)
 # optional, can also be defined in environment variable with the same name
 SYNC_ENV=home

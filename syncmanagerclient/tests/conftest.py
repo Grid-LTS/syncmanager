@@ -57,7 +57,7 @@ def setup_local_repo(sync_user):
 
     args = ArgumentsTest()
     args.action = "set-remote"
-    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name = "origin")
+    execute_command(args, sync_config, remote_name = "origin")
     return local_repo
 
 

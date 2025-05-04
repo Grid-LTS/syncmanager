@@ -63,7 +63,7 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
 
     args = ArgumentsTest()
     args.action = "set-config"
-    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name="origin")
+    execute_command(args, sync_config, remote_name="origin")
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
     assert local_repo.remotes["origin"].url == origin_url

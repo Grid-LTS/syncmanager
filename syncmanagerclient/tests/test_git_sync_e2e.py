@@ -50,7 +50,7 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     args = ArgumentsTest()
     args.action = "push"
     args.namespace = "e2e_repo"
-    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name="origin")
+    execute_command(args, sync_config, remote_name="origin")
 
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     # verify that the remote repo has been updated
@@ -66,7 +66,7 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
 
     args = ArgumentsTest()
     args.action = "push"
-    execute_command(args, USER_CLIENT_ENV, sync_config, remote_name="origin")
+    execute_command(args, sync_config, remote_name="origin")
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     assert dt.datetime.fromisoformat(remote_repo_api["last_commit_date"]).replace( tzinfo=system_tz) == new_commit.committed_datetime
 

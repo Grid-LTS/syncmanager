@@ -1,13 +1,16 @@
 import os
 from configparser import ConfigParser
 
+from pathlib import Path
+
 from .syncconfig import SyncAllConfig
+from .system import sanitize_path
 
 # this module encloses all globally accessible properties
 ini_path_prefix = ''
 conf_dir = ''
-sync_env = ''
 var_dir = ''
+archive_dir_path: Path = None
 api_base_url = ''
 api_user = ''
 api_pw = ''
@@ -16,7 +19,6 @@ ssh_host = ''
 test_mode = False
 loaded = False
 retention_years = None
-
 
 allconfig = SyncAllConfig()
 
@@ -29,8 +31,8 @@ def set_prefix(prefix):
 def read_config(stage, organization=''):
     global ini_path_prefix
     global conf_dir
-    global sync_env
     global var_dir
+    global archive_dir_path
     global api_base_url
     global api_user
     global api_pw
@@ -59,7 +61,7 @@ def read_config(stage, organization=''):
             raise FileNotFoundError(message)
     conf_dir = config.get('config', 'conf_dir', fallback=None)
     if not conf_dir:
-        message= "Please specify the path to the config files in server-sync.ini."
+        message = "Please specify the path to the config files in server-sync.ini."
         if not test_mode:
             print(message)
             exit(1)
@@ -73,16 +75,20 @@ def read_config(stage, organization=''):
             exit(1)
         else:
             raise RuntimeError(message)
-
+    var_dir = str(sanitize_path(var_dir))
+    archive_dir_relative = config.get('config', 'archive_dir_relative', fallback=None)
+    if archive_dir_relative:
+        archive_dir_path = Path(var_dir).joinpath(archive_dir_relative)
+        archive_dir_path.mkdir(parents=True, exist_ok=True)
     allconfig.retention_years = int(config.get('config', 'retention_years', fallback=2))
 
     # determine sync environment
     if not os.environ.get('SYNC_ENV', None) and not config.get('config', 'SYNC_ENV', fallback=None):
         print("Please specify the environment with --env option or as SYNC_ENV in properties file. Using 'default'")
         config.set('config', 'SYNC_ENV', 'default')
-    sync_env = config.get('config', 'SYNC_ENV', fallback=None)
-    if not sync_env:
-        sync_env = os.environ.get('SYNC_ENV', None)
+    allconfig.sync_env = config.get('config', 'SYNC_ENV', fallback=None)
+    if not allconfig.sync_env:
+        allconfig.sync_env = os.environ.get('SYNC_ENV', None)
     api_base_url = f"http://{config.get('server', 'API_HOST', fallback='')}" \
                    f":{config.get('server', 'API_PORT', fallback='5010')}/api"
     api_user = config.get(f"org_{organization}", 'API_USER', fallback='')
@@ -91,3 +97,4 @@ def read_config(stage, organization=''):
     ssh_host = config.get('ssh', 'SSH_HOST', fallback=None)
     allconfig.username = config.get(f"git_{organization}", 'user_default', fallback=None)
     allconfig.email = config.get(f"git_{organization}", 'email_default', fallback=None)
+    allconfig.organization = organization
