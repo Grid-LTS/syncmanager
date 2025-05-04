@@ -28,6 +28,10 @@ class GitArchiveIgnoredFiles(GitClientBase):
     def apply(self):
         if not self.local_path.joinpath(".git").resolve().exists():
             raise InvalidStateErr(f"{self.local_path} is not a git project root path")
+        system_home_dir = Path(system.home_dir)
+        if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
+            print(f"For security reasons only repositories in the home directory can be managed.")
+            return
         project_root = os.path.basename(self.local_path)
         if not self.gitrepo:
             self.gitrepo = Repo(self.local_path)
@@ -37,15 +41,12 @@ class GitArchiveIgnoredFiles(GitClientBase):
                          and not os.path.basename(filename.strip("/").strip("\\")) in filter_list ]
         allconfig = globalproperties.allconfig
 
-        # the var director folder should usually sit under the $HOME/syncmanager folder
-        # if this is not the case we must prevent overlong paths
-        system_home_dir = Path(system.home_dir)
 
         # the var director folder should usually sit under the $HOME/syncmanager folder
         # if this is not the case we must prevent overlong paths
-
         common_path = os.path.commonprefix([self.local_path.parents[1], globalproperties.archive_dir_path.parents[1]])
-        if common_path and common_path != system_home_dir:
+        if common_path and os.path.commonprefix([common_path, system_home_dir]) != common_path:
+            # mostly for e2e test environment
             local_path_relative =  self.local_path.parents[0].relative_to(common_path)
         else:
             local_path_relative =  self.local_path.parents[0].relative_to(system_home_dir)
@@ -61,4 +62,12 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 new_path.parents[0].mkdir(parents=True, exist_ok=True)
                 shutil.move(str(original_path), str(new_path))
                 # Create symlink at the original location pointing to the new location
-                original_path.symlink_to(new_path)
+                try:
+                    original_path.symlink_to(new_path)
+                except Exception as e:
+                    # roll back
+                    shutil.move(str(new_path), str(original_path))
+                    if isinstance(e, OSError):
+                        print(f"Activate developer mode to allow creation of symlinks. Error : {e}")
+                    else:
+                        print(f"Unexpected error: {e}")
