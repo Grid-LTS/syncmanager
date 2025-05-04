@@ -9,10 +9,12 @@ class SyncAllConfig:
     SyncAllConfig is the static config defined by the ini file
     """
 
-    def __init__(self, username=None, email=None,
+    def __init__(self, sync_env=None, username=None, email=None, organization=None,
                  settings=None, retention_years=None):
+        self.sync_env = sync_env
         self.username = username
         self.email = email
+        self.organization = organization
         self.settings = settings
         self.retention_years = retention_years
 
@@ -22,9 +24,10 @@ class SyncConfig(SyncAllConfig):
     overwritten and configured dynamically via command line parameter
     """
 
-    def __init__(self, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, username=None, email=None,
+    def __init__(self, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, sync_env=None,
+                 username=None, email=None, organization=None,
                  settings=None, retention_years=None):
-        super().__init__(username=username, email=email,
+        super().__init__(sync_env=sync_env, username=username, email=email, organization=organization,
                                 settings=settings, retention_years=retention_years)
         self.remote_repo = remote_repo
         self.remote_repo_url = remote_repo_url
@@ -38,7 +41,8 @@ class SyncConfig(SyncAllConfig):
     @classmethod
     def init(cls, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, allconfig : SyncAllConfig = None):
        return cls(local_path_short=local_path_short, local_path=local_path,  remote_repo=remote_repo,
-                  remote_repo_url=remote_repo_url, username=allconfig.username, email=allconfig.email,
+                  remote_repo_url=remote_repo_url, sync_env=allconfig.sync_env, username=allconfig.username, email=allconfig.email,
+                  organization=allconfig.organization,
                   settings=allconfig.settings, retention_years=allconfig.retention_years)
 
 

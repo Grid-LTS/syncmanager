@@ -15,11 +15,11 @@ import syncmanagerclient.util.globalproperties as globalproperties
 class SyncDirRegistration:
     mode = None
 
-    def __init__(self, sync_env, namespace=None, sync_config : SyncConfig=None):
+    def __init__(self, namespace=None, sync_config : SyncConfig=None):
         self.local_path = sync_config.local_path
         self.local_path_short = sync_config.local_path_short
         self.gitrepo = None
-        self.sync_env = sync_env
+        self.sync_env = sync_config.sync_env
         self.mode = self.get_mode()
         self.api_service = ApiService(self.mode, self.sync_env)
         self.existing_repos_env_ids = []
@@ -32,7 +32,7 @@ class SyncDirRegistration:
 
 
     def get_mode(self):
-        if self.local_path.joinpath('.git').resolve().is_dir():
+        if self.local_path.joinpath(".git").resolve().is_dir():
             # first check if this branch exists
             self.gitrepo = Repo(self.local_path)
             return 'git'

@@ -22,7 +22,7 @@ class SyncClient:
         if sync_env:
             self.sync_env = sync_env
         else:
-            self.sync_env = globalproperties.sync_env
+            self.sync_env = globalproperties.allconfig.sync_env
         self.force = force
         self.namespace = namespace
         self.errors = []

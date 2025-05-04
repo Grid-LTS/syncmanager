@@ -167,27 +167,25 @@ def main():
     sub_parser_delete.add_argument('path', type=str)
     args = parser.parse_args()
     init_global_properties(args.stage, args.org)
-    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
     # determine the environment which is synced
     if args.env:
-        sync_env = args.env
-    else:
-        sync_env = globalproperties.sync_env
+        globalproperties.allconfig.sync_env = args.env
+    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
     if args.action == ACTION_DELETE:
         path = args.path
     else:
         path = None
     if args.retention_years:
         sync_config.retention_years = int(args.retention_years)
-    execute_command(args, sync_env, sync_config, path=path)
+    execute_command(args, sync_config, path=path)
 
 
-def execute_command(arguments, sync_env, sync_config:  SyncConfig, remote_name=None, path=None):
+def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=None):
     if arguments.action in ACTION_SET_REMOTE_ALIASES or arguments.action == ACTION_ARCHIVE_IGNORED_FILES:
         sync_config.local_path=Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:
         sync_config.remote_repo = remote_name
-        new_sync_dir = SyncDirRegistration(sync_env=sync_env, namespace=arguments.namespace, sync_config=sync_config)
+        new_sync_dir = SyncDirRegistration(namespace=arguments.namespace, sync_config=sync_config)
         new_sync_dir.register()
         return
     elif arguments.action in ACTION_ADD_ENV_ALIASES:
@@ -216,5 +214,5 @@ def execute_command(arguments, sync_env, sync_config:  SyncConfig, remote_name=N
     print('Enabled clients: ' + ', '.join(clients_enabled))
     for mode in clients_enabled:
         print(f"Syncing client {mode}")
-        sync_client = SyncClient(mode, arguments.action, sync_env, arguments.force, arguments.namespace)
+        sync_client = SyncClient(mode, arguments.action, sync_config.sync_env, arguments.force, arguments.namespace)
         sync_client.get_and_sync_repos(sync_config)

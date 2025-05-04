@@ -8,6 +8,8 @@ from syncmanagerclient.util.system import change_dir
 import syncmanagerclient.util.globalproperties as globalproperties
 from syncmanagerclient.main import init_global_properties
 
+from testlib.testsetup import USER_CLIENT_ENV
+
 test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 var_dir_path = os.path.join(test_dir, 'var')
 # workspace and others_ws are different downstream clones of the same repo
@@ -28,6 +30,7 @@ class ArgumentsTest:
         self.namespace = "e2e_repo"
         self.force = False
         self.client = 'git'
+        self.sync_env = USER_CLIENT_ENV
 
 
 def load_global_properties():

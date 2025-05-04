@@ -1,6 +1,3 @@
-
-from ..util.system import change_dir, sanitize_path
-
 from ..util.syncconfig import SyncConfig
 
 class GitClientBase:
