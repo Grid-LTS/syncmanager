@@ -1,3 +1,5 @@
+from xml.dom import InvalidStateErr
+
 import requests as req
 import json
 
@@ -61,11 +63,13 @@ class ApiService:
             body['server_parent_dir_relative'] = server_parent_path_relative
         if repo_name:
             body['server_repo_name'] = repo_name
-        if all_client_envs:
-            body['all_client_envs'] = all_client_envs
+        body['all_client_envs'] = all_client_envs
         # create repo
         url = f"{self.base_api_url}/repos"
-        return req.post(url, json=body, auth=self.auth).json()
+        resp =  req.post(url, json=body, auth=self.auth)
+        if resp.status_code == 500:
+            raise InvalidStateErr(resp.text)
+        return resp.json()
 
     def update_server_repo_reference(self, server_repo_id, local_path, server_path_rel):
         body = {

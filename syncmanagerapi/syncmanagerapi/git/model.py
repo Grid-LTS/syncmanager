@@ -7,7 +7,6 @@ from flask import current_app
 
 from marshmallow import fields
 from sqlalchemy import or_
-from sqlalchemy.orm import joinedload
 
 from ..database import db, ma
 from ..model import User, ClientEnv, ClientEnvSchema
