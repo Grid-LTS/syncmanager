@@ -97,7 +97,7 @@ def legacy():
         action = ACTION_SET_CONF
     elif args.action == ACTION_DELETE:
         path = args.path
-        git_repo_path = os.getcwd()
+        git_repo_path = Path(os.getcwd())
         register_local_branch_for_deletion(path, git_repo_path)
         exit(0)
     else:

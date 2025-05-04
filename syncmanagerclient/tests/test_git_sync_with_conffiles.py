@@ -8,37 +8,18 @@ from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_
 from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
 
 from .utils.testutils import test_dir, var_dir_path, \
-    get_others_repo_path, local_conf_file_name, others_conf_file_name, checkout_principal_branch, teardown_repos_directory
+    get_extra_repo_path, local_conf_file_name, others_conf_file_name, checkout_principal_branch, \
+    teardown_repos_directory, checkout_all_upstream_branches
 from .utils.conffileutils import setup_repos
 
 
 @pytest.fixture(scope="module")
 def setup_repositories(request):
     origin_repo, local_repo = setup_repos(local_conf_file_name, request.module.__name__.split(".")[-1])
-    others_repo = origin_repo.clone(get_others_repo_path(os.path.dirname(local_repo.working_dir)))
+    others_repo = origin_repo.clone(get_extra_repo_path(os.path.dirname(local_repo.working_dir)))
     yield origin_repo, local_repo, others_repo
     teardown_repos_directory([origin_repo, local_repo, others_repo])
 
-
-def checkout_all_upstream_branches(repo, checkout_these_branches=[]):
-    remote_repo = repo.remote('origin')
-    for remote_ref in remote_repo.refs:
-        name, remote_name = get_branch_name_and_repo_from_remote_path(str(remote_ref))
-        if str(remote_ref) in checkout_these_branches and name != 'HEAD':
-            print(f'Set up local tracking branch for {str(remote_ref)}')
-            create_local_branch_from_remote(repo, name, remote_ref)
-
-
-def create_local_branch_from_remote(repo, local_branch, remote_branch):
-    repo.create_head(local_branch, remote_branch)  # create local branch from remote
-    if hasattr(repo.heads, str(local_branch)):
-        getattr(repo.heads, str(local_branch)).set_tracking_branch(remote_branch)
-
-
-def get_branch_name_and_repo_from_remote_path(remote_branch):
-    remote_branch = remote_branch.strip()
-    parts = remote_branch.split('/')
-    return '/'.join(parts[1:]), parts[0]
 
 
 def test_push_sync_with_conffiles(setup_repositories):

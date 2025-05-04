@@ -152,7 +152,6 @@ class SyncDirRegistration:
                 if confirm in ['Y', 'y', 'yes']:
                     is_overwrite = True
                     break
-
                 else:
                     self.remote_name = ''
                 print("")
@@ -163,14 +162,17 @@ class SyncDirRegistration:
         all_sync_env = False
         # in case the desired remote repo is already created and registered for other environments, we only
         # register this env as client
-        if not server_path in self.server_path_rels_of_other_repo and not globalproperties.test_mode:
-            all_envs = input("Should all environments sync this repo? 'Y/y/yes' or other input for 'no': ").strip()
-            if all_envs in ['Y', 'y', 'yes']:
-                all_sync_env = True
+        if not globalproperties.test_mode:
+            if not server_path in self.server_path_rels_of_other_repo:
+                all_envs = input("Should all environments sync this repo? 'Y/y/yes' or other input for 'no': ").strip()
+                if all_envs in ['Y', 'y', 'yes']:
+                    all_sync_env = True
+            else:
+                print(
+                    f"Your repo at {self.local_path_short} is registered as a downstream repo of the existing remote under namespace " +
+                    f"{server_path} for the environment {self.sync_env}.")
         else:
-            print(
-                f"Your repo at {self.local_path_short} is registered as a downstream repo of the existing remote under namespace " +
-                f"{server_path} for the environment {self.sync_env}.")
+            all_sync_env = True
         response = self.api_service.create_remote_repository(self.local_path_short, server_path_rel,
                                                              repo_name, self.remote_name, all_sync_env)
         if response['is_new_reference']:
@@ -187,13 +189,16 @@ class SyncDirRegistration:
 
     def update_reference(self):
         is_update_namespace = 'n'
-        if self.user_owns_repo(self.server_repo_ref):
-            is_update_namespace = input(
-                "Do you want to change the namespace of the repo? 'Y/y/yes' or other input for 'no': ").strip()
-        if is_update_namespace in ['Y', 'y', 'yes']:
-            server_path_rel = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
-            repo_name = self.prompt_for_repo_name()
-            server_path_rel = f"{self.server_repo_ref['user']}/{server_path_rel}/{repo_name}"
+        if not globalproperties.test_mode:
+            if self.user_owns_repo(self.server_repo_ref):
+                is_update_namespace = input(
+                    "Do you want to change the namespace of the repo? 'Y/y/yes' or other input for 'no': ").strip()
+            if is_update_namespace in ['Y', 'y', 'yes']:
+                server_path_rel = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
+                repo_name = self.prompt_for_repo_name()
+                server_path_rel = f"{self.server_repo_ref['user']}/{server_path_rel}/{repo_name}"
+            else:
+                server_path_rel = self.server_repo_ref['git_repo']['server_path_rel']
         else:
             server_path_rel = self.server_repo_ref['git_repo']['server_path_rel']
         git_repo, gitrepo_reference = self.api_service.update_server_repo_reference(

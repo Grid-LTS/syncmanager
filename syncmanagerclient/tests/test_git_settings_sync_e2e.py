@@ -6,9 +6,9 @@ import datetime as dt
 
 import pytest
 
-from syncmanagerclient.main import execute_command, init_global_properties
+from syncmanagerclient.main import execute_command
 from syncmanagerclient.clients.git_settings import GitClientSettings
-from .utils.testutils import load_global_properties, ArgumentsTest
+from .utils.testutils import load_global_properties, ArgumentsTest, USER_NAME, USER_EMAIL
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
@@ -24,8 +24,6 @@ from syncmanagerclient.util.syncconfig import SyncConfig
 
 system_tz = dt.datetime.now().astimezone().tzinfo
 
-USER_NAME = __name__.split(".")[-1]
-USER_EMAIL = f"{USER_NAME}@test.com"
 
 @pytest.fixture(scope="module", autouse=True)
 def init_test():

@@ -22,11 +22,10 @@ if not project_dir in sys.path:
 from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization, create_admin
 from testlib.fixtures import empty_directory, sync_api_user
 
+
 """
 Define fixtures only here. DO NOT import any fixture functions into the test_* classes !!
 """
-
-
 @pytest.fixture(scope="module")
 def init_test():
     """
@@ -35,8 +34,8 @@ def init_test():
     pass
 
 
-def setup_local_repo(sync_user):
-    repos_dir = os.path.join(test_dir, "repos", sync_user["username"])
+def setup_local_repo(sync_user, repo_name):
+    repos_dir = os.path.join(test_dir, "repos", repo_name)
     shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE),
                                                                                 func(path)))
     if not os.path.exists(repos_dir):
@@ -115,6 +114,7 @@ def app_initialized(app, runner):
 def local_repo(init_test, client, sync_api_user):
     user = sync_api_user
     setup_users_and_env(client, user)
-    local_repo = setup_local_repo(user)
+    local_repo = setup_local_repo(user,  sync_api_user["username"])
     yield local_repo
     teardown_repos_directory([local_repo])
+

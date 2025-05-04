@@ -14,7 +14,7 @@ build_and_cached_dirs = ["__pycache__", ".pytest_cache", ".gradle", "build", "ou
 dependency_dirs = [".venv",  "venv", "dist"]
 environment_files =  [".DS_Store", ".idea"]
 filter_list = build_and_cached_dirs + dependency_dirs + environment_files
-fileextension_filter = [".iml", ".lock"]q
+fileextension_filter = [".iml", ".lock"]
 
 class GitArchiveIgnoredFiles(GitClientBase):
 

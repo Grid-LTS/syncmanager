@@ -16,12 +16,16 @@ var_dir_path = os.path.join(test_dir, 'var')
 # these are called stations here, in reality they are on different computer
 get_origin_repo_path = lambda repos_dir:  build_local_repo_path(repos_dir, 'origin_repo.git')
 get_local_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'workspace')
-get_others_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'others_ws')
+get_extra_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'extra_ws')
 local_conf_file_name = 'local.conf'
 others_conf_file_name = 'others.conf'
 
 test_user_name = 'Test User'
 test_user_email = 'dummy@tests.com'
+
+USER_NAME = __name__.split(".")[-1]
+USER_EMAIL = f"{USER_NAME}@test.com"
+
 
 class ArgumentsTest:
 
@@ -33,8 +37,8 @@ class ArgumentsTest:
         self.sync_env = USER_CLIENT_ENV
 
 
-def load_global_properties():
-    init_global_properties("e2e")
+def load_global_properties(environ="e2e"):
+    init_global_properties(environ)
     globalproperties.set_prefix(os.path.dirname(test_dir))
     globalproperties.test_mode = True
 
@@ -70,3 +74,23 @@ def checkout_principal_branch(repo):
     except AttributeError as e:
         raise e
     return principal_branch
+
+def create_local_branch_from_remote(repo, local_branch, remote_branch):
+    repo.create_head(local_branch, remote_branch)  # create local branch from remote
+    if hasattr(repo.heads, str(local_branch)):
+        getattr(repo.heads, str(local_branch)).set_tracking_branch(remote_branch)
+
+
+def get_branch_name_and_repo_from_remote_path(remote_branch):
+    remote_branch = remote_branch.strip()
+    parts = remote_branch.split('/')
+    return '/'.join(parts[1:]), parts[0]
+
+
+def checkout_all_upstream_branches(repo, checkout_these_branches=[]):
+    remote_repo = repo.remote('origin')
+    for remote_ref in remote_repo.refs:
+        name, remote_name = get_branch_name_and_repo_from_remote_path(str(remote_ref))
+        if str(remote_ref) in checkout_these_branches and name != 'HEAD':
+            print(f'Set up local tracking branch for {str(remote_ref)}')
+            create_local_branch_from_remote(repo, name, remote_ref)

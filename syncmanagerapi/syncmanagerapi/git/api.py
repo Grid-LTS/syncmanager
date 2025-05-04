@@ -152,7 +152,7 @@ def update_repo_for_clientenv(repo_id, client_env):
                                                                                      data['local_path'])
                 if not new_git_user_repo_assoc:
                     id = uuid.uuid4()
-                    new_git_user_repo_assoc = UserGitReposAssoc(id=id, user_id=user.id, repo_id=git_repo_entity.id,
+                    new_git_user_repo_assoc = UserGitReposAssoc(id=str(id), user_id=user.id, repo_id=git_repo_entity.id,
                                                                 remote_name=git_user_repo_assoc.remote_name,
                                                                 local_path_rel=data['local_path'])
                     new_git_user_repo_assoc.client_envs.append(client_env_entity)

@@ -1,6 +1,7 @@
 ### Project
 *.ini
 !server-sync.e2e.ini
+!server-sync.e2e-extra.ini
 venv
 Pipfile.lock
 
