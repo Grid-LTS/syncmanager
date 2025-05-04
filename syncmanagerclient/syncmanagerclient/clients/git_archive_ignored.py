@@ -10,12 +10,11 @@ from ..util.syncconfig import SyncConfig
 import syncmanagerclient.util.globalproperties as globalproperties
 import syncmanagerclient.util.system as system
 
-build_dirs = ["__pycache__",".gradle", "build", "out", "target"]
+build_and_cached_dirs = ["__pycache__", ".pytest_cache", ".gradle", "build", "out", "target"]
 dependency_dirs = [".venv",  "venv", "dist"]
-cache_dirs = [ "__pycache__"]
 environment_files =  [".DS_Store", ".idea"]
-filter_list = build_dirs + dependency_dirs + cache_dirs + environment_files
-fileextension_filter = [".iml", ".lock"]
+filter_list = build_and_cached_dirs + dependency_dirs + environment_files
+fileextension_filter = [".iml", ".lock"]q
 
 class GitArchiveIgnoredFiles(GitClientBase):
 
