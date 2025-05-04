@@ -6,7 +6,6 @@ from flask import jsonify, request
 from ..error import InvalidRequest
 from ..auth import login_required
 
-
 @login_required
 def create_repo():
     from ..database import db
@@ -54,8 +53,14 @@ def create_repo():
     server_path_rel = osp.join(server_parent_dir_rel, repo_name)
     git_repo_entity = GitRepo.load_by_server_path(
         _server_path_rel=GitRepo.get_server_path_rel(server_path_rel, user.id))
+    user_changed = git_repo_entity and git_repo_entity.user_id and git_repo_entity.user_id != user.id
+    if user_changed:
+        raise InvalidRequest(f"server directory does not belong to the user.", "server_parent_dir_relative",400)
     if not git_repo_entity:
         git_repo_entity = GitRepo(server_path_rel=server_path_rel, user_id=user.id)
+    elif not git_repo_entity.userinfo:
+        git_repo_entity.user_id = user.id
+        pass
     else:
         git_repo_entity.user_id = user.id
         # only on initial creation of the repo can all client environments be referenced
@@ -184,11 +189,10 @@ def find_git_user_repo_assoc(git_repo_entity, client_env):
     # find the reference to git repo for this user
     git_user_repo_assoc = None
     for ind, user_info in enumerate(git_repo_entity.userinfo):
-        referenced_envs = [env.env_name for env in user_info.client_envs]
-        if client_env in referenced_envs:
-            git_user_repo_assoc = user_info
+        referenced_env = [env for env in user_info.client_envs if env.env_name == client_env]
+        if referenced_env:
             # existing reference found, abort lookup
-            break
+            return user_info
     return git_user_repo_assoc
 
 
@@ -240,10 +244,8 @@ def delete_repo_assoc_for_clientenv(repo_id, client_env):
     if not git_repo_entity:
         message = f"The repo {repo_id} does not exist for your user."
         raise InvalidRequest(message=message, field='repo_id', status_code=404)
-    git_user_repo_assoc = find_git_user_repo_assoc(git_repo_entity, client_env)
-    if not git_user_repo_assoc:
-        return
-    git_user_repo_assoc.remove()
+    git_repo_entity.remove_client_env_from_repo(client_env)
+
 
 
 def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):

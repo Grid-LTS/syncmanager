@@ -5,11 +5,14 @@ from dateutil.relativedelta import relativedelta
 
 from flask import current_app
 
+from marshmallow import fields
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
+
 from ..database import db, ma
 from ..model import User, ClientEnv, ClientEnvSchema
 from ..error import DataInconsistencyException
-from marshmallow import fields
-from sqlalchemy import or_
+
 
 
 def get_bare_repo_fs_path(server_path_relative):
@@ -107,6 +110,14 @@ class GitRepo(db.Model):
         self.userinfo.append(_git_user_repo_assoc)
         db.session.add(self)
         db.session.commit()
+
+    def remove_client_env_from_repo(self, client_env):
+        # find the reference to git repo for this user
+        for ind, user_info in enumerate(self.userinfo):
+            user_info.client_envs = [env for env in user_info.client_envs if env.env_name != client_env]
+            db.session.add(user_info)
+            db.session.commit()
+
 
     def __repr__(self):
         return '<GitRepo %r>' % self.repo_id
