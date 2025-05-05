@@ -20,8 +20,7 @@ sys.path.insert(0, project_dir)
 
 from testlib.testsetup import USER_CLIENT_ENV, USER_CLIENT_ENV_EXTRA,  get_user_basic_authorization
 
-from .utils.testutils import checkout_principal_branch, ArgumentsTest, get_other_repo_path, checkout_all_upstream_branches, load_global_properties, \
-    USER_NAME, USER_EMAIL
+from .utils.testutils import checkout_principal_branch, ArgumentsTest, get_other_repo_path, checkout_all_upstream_branches, load_global_properties
 from .conftest import e2e_test_workspace_root # DO NOT IMPORT fixtures, rely on pytest discovery mechanism via
 # conftest.py
 
@@ -34,6 +33,16 @@ Define or import fixtures functions only in conftest.py
 
 local_repo_path = ''
 other_repo_path = ''
+
+USER_NAME = __name__.split(".")[-1]
+USER_EMAIL = f"{USER_NAME}@test.com"
+
+
+@pytest.fixture(scope="module")
+def init_test(sync_api_user):
+    repos_root_dir = os.path.join(e2e_test_workspace_root, sync_api_user["username"], "e2e")
+    load_global_properties(repos_root_dir=repos_root_dir)
+
 
 @pytest.mark.dependency()
 def test_push_sync(app_initialized, local_repo, client, sync_api_user):
@@ -117,13 +126,13 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
 def test_delete_branch(app_initialized, client, sync_api_user):
     global local_repo_path
     global other_repo_path
-    # create branch
+    # 0. create branch
     test_branch = 'feature/test-for-deletion'
     change_dir(local_repo_path)
     local_repo = Repo(local_repo_path)
     local_repo.create_head(test_branch)
 
-    # sync with server, branch is pushed
+    # 1. sync with server, branch is pushed
     change_environment('e2e', sync_api_user)
     args = ArgumentsTest()
     args.action = "push"
@@ -132,7 +141,7 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
     execute_command(args, sync_config, remote_name="origin")
 
-    # change to extra env and sync
+    # 2. change to extra env and fetch the branch
     change_environment('e2e-extra', sync_api_user)
     args = ArgumentsTest()
     args.action = "pull"
@@ -156,28 +165,41 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     assert hasattr(local_repo.heads, test_branch)
     assert hasattr(other_repo.heads, test_branch)
 
-    # Step 5: Delete the branch in the initial repo
+    # Step 3: Delete the branch in the initial repo
     change_dir(local_repo_path)
     change_environment('e2e', sync_api_user)
     args = ArgumentsTest()
     args.action = "delete"
     execute_command(args, sync_config, remote_name="origin", path=test_branch)
-    # branch is deleted on local workspace as well on the server
-    assert not hasattr(Repo(other_repo_path).heads, test_branch)
-    assert not hasattr(server_repo.heads, test_branch)
-    assert hasattr(local_repo.heads, test_branch)
+    # branch is deleted on local workspace only
+    assert not hasattr(local_repo.heads, test_branch)
+    assert hasattr(server_repo.heads, test_branch)
+    assert hasattr(Repo(other_repo_path).heads, test_branch)
 
-    # Step 6: Sync other environment, verify branch is deleted
+    # registry entry exists
+    registry_file_path = os.path.join(globalproperties.var_dir, 'git.origin.txt')
+    assert os.path.exists(registry_file_path), f"deletion registry file missing {registry_file_path}"
+    with open(registry_file_path) as file:
+        lines = [line.rstrip() for line in file]
+    assert test_branch in lines[0]
+
+    # step 4: sync to server
+    args = ArgumentsTest()
+    args.action = "push"
+    execute_command(args, sync_config, remote_name="origin", path=test_branch)
+    assert not hasattr(server_repo.heads, test_branch)
+
+    # registry file should be removed
+    assert not os.path.exists(registry_file_path)
+
+    # Step 5: Sync other environment, verify branch is now deleted there as well
     change_environment('e2e-extra', sync_api_user)
     args = ArgumentsTest()
     args.action = "pull"
     args.sync_env = USER_CLIENT_ENV_EXTRA
     execute_command(args, other_sync_config, remote_name="origin")
-    assert not hasattr(local_repo.heads, test_branch)
+    assert not hasattr(other_repo.heads, test_branch)
 
-    # Step 7: Verify branch is deleted in the server repo
-    server_repo.git.fetch("--prune")
-    assert not hasattr(server_repo.heads, test_branch)
 
 
 def fetch_server_repo(client, client_env, sync_api_user):

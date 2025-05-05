@@ -84,7 +84,7 @@ class DeletionRegistration:
                     continue
                 registry_file = self.get_registry_file_path(remote_repo_name)
                 f = open(registry_file, 'a+')
-                registry_entry = self.dir + '\t' + self.branch_path + '\n'
+                registry_entry = str(self.dir) + '\t' + self.branch_path + '\n'
                 f.write(registry_entry)
                 f.close()
 

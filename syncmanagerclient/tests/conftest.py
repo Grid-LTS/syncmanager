@@ -1,24 +1,23 @@
+import os
 import sys
 import tempfile
 from threading import Thread
 
 from git import Repo
-from pathlib import Path
 
 import pytest
 
-from .utils.testutils import *
 
 from syncmanagerclient.main import execute_command
-from syncmanagerclient.util.system import change_dir
 from syncmanagerclient.util.syncconfig import SyncConfig
-import syncmanagerclient.util.globalproperties as globalproperties
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
 e2e_test_workspace_root = os.path.join(test_dir, "repos")
 if not project_dir in sys.path:
     sys.path.insert(0, project_dir)
+
+from .utils.testutils import *
 
 from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization, create_admin
 from testlib.fixtures import empty_directory, sync_api_user
@@ -28,7 +27,7 @@ from testlib.fixtures import empty_directory, sync_api_user
 Define fixtures only here. DO NOT import any fixture functions into the test_* classes !!
 """
 @pytest.fixture(scope="module")
-def init_test():
+def init_test(sync_api_user):
     """
     to be overwritten in the test modules by redeclaration
     """
@@ -52,8 +51,6 @@ def setup_local_repo(sync_user, repo_name):
     Path(test_file_path).touch()
     local_repo.index.add([test_file_path])
     local_repo.index.commit("Initial commit on principal branch")
-    if not globalproperties.loaded:
-        load_global_properties(repos_root_dir=repos_root_dir)
     globalproperties.api_user = sync_user["username"]
     globalproperties.api_pw = sync_user["password"]
     sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)

@@ -8,7 +8,7 @@ import pytest
 
 from syncmanagerclient.main import execute_command
 from syncmanagerclient.clients.git_settings import GitClientSettings
-from .utils.testutils import load_global_properties, ArgumentsTest, USER_NAME, USER_EMAIL
+from .utils.testutils import load_global_properties, ArgumentsTest
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
@@ -24,12 +24,12 @@ from syncmanagerclient.util.syncconfig import SyncConfig
 
 system_tz = dt.datetime.now().astimezone().tzinfo
 
+USER_NAME = __name__.split(".")[-1]
+USER_EMAIL = f"{USER_NAME}@test.com"
 
 @pytest.fixture(scope="module", autouse=True)
-def init_test():
-    globalproperties.set_prefix(os.path.dirname(test_dir))
-    globalproperties.test_mode = True
-    globalproperties.read_config('e2e')
+def init_test(sync_api_user):
+    load_global_properties('e2e')
     globalproperties.allconfig.username = USER_NAME
     globalproperties.allconfig.email = USER_EMAIL
 

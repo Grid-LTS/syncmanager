@@ -3,6 +3,7 @@ import os
 import shutil
 import stat
 import time
+from pathlib import Path
 
 from syncmanagerclient.util.system import change_dir
 import syncmanagerclient.util.globalproperties as globalproperties
@@ -22,9 +23,6 @@ others_conf_file_name = 'others.conf'
 
 test_user_name = 'Test User'
 test_user_email = 'dummy@tests.com'
-
-USER_NAME = __name__.split(".")[-1]
-USER_EMAIL = f"{USER_NAME}@test.com"
 
 
 class ArgumentsTest:
@@ -50,6 +48,7 @@ def load_global_properties(stage="e2e", repos_root_dir=None):
     else:
         stage = os.path.basename(repos_root_dir)
     var_dir = os.path.join(repos_root_dir, "var")
+    Path(var_dir).mkdir(parents=True, exist_ok=True)
     init_global_properties(stage)
     globalproperties.set_prefix(os.path.dirname(test_dir))
     globalproperties.test_mode = True
