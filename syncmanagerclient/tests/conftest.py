@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import time
 from threading import Thread
 
 from git import Repo
@@ -91,6 +92,7 @@ def app():
     except PermissionError as perm:
         print(f"Database file could not be cleaned up")
         raise perm
+    time.sleep(1)
     empty_directory(git_base_dir_path)
 
 

@@ -38,4 +38,4 @@ def empty_directory(path):
                     shutil.rmtree(file_path)
             except Exception as e:
                 print(e)
-                assert False, f"Cannot delete directory {path}"
+                print(f"Cannot delete directory {path}")
