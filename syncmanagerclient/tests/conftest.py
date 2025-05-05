@@ -16,6 +16,7 @@ import syncmanagerclient.util.globalproperties as globalproperties
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
+e2e_test_workspace_root = os.path.join(test_dir, "repos")
 if not project_dir in sys.path:
     sys.path.insert(0, project_dir)
 
@@ -35,12 +36,15 @@ def init_test():
 
 
 def setup_local_repo(sync_user, repo_name):
-    repos_dir = os.path.join(test_dir, "repos", repo_name)
-    shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE),
+    # stage is not to be confused with sync env. we don't have the possiblity of test with a physically different
+    # environment so we introduce another stage that allows us to configure a different environment/machine
+    stage = "e2e"
+    repos_root_dir = os.path.join(e2e_test_workspace_root, repo_name, stage)
+    shutil.rmtree(repos_root_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE),
                                                                                 func(path)))
-    if not os.path.exists(repos_dir):
-        os.mkdir(repos_dir)
-    local_repo_path = get_local_repo_path(repos_dir)
+    if not os.path.exists(repos_root_dir):
+        Path(repos_root_dir).mkdir(parents=True)
+    local_repo_path = get_local_repo_path(repos_root_dir)
     local_repo = Repo.init(local_repo_path)
     change_dir(local_repo_path)
     # create file and commit
@@ -49,7 +53,7 @@ def setup_local_repo(sync_user, repo_name):
     local_repo.index.add([test_file_path])
     local_repo.index.commit("Initial commit on principal branch")
     if not globalproperties.loaded:
-        load_global_properties()
+        load_global_properties(repos_root_dir=repos_root_dir)
     globalproperties.api_user = sync_user["username"]
     globalproperties.api_pw = sync_user["password"]
     sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
@@ -117,4 +121,7 @@ def local_repo(init_test, client, sync_api_user):
     local_repo = setup_local_repo(user,  sync_api_user["username"])
     yield local_repo
     teardown_repos_directory([local_repo])
+    other_repo_path = get_other_repo_path(os.path.join(e2e_test_workspace_root, sync_api_user["username"], 'e2e-extra'))
+    if os.path.exists(other_repo_path):
+        teardown_repo_directory(other_repo_path)
 

@@ -8,7 +8,7 @@ from syncmanagerclient.main import apply_sync_conf_files, register_local_branch_
 from syncmanagerclient.clients import ACTION_PULL, ACTION_PUSH
 
 from .utils.testutils import test_dir, var_dir_path, \
-    get_extra_repo_path, local_conf_file_name, others_conf_file_name, checkout_principal_branch, \
+    get_other_repo_path, local_conf_file_name, others_conf_file_name, checkout_principal_branch, \
     teardown_repos_directory, checkout_all_upstream_branches
 from .utils.conffileutils import setup_repos
 
@@ -16,7 +16,7 @@ from .utils.conffileutils import setup_repos
 @pytest.fixture(scope="module")
 def setup_repositories(request):
     origin_repo, local_repo = setup_repos(local_conf_file_name, request.module.__name__.split(".")[-1])
-    others_repo = origin_repo.clone(get_extra_repo_path(os.path.dirname(local_repo.working_dir)))
+    others_repo = origin_repo.clone(get_other_repo_path(os.path.dirname(local_repo.working_dir)))
     yield origin_repo, local_repo, others_repo
     teardown_repos_directory([origin_repo, local_repo, others_repo])
 

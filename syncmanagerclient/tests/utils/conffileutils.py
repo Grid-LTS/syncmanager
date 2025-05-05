@@ -39,7 +39,7 @@ def setup_repos(local_conf_file_name, repo_prefix):
     repos_dir = os.path.join(test_dir, 'repos', repo_prefix)
     local_repo_path = get_local_repo_path(repos_dir)
     origin_repo_path = get_origin_repo_path(repos_dir)
-    others_repo_path = get_extra_repo_path(repos_dir)
+    others_repo_path = get_other_repo_path(repos_dir)
     context = {
         'local_path': local_repo_path,
         'others_path': others_repo_path,

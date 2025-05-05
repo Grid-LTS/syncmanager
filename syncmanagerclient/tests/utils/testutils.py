@@ -16,7 +16,7 @@ var_dir_path = os.path.join(test_dir, 'var')
 # these are called stations here, in reality they are on different computer
 get_origin_repo_path = lambda repos_dir:  build_local_repo_path(repos_dir, 'origin_repo.git')
 get_local_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'workspace')
-get_extra_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'extra_ws')
+get_other_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'extra_ws')
 local_conf_file_name = 'local.conf'
 others_conf_file_name = 'others.conf'
 
@@ -37,10 +37,23 @@ class ArgumentsTest:
         self.sync_env = USER_CLIENT_ENV
 
 
-def load_global_properties(environ="e2e"):
-    init_global_properties(environ)
+def load_global_properties(stage="e2e", repos_root_dir=None):
+    if not repos_root_dir:
+        if not globalproperties.var_dir:
+            raise ValueError("Your need configure 'var_dir' configuration parameter")
+        prev_repos_dir = os.path.dirname(globalproperties.var_dir)
+        prev_stage = os.path.basename(prev_repos_dir)
+        if stage != prev_stage:
+            repos_root_dir = os.path.join(os.path.dirname(prev_repos_dir), stage)
+        else:
+            repos_root_dir = prev_repos_dir
+    else:
+        stage = os.path.basename(repos_root_dir)
+    var_dir = os.path.join(repos_root_dir, "var")
+    init_global_properties(stage)
     globalproperties.set_prefix(os.path.dirname(test_dir))
     globalproperties.test_mode = True
+    globalproperties.var_dir = var_dir
 
 def build_local_repo_path(parent_dir, base):
     if not parent_dir:
@@ -50,13 +63,16 @@ def build_local_repo_path(parent_dir, base):
 def teardown_repos_directory(repos=[]):
         for repo in repos:
             repo.close()
-            change_dir(os.path.dirname(repo.working_dir))
-            time.sleep(1)
-            try:
-                shutil.rmtree(repo.working_dir,onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
-            except PermissionError as err:
-                print(f"Cannot delete {repo.working_dir}")
-                raise err
+            teardown_repo_directory(repo.working_dir)
+
+def teardown_repo_directory(working_dir):
+    change_dir(os.path.dirname(working_dir))
+    time.sleep(1)
+    try:
+        shutil.rmtree(working_dir,onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
+    except PermissionError as err:
+        print(f"Cannot delete {working_dir}")
+        raise err
 
 def checkout_principal_branch(repo):
     # checkout principal branch

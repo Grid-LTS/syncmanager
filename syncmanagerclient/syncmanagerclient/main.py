@@ -181,7 +181,8 @@ def main():
 
 
 def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=None):
-    if arguments.action in ACTION_SET_REMOTE_ALIASES or arguments.action == ACTION_ARCHIVE_IGNORED_FILES:
+    if arguments.action in ACTION_SET_REMOTE_ALIASES or arguments.action == ACTION_ARCHIVE_IGNORED_FILES \
+            or arguments.action == ACTION_DELETE:
         sync_config.local_path=Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:
         sync_config.remote_repo = remote_name
