@@ -22,6 +22,7 @@ from testlib.api_utility import fetch_client_repo_from_api, get_clientenv_repos_
 import syncmanagerclient.util.globalproperties as globalproperties
 from syncmanagerclient.util.syncconfig import SyncConfig
 
+from .conftest import e2e_test_workspace_root
 # from .conftest import local_repo, client # DO NOT IMPORT, rely on pytest discovery mechanism via conftest.py
 
 system_tz = dt.datetime.now().astimezone().tzinfo
@@ -31,7 +32,8 @@ USER_EMAIL = f"{USER_NAME}@test.com"
 
 @pytest.fixture(scope="module", autouse=True)
 def init_test(sync_api_user):
-    load_global_properties('e2e')
+    repos_root_dir = os.path.join(e2e_test_workspace_root, sync_api_user["username"], "e2e")
+    load_global_properties('e2e', repos_root_dir)
     globalproperties.allconfig.username = USER_NAME
     globalproperties.allconfig.email = USER_EMAIL
 

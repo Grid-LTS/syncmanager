@@ -71,7 +71,7 @@ class ApiService:
             raise InvalidStateErr(resp.text)
         return resp.json()
 
-    def update_server_repo_reference(self, server_repo_id, local_path, server_path_rel):
+    def update_server_repo_client_repo_association(self, server_repo_id, local_path, server_path_rel):
         body = {
             'local_path': local_path,
             'server_path_rel': server_path_rel,
@@ -84,6 +84,14 @@ class ApiService:
         git_repo = response.json()
         server_repo_ref = ApiService.retrieve_repo_reference(git_repo['userinfo'], self.sync_env)
         return git_repo, server_repo_ref
+
+
+    def update_client_repo(self, payload):
+        url = f"{self.base_api_url}/clientrepos/{payload["id"]}"
+        response = req.put(url, json=payload, auth=self.auth)
+        ApiService.check_response(response, 200)
+
+
 
     def add_client_env(self, client_env_name):
         body = {

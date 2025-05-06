@@ -201,7 +201,7 @@ class SyncDirRegistration:
                 server_path_rel = self.server_repo_ref['git_repo']['server_path_rel']
         else:
             server_path_rel = self.server_repo_ref['git_repo']['server_path_rel']
-        git_repo, gitrepo_reference = self.api_service.update_server_repo_reference(
+        git_repo, gitrepo_reference = self.api_service.update_server_repo_client_repo_association(
             self.server_repo_ref['git_repo']['id'],
             self.local_path_short, server_path_rel)
         # check if path changed

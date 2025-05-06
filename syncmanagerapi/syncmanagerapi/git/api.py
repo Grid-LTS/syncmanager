@@ -118,7 +118,7 @@ def create_repo():
     return response
 
 
-def update_repo_for_clientenv(repo_id, client_env):
+def update_server_repo_and_clientrepo_association(repo_id, client_env):
     from .model import GitRepo, UserGitReposAssoc, GitRepoFullSchema
     from ..model import User
     from ..decorators import requires_auth

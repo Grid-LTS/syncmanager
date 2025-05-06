@@ -1,6 +1,7 @@
 import pathlib
 
-from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF_ALIASES, ACTION_ARCHIVE_IGNORED_FILES
+from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF, ACTION_SET_CONF_ALIASES, \
+    ACTION_ARCHIVE_IGNORED_FILES
 
 from .git_settings import GitClientSettings
 from .git_sync import GitClientSync
@@ -59,12 +60,13 @@ class SyncClient:
         if client_instance.errors:
             self.errors.extend(client_instance.errors)
 
-    def get_and_sync_repos(self, config: SyncConfig):
+    def get_and_sync_repos(self, global_config: SyncConfig):
         api_service = ApiService(self.mode, self.sync_env)
-        remote_repos = api_service.list_repos_by_client_env(config.retention_years, full=True)
+        remote_repos = api_service.list_repos_by_client_env(global_config.retention_years, full=True)
         if self.namespace:
             print(f"Only syncing repos in namespace {self.namespace}")
         for remote_repo in remote_repos:
+            config = SyncConfig.from_sync_config(global_config)
             if self.namespace:
                 p_ns = pathlib.Path(self.namespace)
                 p = pathlib.Path(remote_repo['git_repo']['server_path_rel'])
@@ -75,11 +77,21 @@ class SyncClient:
             config.remote_repo = remote_repo['remote_name']
             config.remote_repo_url = SyncDirRegistration.get_remote_url(
                 remote_repo['git_repo']['server_path_absolute'])
-            config.username = remote_repo["user_name_config"]  if remote_repo["user_name_config"] else config.username
-            config.email = remote_repo["user_email_config"]  if remote_repo["user_email_config"]  else config.email
+            config.username = remote_repo["user_name_config"] if remote_repo["user_name_config"] else config.username
+            config.email = remote_repo["user_email_config"] if remote_repo["user_email_config"] else config.email
             self.sync_with_remote_repo(config)
             if self.is_update:
                 api_service.update_server_repo(remote_repo['git_repo']['id'])
+            if "user_name_config" in remote_repo and not remote_repo["user_name_config"] \
+                    or "user_email_config" in remote_repo and not remote_repo["user_email_config"]:
+                remote_repo["user_name_config"] = config.username
+                remote_repo["user_email_config"] = config.email
+                print(f"Update config on server and locally.")
+                api_service.update_client_repo(remote_repo)
+                action = ACTION_SET_CONF
+                conf_sync = SyncClient(self.mode, action, config.sync_env, self.force, self.namespace)
+                conf_sync.sync_with_remote_repo(config)
+
         if self.errors:
             print('')
             print('#####################################################################################')

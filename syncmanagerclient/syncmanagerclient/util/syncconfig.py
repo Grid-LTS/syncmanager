@@ -1,3 +1,4 @@
+from __future__ import annotations
 import os.path as osp
 
 from pathlib import PurePosixPath, Path
@@ -44,6 +45,12 @@ class SyncConfig(SyncAllConfig):
                   remote_repo_url=remote_repo_url, sync_env=allconfig.sync_env, username=allconfig.username, email=allconfig.email,
                   organization=allconfig.organization,
                   settings=allconfig.settings, retention_years=allconfig.retention_years)
+    @classmethod
+    def from_sync_config(cls, other_config : SyncConfig):
+        return cls(local_path_short=other_config.local_path_short, local_path=other_config.local_path, remote_repo=other_config.remote_repo,
+                   remote_repo_url=other_config.remote_repo_url, sync_env=other_config.sync_env, username=other_config.username, email=other_config.email,
+                   organization=other_config.organization,
+                   settings=other_config.settings, retention_years=other_config.retention_years)
 
 
     @property

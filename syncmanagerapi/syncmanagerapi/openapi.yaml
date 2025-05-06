@@ -115,7 +115,7 @@ paths:
           description: "server repo updated"
   /git/repos/{repo_id}/{client_env}:
     put:
-      operationId: "syncmanagerapi.git.api.update_repo_for_clientenv"
+      operationId: "syncmanagerapi.git.api.update_server_repo_and_clientrepo_association"
       tags:
       - "Git"
       summary: "Updates the server repository: file system location and also the association to its client environments"
