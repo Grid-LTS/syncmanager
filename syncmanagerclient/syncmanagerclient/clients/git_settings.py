@@ -10,15 +10,6 @@ class GitClientSettings(GitClientBase):
         super().__init__(config, gitrepo)
 
     def apply(self):
-        if not self.gitrepo:
-            # change to the directory and apply git settings
-            try:
-                self.gitrepo = Repo(self.local_path)
-            except InvalidGitRepositoryError as err:
-                self.errors.append(
-                    GitErrorItem(self.local_path_short, err, "Invalid local repo")
-                )
-                return
         self.set_settings()
 
     def set_settings(self):
@@ -27,6 +18,7 @@ class GitClientSettings(GitClientBase):
         - also sets the remote repository url
         :return:
         """
+        self.initialize()
         print('Set git config for \'{0}\''.format(self.local_path_short))
         command_prefix = ['git', 'config']
         self.set_user_config()
@@ -44,6 +36,7 @@ class GitClientSettings(GitClientBase):
         self.close()
 
     def set_user_config(self):
+        self.initialize()
         conf_writer = self.gitrepo.config_writer()
         if self.config.username:
             try:
@@ -57,6 +50,16 @@ class GitClientSettings(GitClientBase):
                 print('Git config \'user.email\' could not be set. Error: ' + str(err))
         conf_writer.release()
 
+    def initialize(self):
+        if not self.gitrepo:
+            # change to the directory and apply git settings
+            try:
+                self.gitrepo = Repo(self.local_path)
+            except InvalidGitRepositoryError as err:
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, "Invalid local repo")
+                )
+                return
 
     def get_remote_repo(self):
         try:

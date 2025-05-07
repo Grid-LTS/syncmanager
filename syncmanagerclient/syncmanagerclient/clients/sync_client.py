@@ -61,6 +61,11 @@ class SyncClient:
             self.errors.extend(client_instance.errors)
 
     def get_and_sync_repos(self, global_config: SyncConfig):
+        """
+        should be more abstract. so far this code is Git specific
+        :param global_config:
+        :return:
+        """
         api_service = ApiService(self.mode, self.sync_env)
         remote_repos = api_service.list_repos_by_client_env(global_config.retention_years, full=True)
         if self.namespace:
@@ -80,17 +85,20 @@ class SyncClient:
             config.username = remote_repo["user_name_config"] if remote_repo["user_name_config"] else config.username
             config.email = remote_repo["user_email_config"] if remote_repo["user_email_config"] else config.email
             self.sync_with_remote_repo(config)
-            if self.is_update:
-                api_service.update_server_repo(remote_repo['git_repo']['id'])
+            if not self.is_update:
+                return
+            api_service.update_server_repo(remote_repo['git_repo']['id'])
             if "user_name_config" in remote_repo and not remote_repo["user_name_config"] \
                     or "user_email_config" in remote_repo and not remote_repo["user_email_config"]:
                 remote_repo["user_name_config"] = config.username
                 remote_repo["user_email_config"] = config.email
                 print(f"Update config on server and locally.")
                 api_service.update_client_repo(remote_repo)
-                action = ACTION_SET_CONF
-                conf_sync = SyncClient(self.mode, action, config.sync_env, self.force, self.namespace)
-                conf_sync.sync_with_remote_repo(config)
+                sync_settings = GitClientSettings(config)
+                sync_settings.set_user_config()
+                if sync_settings.errors:
+                    self.errors.extend(sync_settings.errors)
+
 
         if self.errors:
             print('')

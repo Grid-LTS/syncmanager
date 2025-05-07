@@ -37,7 +37,7 @@ def init_test(sync_api_user):
     globalproperties.allconfig.username = USER_NAME
     globalproperties.allconfig.email = USER_EMAIL
 
-
+@pytest.mark.dependency()
 def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     client_repo_to_update = fetch_client_repo_from_api(client, USER_CLIENT_ENV, sync_api_user)
     assert client_repo_to_update["user_name_config"] == USER_NAME
@@ -69,6 +69,10 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
     assert Path(local_repo.remotes["origin"].url) == Path(origin_url)
+
+@pytest.mark.dependency(depends=["test_set_settings"])
+def test_config_is_set_on_initial_pull():
+    pass
 
 def fetch_server_repo(client, client_env, sync_api_user):
     headers = {"Authorization": get_user_basic_authorization(sync_api_user)}

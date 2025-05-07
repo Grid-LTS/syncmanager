@@ -5,10 +5,11 @@ from git import Repo, GitCommandError
 from ..util.system import change_dir, sanitize_posix_path
 from ..util.syncconfig import SyncConfig
 from .deletion_registration import DeletionRegistration
+from .git_settings import GitClientSettings
 from .error import GitSyncError, GitErrorItem
 from .git_base import GitClientBase
 
-from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
+from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF
 
 PRINCIPAL_BRANCH_MAIN = 'main'
 PRINCIPAL_BRANCH_MASTER = 'master'
@@ -369,20 +370,27 @@ class GitClientSync(GitClientBase):
             if ret_code != 0:
                 print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code
-            # clone git repo
-            try:
-                repo = Repo.clone_from(self.remote_path, self.local_path)
-                print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_reponame, self.local_path))
-            except GitCommandError as err:
-                repo = None
-                self.errors.append(
-                    GitErrorItem(self.local_path_short, err, 'git clone')
-                )
-                print(f"ERROR: {str(err)}")
-            if not repo:
-                print('Remote repo could not be clone because of an error:\n')
-                return 1
+            return self.clone_remote_repo()
+
+
+    def clone_remote_repo(self):
+        # clone git repo
+        try:
+            repo = Repo.clone_from(self.remote_path, self.local_path)
+            print('Clone to remote repo \'{0}\' to \'{1}\'.'.format(self.remote_reponame, self.local_path))
+        except GitCommandError as err:
+            self.errors.append(
+                GitErrorItem(self.local_path_short, err, 'git clone')
+            )
+            print(f"ERROR: {str(err)}")
+            print('Remote repo could not be clone because of an error:\n')
+            return 1
+        sync_settings = GitClientSettings(self.config, repo)
+        sync_settings.set_user_config()
+        if sync_settings.errors:
+            self.errors.extend(sync_settings.errors)
         return 0
+
 
     def consistency_check(self):
         url = next(self.remote_gitrepo.urls)
