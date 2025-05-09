@@ -1,6 +1,8 @@
 import os.path as osp
 import uuid
 
+import datetime as dt
+
 from .git import GitRepoFs
 from flask import jsonify, request
 from ..error import InvalidRequest
@@ -256,7 +258,7 @@ def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):
 
 
 @login_required
-def get_repos(clientenv, retention_years=None, full_info=False):
+def get_repos(clientenv, retention_years=None, refresh_rate:int=None, full_info=False):
     from .model import UserGitReposAssoc, UserGitReposAssocSchema, UserGitReposAssocFullSchema, ClientEnv
     user = get_user()
     if full_info:
@@ -269,11 +271,19 @@ def get_repos(clientenv, retention_years=None, full_info=False):
             message = f"The client environment {clientenv} does not exist for your user."
             raise InvalidRequest(message=message, field='client_env', status_code=404)
         if retention_years is None:
-            repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _client_env_name=clientenv,)
+            repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _client_env_name=clientenv)
         else:
+            if not refresh_rate:
+                current_date = dt.datetime.now()
+                # Calculate the difference in years and months
+                years_diff = current_date.year - 2023
+                months_diff = current_date.month
+                # choose a large enough date
+                refresh_rate = 12*years_diff + months_diff
             repos = UserGitReposAssoc.get_user_repos_by_client_env_name_and_retention(_user_id=user.id,
                                                                                       _client_env_name=clientenv,
-                                                                                      _retention_years=retention_years)
+                                                                                      _retention_years=retention_years,
+                                                                                      _refresh_rate=refresh_rate)
     else:
         message = f"The client environment {clientenv} is not given."
         raise InvalidRequest(message=message, field='client_env', status_code=400)

@@ -101,14 +101,7 @@ sudo deploy/create_admin.sh
 
 
 ### Tests AND Continuous integration
-Execute tests
-#### client (legacy)
-```
-cd <project-root>/syncmanagerclient
-poetry shell
-poetry up --only=dev --latest
-pytest tests
-```
+
 #### api server
 ```
 cd <project-root>/syncmanagerapi
@@ -117,6 +110,17 @@ poetry shell
 poetry up --only=dev --latest
 pytest tests
 ```
-#### systemtest
-to be done
 
+#### client test and e2e test
+e2e tests are part of the test collection for the syncmanagerclient modules
+! you need to enable the virtual environment of the syncmanagerapi module because e2e tests require 
+standalone api server to start
+```
+cd <project-root>/syncmanagerapi
+poetry install
+poetry shell
+poetry up --only=dev --latest
+
+cd <project-root>/syncmanagerclient 
+pytest tests
+```

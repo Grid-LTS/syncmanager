@@ -214,7 +214,7 @@ class UserGitReposAssoc(db.Model):
             .filter(ClientEnv.env_name == _client_env_name).all()
 
     @staticmethod
-    def get_user_repos_by_client_env_name_and_retention(_user_id, _client_env_name, _retention_years):
+    def get_user_repos_by_client_env_name_and_retention(_user_id, _client_env_name, _retention_years, _refresh_rate):
         retention_date = datetime.now() - relativedelta(years=_retention_years)
         return (UserGitReposAssoc.query
                 .join(UserGitReposAssoc.client_envs)
@@ -223,7 +223,8 @@ class UserGitReposAssoc(db.Model):
                 .filter(ClientEnv.env_name == _client_env_name)
                 .filter(or_(
             GitRepo.last_commit_date >= retention_date,
-            GitRepo.last_commit_date == None
+            GitRepo.last_commit_date == None,
+            GitRepo.updated <= datetime.now() -relativedelta(months=_refresh_rate)
         )).all())
 
     @staticmethod

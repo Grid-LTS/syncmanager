@@ -57,6 +57,13 @@ paths:
         schema:
           type: integer
         required: false
+      - name: refresh_rate
+        description: "returns also repos that have not been synced in the recent time given by refresh_rate. This rate defines the number of months where each repo is synced/refreshed at least once."
+        in: query
+        schema:
+          type: integer
+        required: false
+
       - name: full_info
         description: whether to provide full repo information.
         in: query
