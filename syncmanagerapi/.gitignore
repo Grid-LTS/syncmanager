@@ -4,6 +4,8 @@ local/**
 tests/local/**
 tests/var/**
 tests/tests/**
+tests/repos/**
+
 
 poetry.lock
 

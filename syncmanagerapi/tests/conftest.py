@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 import pytest
 import tempfile
@@ -19,6 +20,7 @@ git_base_dir_path = os.path.join(sync_base_dir_path, "git")
 
 @pytest.fixture(scope="module")
 def app():
+    logging.getLogger('flask_sqlalchemy').setLevel(logging.WARNING)
     db_file_descriptor, db_path = tempfile.mkstemp()
     from syncmanagerapi import create_app
     app = create_app({
@@ -26,8 +28,10 @@ def app():
         'ENV': 'test',
         'DB_SQLITE_PATH': db_path,
         'SYNCMANAGER_SERVER_CONF': sync_manager_server_conf,
-        'DB_RESET': True
+        'DB_RESET': True,
+        'SQLALCHEMY_ECHO': False 
     })
+    
     yield app
     with app.app.app_context():
         db_instance = app.app.extensions["sqlalchemy"]
@@ -45,4 +49,9 @@ def app():
 @pytest.fixture(scope="module")
 def initialized_app(app, runner):
     create_admin(runner)
+
+@pytest.fixture(scope="module")
+def db(app):
+    """Provides access to the SQLAlchemy database instance."""
+    return app.app.extensions["sqlalchemy"]
 

@@ -2,13 +2,22 @@ import os
 import os.path as osp
 import sys
 import urllib
+from datetime import datetime, timedelta
+import time
+from pathlib import Path
 
 import pytest
 from conftest import git_base_dir_path
+from git import Repo
+from git.exc import GitCommandError
+
+from syncmanagerapi import create_app
+from syncmanagerapi.git.model import GitRepo
+from syncmanagerapi.settings import get_properties_path
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
-project_dir = os.path.dirname(os.path.dirname(test_dir))
-testlib_dir = os.path.join(project_dir)
+syncmanager_api_dir = os.path.dirname(test_dir)
+project_dir = os.path.dirname(syncmanager_api_dir)
 sys.path.insert(0, project_dir)
 
 from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization
@@ -108,3 +117,61 @@ def test_delete_repo(client, sync_api_user):
 @pytest.mark.dependency(depends=["test_create_repo"])
 def test_create_repo_for_different_environment(client):
     pass
+
+@pytest.mark.dependency(depends=["test_setup"])
+def test_get_repos_refresh_rate(client, app, db, sync_api_user):
+    """Test GET /git/repos with refresh_rate parameter"""
+    http_headers = headers(sync_api_user)
+    client_env = USER_CLIENT_ENV
+
+    # Create local repo directory
+    local_repo_path = os.path.join(test_dir, "repos", "my_test_ws")
+    os.makedirs(local_repo_path, exist_ok=True)
+
+    # Initialize git repo
+    repo = Repo.init(local_repo_path)
+
+    # Create client repository resource
+    create_client_repo_url = "/api/git/repos"
+    client_repo_body = {
+        'local_path': local_repo_path,
+        'remote_name': 'origin',
+        'client_env': client_env,
+        'server_parent_dir_relative': 'Python_repo/test_repo.git'
+    }
+    client_repo_response = client.post(create_client_repo_url, headers=http_headers, json=client_repo_body)
+    assert client_repo_response.status_code == 200
+
+    # Set the remote URL from the server repository
+    server_repo = client_repo_response.json()
+    
+    # Remove existing remote if it exists
+    try:
+        repo.delete_remote('origin')
+    except ValueError:
+        pass  # Remote doesn't exist, which is fine
+    
+    # Create new remote
+    repo.create_remote('origin', server_repo['server_path_absolute'])
+
+    # create a commit 
+    test_file_path = os.path.join(local_repo_path, "test.txt")
+    Path(test_file_path).touch()
+    repo.index.add(["test.txt"])
+    repo.index.commit("Update test file")
+    
+    # Push to remote
+    origin = repo.remote(name='origin')
+    origin.push('master')
+
+    # Fetch client repository and verify
+    fetch_url = f"/api/git/repos?clientenv={client_env}&full_info=True"
+    fetch_response = client.get(fetch_url, headers=http_headers)
+    assert fetch_response.status_code == 200
+    client_repos = fetch_response.json()
+    assert len(client_repos) == 1
+    
+    # Verify remote URL matches server_path_absolute
+    client_repo = client_repos[0]
+    remote_url = repo.remote('origin').url
+    assert Path(remote_url).resolve() == Path(client_repo['git_repo']['server_path_absolute']).resolve()

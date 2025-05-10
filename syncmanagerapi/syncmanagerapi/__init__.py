@@ -43,7 +43,6 @@ def create_app(test_config=None):
         else:
             app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "tests")
         app.config["FS_ROOT"] = os.path.join(app.config["INSTALL_DIR"], "var")
-        app.config["SQLALCHEMY_ECHO"] = True
         app.config["DEBUG"] = True
         app.debug = True
     app.config["PROPAGATE_EXCEPTIONS"] = True
