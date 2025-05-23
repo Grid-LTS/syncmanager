@@ -31,7 +31,6 @@ def app():
         'DB_RESET': True,
         'SQLALCHEMY_ECHO': False 
     })
-    
     yield app
     with app.app.app_context():
         db_instance = app.app.extensions["sqlalchemy"]
@@ -45,6 +44,7 @@ def app():
         print(f"Database file could not be cleaned up")
         raise perm
     empty_directory(git_base_dir_path)
+
 
 @pytest.fixture(scope="module")
 def initialized_app(app, runner):
