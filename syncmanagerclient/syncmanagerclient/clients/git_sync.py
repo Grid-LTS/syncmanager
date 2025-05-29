@@ -9,7 +9,7 @@ from .git_settings import GitClientSettings
 from .error import GitSyncError, GitErrorItem
 from .git_base import GitClientBase
 
-from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF
+from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE
 
 PRINCIPAL_BRANCH_MAIN = 'main'
 PRINCIPAL_BRANCH_MASTER = 'master'

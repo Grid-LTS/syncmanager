@@ -49,9 +49,6 @@ def app():
 @pytest.fixture(scope="module")
 def initialized_app(app, runner):
     create_admin(runner)
+    return app
 
-@pytest.fixture(scope="module")
-def db(app):
-    """Provides access to the SQLAlchemy database instance."""
-    return app.app.extensions["sqlalchemy"]
 
