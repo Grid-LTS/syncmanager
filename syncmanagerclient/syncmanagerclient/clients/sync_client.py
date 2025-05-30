@@ -60,18 +60,18 @@ class SyncClient:
         if client_instance.errors:
             self.errors.extend(client_instance.errors)
 
-    def get_and_sync_repos(self, global_config: SyncConfig):
+    def get_and_sync_repos(self, sync_config: SyncConfig):
         """
         should be more abstract. so far this code is Git specific
-        :param global_config:
+        :param sync_config:
         :return:
         """
         api_service = ApiService(self.mode, self.sync_env)
-        remote_repos = api_service.list_repos_by_client_env(global_config.retention_years, full=True)
+        remote_repos = api_service.list_repos_by_client_env(sync_config.global_config, full=True)
         if self.namespace:
             print(f"Only syncing repos in namespace {self.namespace}")
         for remote_repo in remote_repos:
-            config = SyncConfig.from_sync_config(global_config)
+            config = SyncConfig.from_sync_config(sync_config)
             if self.namespace:
                 p_ns = pathlib.Path(self.namespace)
                 p = pathlib.Path(remote_repo['git_repo']['server_path_rel'])
@@ -98,7 +98,6 @@ class SyncClient:
                 sync_settings.set_user_config()
                 if sync_settings.errors:
                     self.errors.extend(sync_settings.errors)
-
 
         if self.errors:
             print('')

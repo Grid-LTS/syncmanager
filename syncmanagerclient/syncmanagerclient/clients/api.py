@@ -15,10 +15,11 @@ class ApiService:
         self.sync_env = sync_env
         self.auth = globalproperties.api_user, globalproperties.api_pw
 
-    def list_repos_by_client_env(self, retention_years, full=False):
+    def list_repos_by_client_env(self, global_config, full=False):
         query_params = {
             "clientenv" : self.sync_env,
-            "retention_years" : retention_years,
+            "retention_years" : global_config.retention_years,
+            "refresh_rate" : global_config.refresh_rate_months,
             'full_info': full
         }
         return self.list_repos(self.get_repos_url, query_params)

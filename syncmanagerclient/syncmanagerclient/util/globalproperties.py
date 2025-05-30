@@ -3,7 +3,7 @@ from configparser import ConfigParser
 
 from pathlib import Path
 
-from .syncconfig import SyncAllConfig
+from .syncconfig import SyncAllConfig, GlobalConfig
 from .system import sanitize_path
 
 # this module encloses all globally accessible properties
@@ -19,6 +19,7 @@ ssh_host = ''
 test_mode = False
 loaded = False
 retention_years = None
+refresh_rate_months = None
 
 allconfig = SyncAllConfig()
 
@@ -41,6 +42,7 @@ def read_config(stage, organization=''):
     global test_mode
     global loaded
     global retention_years
+    global refresh_rate_months
     loaded = True
     if stage == 'prod':
         properties_file_name = "server-sync.ini"
@@ -80,7 +82,9 @@ def read_config(stage, organization=''):
     if archive_dir_relative:
         archive_dir_path = Path(var_dir).joinpath(archive_dir_relative)
         archive_dir_path.mkdir(parents=True, exist_ok=True)
-    allconfig.retention_years = int(config.get('config', 'retention_years', fallback=2))
+    global_config = GlobalConfig(int(config.get('config', 'retention_years', fallback=2)),
+                                 int(config.get('config', 'refresh_rate_months', fallback=6)))
+    allconfig.global_config = global_config
 
     # determine sync environment
     if not os.environ.get('SYNC_ENV', None) and not config.get('config', 'SYNC_ENV', fallback=None):
