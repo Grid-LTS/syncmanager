@@ -13,18 +13,14 @@ syncmanager_api_dir = os.path.dirname(test_dir)
 project_dir = os.path.dirname(syncmanager_api_dir)
 sys.path.insert(0, project_dir)
 
-from testlib.testsetup import USER_CLIENT_ENV, setup_users_and_env, get_user_basic_authorization
+from testlib.testsetup import USER_CLIENT_ENV, get_user_basic_authorization
 from testlib.api_utility import fetch_client_repo_from_api, get_clientenv_repos_url, headers
 from testsetup import setup_test_repo, cleanup_test_resources
 
 
+
 @pytest.mark.dependency()
-def test_setup(initialized_app, client, sync_api_user):
-    setup_users_and_env(client, sync_api_user)
-
-
-@pytest.mark.dependency(depends=["test_setup"])
-def test_create_repo(client, sync_api_user):
+def test_create_repo(app_with_user, client, sync_api_user):
     client_env = USER_CLIENT_ENV
     http_headers = headers(sync_api_user)
     response = client.get(get_clientenv_repos_url + f"?clientenv={client_env}", headers=http_headers)
@@ -113,9 +109,8 @@ def test_create_repo_for_different_environment(client):
     pass
 
 
-def test_get_repos_refresh_rate(initialized_app, client, sync_api_user):
+def test_get_repos_refresh_rate(app_with_user, client, sync_api_user):
     """Test GET /git/repos with refresh_rate parameter"""
-    setup_users_and_env(client, sync_api_user)
     http_headers = headers(sync_api_user)
     client_env = USER_CLIENT_ENV
 
@@ -157,8 +152,8 @@ def test_get_repos_refresh_rate(initialized_app, client, sync_api_user):
     os.makedirs(old_repo_path, exist_ok=True)
     old_repo, old_repo_id = setup_test_repo(client, http_headers, old_repo_path, "origin", client_env)
     """Helper method to set old values for a repository."""
-    with initialized_app.app.app_context():
-        db = initialized_app.app.extensions["sqlalchemy"]
+    with app_with_user.app.app_context():
+        db = app_with_user.app.extensions["sqlalchemy"]
         from syncmanagerapi.git.model import GitRepo
         repo_entity = GitRepo.query.filter_by(id=repo_id).first()
         assert repo_entity is not None
@@ -186,25 +181,22 @@ def test_get_repos_refresh_rate(initialized_app, client, sync_api_user):
             break
     assert old_repo_found, "Repository with old commits and old update date should be returned"
     # Clean up all test resources
-    cleanup_test_resources(initialized_app, [repo_id, old_repo_id])
+    cleanup_test_resources(client, http_headers,[repo_id, old_repo_id])
 
-def test_do_not_refresh_repo_with_recent_enough_refresh(initialized_app, client, sync_api_user):
+def test_do_not_refresh_repo_with_recent_enough_refresh(app_with_user, client, sync_api_user):
     """
      # Test Case: a inactive repository is filtered out because refreshed recently
     """
-    setup_users_and_env(client, sync_api_user)
     http_headers = headers(sync_api_user)
     client_env = USER_CLIENT_ENV
-
-
     repo_is_filtered_out_path = "test_repo_filtered_out"
     repo_is_filtered_out_path = os.path.join(test_dir, "repos", repo_is_filtered_out_path)
     os.makedirs(repo_is_filtered_out_path, exist_ok=True)
 
     test_env_name, test_repo_id = setup_test_repo(client, http_headers, repo_is_filtered_out_path, "origin", client_env)
 
-    with initialized_app.app.app_context():
-        db = initialized_app.app.extensions["sqlalchemy"]
+    with app_with_user.app.app_context():
+        db = app_with_user.app.extensions["sqlalchemy"]
         from syncmanagerapi.git.model import GitRepo
         test_repo =  repo_entity = GitRepo.query.filter_by(id=test_repo_id).first()
         assert repo_entity is not None
@@ -227,4 +219,4 @@ def test_do_not_refresh_repo_with_recent_enough_refresh(initialized_app, client,
     assert no_results_response.status_code == 200
     repos_with_no_results = no_results_response.json()
     assert len(repos_with_no_results) == 0, "No repositories should be returned for this specific configuration"
-    cleanup_test_resources(initialized_app, [test_repo_id])
+    cleanup_test_resources(client, http_headers, [test_repo_id])

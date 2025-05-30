@@ -56,10 +56,9 @@ def setup_test_repo(client, http_headers, local_repo_path, remote_name, client_e
 
 
 
-def cleanup_test_resources(app, repo_ids):
+def cleanup_test_resources(client, http_headers, repo_ids):
     """Helper method to clean up all test resources."""
-    with app.app.app_context():
-        from syncmanagerapi.git.model import GitRepo, UserGitReposAssoc
-        for repo_id in repo_ids:
-            UserGitReposAssoc.query.filter_by(repo_id=repo_id).delete()
-            GitRepo.query.filter_by(id=repo_id).delete()
+    for repo_id in repo_ids:
+        delete_repo_url = f"/api/git/repos/{repo_id}"
+        response = client.delete(delete_repo_url, headers=http_headers)
+        assert response.status_code == 204

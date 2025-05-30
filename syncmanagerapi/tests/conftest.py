@@ -9,6 +9,7 @@ test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
 sys.path.insert(0, project_dir)
 
+from testlib.testsetup import setup_users_and_env
 from testlib.fixtures import sync_api_user, client, runner, empty_directory
 from testlib.testsetup import create_admin
 
@@ -51,4 +52,7 @@ def initialized_app(app, runner):
     create_admin(runner)
     return app
 
-
+@pytest.fixture(scope="module")
+def app_with_user(initialized_app, client, sync_api_user):
+    setup_users_and_env(client, sync_api_user)
+    return initialized_app
