@@ -10,10 +10,17 @@ from ..util.syncconfig import SyncConfig
 import syncmanagerclient.util.globalproperties as globalproperties
 import syncmanagerclient.util.system as system
 
-build_and_cached_dirs = ["__pycache__", ".pytest_cache", ".gradle", "build", "out", "target"]
-dependency_dirs = [".venv",  "venv", "dist"]
-environment_files =  [".DS_Store", ".idea"]
-filter_list = build_and_cached_dirs + dependency_dirs + environment_files
+build_and_cached_dirs = ["__pycache__", ".pytest_cache", ".gradle", "gradle", "build", "out", "target"]
+dependency_dirs = [".venv",  "venv", "dist", "node_modules"]
+ignore_directories = [".idea", "lib", ".temp", "tmp", "temp", ".tmp","logs"]
+build_artefacts = ["gradle-wrapper.jar"]
+optional_files = ["access.log"]
+environment_files =  [".DS_Store"]
+code_file_extensions = [
+    "js", "jsx","js.map", "ts", "tsx", "py", "pyc", "java", "php"
+]
+filter_list =  dependency_dirs + environment_files + optional_files + build_artefacts
+directory_list = build_and_cached_dirs + ignore_directories
 fileextension_filter = [".iml", ".lock"]
 
 class GitArchiveIgnoredFiles(GitClientBase):
@@ -34,12 +41,14 @@ class GitArchiveIgnoredFiles(GitClientBase):
         project_root = os.path.basename(self.local_path)
         if not self.gitrepo:
             self.gitrepo = Repo(self.local_path)
-        ignored_files = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
-        ignored_files = [filename.replace("!! ", "") for filename in ignored_files if filename.startswith("!! ")]
-        ignored_files = [filename for filename in ignored_files if not Path(filename).is_symlink() and not any(filename.endswith(x) for x in fileextension_filter)
+        files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
+        files_to_archive = [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")]
+        files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink() and not any(filename.endswith(x) for x in fileextension_filter)
                          and not os.path.basename(filename.strip("/").strip("\\")) in filter_list ]
-        allconfig = globalproperties.allconfig
+        files_to_archive = [filename for filename in files_to_archive if not len(set(Path(filename).parts) & set(directory_list)) > 0 ]
+        files_to_archive = [filename for filename in files_to_archive if not any(filename.endswith(x) for x in code_file_extensions)]
 
+        allconfig = globalproperties.allconfig
 
         # the var director folder should usually sit under the $HOME/syncmanager folder
         # if this is not the case we must prevent overlong paths
@@ -52,8 +61,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         archive_project_root = globalproperties.archive_dir_path.joinpath(allconfig.organization,
                                                                           local_path_relative,
                                                                           project_root, allconfig.sync_env)
-        archive_project_root.mkdir(parents=True, exist_ok=True)
-        for original_file_rel in ignored_files:
+        for original_file_rel in files_to_archive:
             original_path = Path(original_file_rel)
             if original_path.exists():
                 new_path = archive_project_root.joinpath(original_file_rel)
