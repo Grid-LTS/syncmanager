@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+import stat
 import shutil
 import pathlib
 
@@ -51,6 +52,11 @@ class GitRepoFs:
         if not os.path.exists(self.gitrepo_path):
             print(f"Upstream repository at {self.gitrepo_path} was removed")
             return
+        for root, dirs, files in os.walk(self.gitrepo_path):  
+            for dir in dirs:
+                os.chmod(osp.join(root, dir), stat.S_IRWXU)
+            for file in files:
+                os.chmod(osp.join(root, file), stat.S_IRWXU)
         shutil.rmtree(self.gitrepo_path)
         GitRepoFs.remove_empty_dir_tree_recursively(self.gitrepo_entity.server_path_rel)
 
