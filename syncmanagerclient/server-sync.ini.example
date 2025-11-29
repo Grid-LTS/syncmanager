@@ -8,8 +8,8 @@ archive_dir_relative=<relative path to var_dir for archiving files>
 # optional, can also be defined in environment variable with the same name
 SYNC_ENV=home
 org_default=default
-retention_years = 2 # maximum number of years a repo can be inactive before it is not excluded from the sync
-refresh_rate_months = 6
+retention_years = 2 # maximum number of years a repo can be inactive before it is excluded from the sync
+refresh_rate_months = 6 # This rate defines the number of months where each repo is synced/refreshed at least once. It ensures return of repos that have not been synced in the recent time given by the refresh_rate.
 
 [server]
 API_HOST=myserver # hostname of syncing api

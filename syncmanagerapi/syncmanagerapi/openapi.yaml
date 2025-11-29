@@ -52,13 +52,13 @@ paths:
           type: string
         required: true
       - name: retention_years
-        description: "time window in years which includes only repos that had an update in that time. Maximum number of years a repo can be inactive before it is not excluded from the list."
+        description: "time window in years which includes only repos that had an update in that time. Maximum number of years a repo can be inactive before it is excluded from the list."
         in: query
         schema:
           type: integer
         required: false
       - name: refresh_rate
-        description: " This rate defines the number of months where each repo is synced/refreshed at least once. It ensures return of repos that have not been synced in the recent time given by the refresh_rate."
+        description: "This rate defines the number of months where each repo is synced/refreshed at least once. It ensures return of repos that have not been synced in the recent time given by the refresh_rate."
         in: query
         schema:
           type: integer

@@ -86,7 +86,7 @@ class SyncClient:
             config.email = remote_repo["user_email_config"] if remote_repo["user_email_config"] else config.email
             self.sync_with_remote_repo(config)
             if not self.is_update:
-                return
+                continue
             api_service.update_server_repo(remote_repo['git_repo']['id'])
             if "user_name_config" in remote_repo and not remote_repo["user_name_config"] \
                     or "user_email_config" in remote_repo and not remote_repo["user_email_config"]:
