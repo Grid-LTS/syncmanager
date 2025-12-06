@@ -50,6 +50,14 @@ for setting the config (name + email address only possible for git repos)
 syncmanager set-conf
 ```
 
+#### Archiving ignore files
+Consolidate and archive the ignored files by moving them to the location defined by `var_dir` config
+
+```
+syncmanager archive-ignored-files
+```
+
+
 #### Options
 `--org <my organization>` : only register repository for specified organization
 

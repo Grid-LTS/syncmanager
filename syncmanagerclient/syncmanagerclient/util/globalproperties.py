@@ -3,6 +3,7 @@ from configparser import ConfigParser
 
 from pathlib import Path
 
+from .ArchiveConfig import ArchiveConfig
 from .syncconfig import SyncAllConfig, GlobalConfig
 from .system import sanitize_path
 
@@ -23,6 +24,7 @@ refresh_rate_months = None
 
 allconfig = SyncAllConfig()
 
+archiveconfig = None
 
 def set_prefix(prefix):
     global ini_path_prefix
@@ -43,6 +45,7 @@ def read_config(stage, organization=''):
     global loaded
     global retention_years
     global refresh_rate_months
+    global archiveconfig
     loaded = True
     if stage == 'prod':
         properties_file_name = "server-sync.ini"
@@ -61,6 +64,7 @@ def read_config(stage, organization=''):
             exit(1)
         else:
             raise FileNotFoundError(message)
+    archiveconfig = ArchiveConfig(properties_path)
     conf_dir = config.get('config', 'conf_dir', fallback=None)
     if not conf_dir:
         message = "Please specify the path to the config files in server-sync.ini."

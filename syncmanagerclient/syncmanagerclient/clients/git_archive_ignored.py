@@ -1,5 +1,7 @@
 import os
 from xml.dom import InvalidStateErr
+import stat
+from typing import Callable, Optional
 
 from git import Repo
 from pathlib import Path
@@ -10,18 +12,8 @@ from ..util.syncconfig import SyncConfig
 import syncmanagerclient.util.globalproperties as globalproperties
 import syncmanagerclient.util.system as system
 
-build_and_cached_dirs = ["__pycache__", ".pytest_cache", ".gradle", "gradle", "build", "out", "target"]
-dependency_dirs = [".venv",  "venv", "dist", "node_modules"]
-ignore_directories = [".idea", "lib", ".temp", "tmp", "temp", ".tmp","logs"]
-build_artefacts = ["gradle-wrapper.jar"]
-optional_files = ["access.log"]
-environment_files =  [".DS_Store"]
-code_file_extensions = [
-    "js", "jsx","js.map", "ts", "tsx", "py", "pyc", "java", "php"
-]
-filter_list =  dependency_dirs + environment_files + optional_files + build_artefacts
-directory_list = build_and_cached_dirs + ignore_directories
 fileextension_filter = [".iml", ".lock"]
+
 
 class GitArchiveIgnoredFiles(GitClientBase):
 
@@ -30,6 +22,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if config:
             self.set_config(config)
             self.config = config
+        self.archive_config = globalproperties.archiveconfig
+
 
     def apply(self):
         if not self.local_path.joinpath(".git").resolve().exists():
@@ -44,9 +38,10 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
         files_to_archive = [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")]
         files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink() and not any(filename.endswith(x) for x in fileextension_filter)
-                         and not os.path.basename(filename.strip("/").strip("\\")) in filter_list ]
-        files_to_archive = [filename for filename in files_to_archive if not len(set(Path(filename).parts) & set(directory_list)) > 0 ]
-        files_to_archive = [filename for filename in files_to_archive if not any(filename.endswith(x) for x in code_file_extensions)]
+                            and not os.path.basename(filename.strip("/").strip("\\")) in self.archive_config.skip_list()]
+        files_to_archive = [filename for filename in files_to_archive if not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
+        files_to_archive = [filename for filename in files_to_archive if not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
+        files_to_archive = [filename for filename in files_to_archive if is_file_or_dir_and_smaller_than(Path(filename))]
 
         allconfig = globalproperties.allconfig
 
@@ -78,3 +73,48 @@ class GitArchiveIgnoredFiles(GitClientBase):
                         print(f"Activate developer mode to allow creation of symlinks. Error : {e}")
                     else:
                         print(f"Unexpected error: {e}")
+
+
+def is_file_or_dir_and_smaller_than(path: Path) -> bool:
+    max_file_size_for_archiving = globalproperties.archiveconfig.max_archive_filesize_MB * 1024 * 1024
+    try:
+        if os.path.isfile(path):
+            return os.path.getsize(path) <= max_file_size_for_archiving
+        if os.path.isdir(path):
+            return get_dir_size(path) <= max_file_size_for_archiving
+    except OSError as e:
+        # File not found or inaccessible
+        raise FileNotFoundError(f"File not found or inaccessible: {path}") from e
+    else:
+        return False
+
+def get_dir_size(path: Path, follow_links: bool = False,
+                 onerror: Optional[Callable[[Exception], None]] = None) -> int:
+    """
+    Compute total size (in bytes) of files under `path`
+    - follow_links: if True, os.walk will follow directory symlinks.
+    - onerror: optional callback that receives an Exception when os.walk encounters an error.
+    - The function records seen (st_dev, st_ino) to avoid double-counting hardlinks or files reached via symlink loops.
+    """
+    total = 0
+    seen_inodes = set()
+    for dirpath, dirnames, filenames in os.walk(path, topdown=True, onerror=onerror, followlinks=follow_links):
+        for fname in filenames:
+            fullpath = os.path.join(dirpath, fname)
+            try:
+                st = os.stat(fullpath, follow_symlinks=follow_links)
+            except OSError as e:
+                if onerror:
+                    onerror(e)
+                continue
+
+            if not stat.S_ISREG(st.st_mode):
+                # skip non-regular files (sockets, fifos, etc.)
+                continue
+
+            key = (st.st_dev, st.st_ino)
+            if key in seen_inodes:
+                continue
+            seen_inodes.add(key)
+            total += st.st_size
+    return total
