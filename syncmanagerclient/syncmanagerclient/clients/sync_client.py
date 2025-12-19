@@ -1,11 +1,13 @@
 import pathlib
 
-from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF, ACTION_SET_CONF_ALIASES, \
-    ACTION_ARCHIVE_IGNORED_FILES
+from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF_ALIASES, \
+    ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO
 
 from .git_settings import GitClientSettings
 from .git_sync import GitClientSync
 from .git_archive_ignored import GitArchiveIgnoredFiles
+from .git_init_repo import GitInitRepo
+
 from .sync_dir_registration import SyncDirRegistration
 from .unison_sync import UnisonClientSync
 
@@ -38,6 +40,8 @@ class SyncClient:
                 return GitClientSync(self.action, config, force=self.force)
             elif self.action == ACTION_ARCHIVE_IGNORED_FILES:
                 return GitArchiveIgnoredFiles(config)
+            elif self.action ==  ACTION_INIT_REPO:
+                return GitInitRepo(config)
             else:
                 raise Exception('Unknown command \'' + self.action + '\'.')
         elif self.mode == 'unison':

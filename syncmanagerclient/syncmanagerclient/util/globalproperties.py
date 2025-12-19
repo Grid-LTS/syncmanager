@@ -21,6 +21,7 @@ test_mode = False
 loaded = False
 retention_years = None
 refresh_rate_months = None
+module_dir = ''
 
 allconfig = SyncAllConfig()
 

@@ -8,7 +8,7 @@ from .util.syncconfig import SyncConfig
 from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
-    ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES
+    ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO
 from .clients.sync_client import SyncClient
 from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
@@ -21,7 +21,9 @@ def init_global_properties(_stage='dev', _org=''):
     else:
         stage = _stage
     # initialize global properties
-    properties_path_prefix = dirname(dirname(os.path.abspath(__file__)))
+    module_dir = dirname(os.path.abspath(__file__))
+    globalproperties.module_dir = module_dir
+    properties_path_prefix = dirname(module_dir)
     globalproperties.set_prefix(properties_path_prefix)
     globalproperties.read_config(stage, _org)
 
@@ -157,7 +159,7 @@ def main():
     parser.add_argument("-off", "--offline", action='store_true', help="when offline server is not called")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     parser.add_argument("-ry", "--retention_years", help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
-    allowed_actions = [ACTION_PUSH, ACTION_PULL, ACTION_ARCHIVE_IGNORED_FILES] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
+    allowed_actions = [ACTION_PUSH, ACTION_PULL, ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in allowed_actions:
         # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
@@ -181,8 +183,7 @@ def main():
 
 
 def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=None):
-    if arguments.action in ACTION_SET_REMOTE_ALIASES or arguments.action == ACTION_ARCHIVE_IGNORED_FILES \
-            or arguments.action == ACTION_DELETE:
+    if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE, ACTION_INIT_REPO]:
         sync_config.local_path=Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:
         sync_config.remote_repo = remote_name
@@ -199,6 +200,8 @@ def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=
     elif arguments.action in ACTION_SET_CONF_ALIASES:
         pass
     elif arguments.action in [ACTION_PULL, ACTION_PUSH]:
+        pass
+    elif arguments.action == ACTION_INIT_REPO:
         pass
     elif arguments.action == ACTION_ARCHIVE_IGNORED_FILES:
         if arguments.offline:

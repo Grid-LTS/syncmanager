@@ -1,5 +1,4 @@
 import os
-from xml.dom import InvalidStateErr
 import stat
 from typing import Callable, Optional
 
@@ -8,6 +7,7 @@ from pathlib import Path
 import shutil
 
 from .git_base import GitClientBase
+from ..util.error import InvalidArgument
 from ..util.syncconfig import SyncConfig
 import syncmanagerclient.util.globalproperties as globalproperties
 import syncmanagerclient.util.system as system
@@ -27,7 +27,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
 
     def apply(self):
         if not self.local_path.joinpath(".git").resolve().exists():
-            raise InvalidStateErr(f"{self.local_path} is not a git project root path")
+            raise InvalidArgument(f"{self.local_path} is not a git project root path")
         system_home_dir = Path(system.home_dir)
         if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
             print(f"For security reasons only repositories in the home directory can be managed.")

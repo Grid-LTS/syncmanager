@@ -57,6 +57,14 @@ Consolidate and archive the ignored files by moving them to the location defined
 syncmanager archive-ignored-files
 ```
 
+#### initialize the repo
+Run operating system specific script on the registered repos. Can also be used to run clean-up scripts.
+
+```
+syncmanager initialize-repo
+```
+
+
 
 #### Options
 `--org <my organization>` : only register repository for specified organization
