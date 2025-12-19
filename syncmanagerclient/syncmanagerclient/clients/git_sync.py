@@ -270,12 +270,18 @@ class GitClientSync(GitClientBase):
                         print(str(err))
                     else:
                         # merge conflict needs to be resolved manually
-                        git.rebase('--abort')
-                        self.errors.append(
-                            GitErrorItem(self.local_path_short, err, str(branch))
-                        )
-                        print(str(err))
-                        continue
+                        try:
+                            git.rebase('--abort')
+                            self.errors.append(
+                                GitErrorItem(self.local_path_short, err, str(branch))
+                            )
+                            print(str(err))
+                            continue
+                        except GitCommandError as err:
+                            self.errors.append(
+                                GitErrorItem(self.local_path_short, err, str(branch))
+                            )
+                            print(str(err))
                 except Exception as err:
                     self.errors.append(
                         GitErrorItem(self.local_path_short, err, str(branch))
