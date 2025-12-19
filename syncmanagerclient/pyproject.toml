@@ -33,6 +33,10 @@ dependencies = [
 ]
 dynamic = ["readme"]
 
+[project.scripts]
+syncmanager="syncmanagerclient:main"
+syncmanager-legacy="syncmanagerclient:legacy"
+
 
 [project.optional-dependencies]
 dev = []
