@@ -2,8 +2,7 @@ from __future__ import annotations
 import os.path as osp
 
 from pathlib import PurePosixPath, Path
-from ..util.system import sanitize_posix_path
-import syncmanagerclient.util.system as system
+from ..util.system import sanitize_posix_path, home_dir
 
 class GlobalConfig:
     def __init__(self, retention_years=None, refresh_rate_months=None):
@@ -91,7 +90,7 @@ class SyncConfig(SyncAllConfig):
 
     @staticmethod
     def determine_local_path_short(path):
-        system_home_dir = PurePosixPath(Path(system.home_dir))
+        system_home_dir = PurePosixPath(Path(home_dir))
         local_path_posix = PurePosixPath(path)
         if osp.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
             return '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())

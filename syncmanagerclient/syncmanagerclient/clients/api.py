@@ -3,17 +3,17 @@ from xml.dom import InvalidStateErr
 import requests as req
 import json
 
-import syncmanagerclient.util.globalproperties as globalproperties
+from ..util.globalproperties import Globalproperties
 
 
 class ApiService:
 
     def __init__(self, mode=None, sync_env=None):
-        self.base_api_url = f"{globalproperties.api_base_url}/{mode}"
+        self.base_api_url = f"{Globalproperties.api_base_url}/{mode}"
         self.get_repos_url = f"{self.base_api_url}/repos"
         self.get_repos_by_clientenv_url = f"{self.base_api_url}/repos_by_clientenv"
         self.sync_env = sync_env
-        self.auth = globalproperties.api_user, globalproperties.api_pw
+        self.auth = Globalproperties.api_user, Globalproperties.api_pw
 
     def list_repos_by_client_env(self, global_config, full=False):
         query_params = {
@@ -35,13 +35,13 @@ class ApiService:
         response = req.get(url, params=query_payload, auth=self.auth)
         if response.status_code == 404:
             message = f"The sync environment '{self.sync_env}' is not registered on the server."
-            if globalproperties.test_mode:
+            if Globalproperties.test_mode:
                 raise ValueError(message)
             else:
                 print(message)
                 exit(1)
         if response.status_code >= 400 and response.status_code != 404:
-            if globalproperties.test_mode:
+            if Globalproperties.test_mode:
                 raise ValueError(response.text)
             else:
                 print(f"{response.text}")
@@ -56,8 +56,8 @@ class ApiService:
             'local_path': local_path,
             'remote_name': remote_name,
             'client_env': self.sync_env,
-            'user_name_config' : globalproperties.allconfig.username,
-            'user_email_config' : globalproperties.allconfig.email,
+            'user_name_config' : Globalproperties.allconfig.username,
+            'user_email_config' : Globalproperties.allconfig.email,
         }
         # optional fields
         if server_parent_path_relative:
@@ -76,8 +76,8 @@ class ApiService:
         body = {
             'local_path': local_path,
             'server_path_rel': server_path_rel,
-            'user_name_config' : globalproperties.allconfig.username,
-            'user_email_config' : globalproperties.allconfig.email,
+            'user_name_config' : Globalproperties.allconfig.username,
+            'user_email_config' : Globalproperties.allconfig.email,
         }
         url = f"{self.base_api_url}/repos/{server_repo_id}/{self.sync_env}"
         response = req.put(url, json=body, auth=self.auth)
@@ -98,7 +98,7 @@ class ApiService:
         body = {
             'client_env_name': client_env_name
         }
-        url = f"{globalproperties.api_base_url}/clientenv"
+        url = f"{Globalproperties.api_base_url}/clientenv"
         return req.post(url, data=json.dumps(body), auth=self.auth)
 
     def update_server_repo(self, server_repo_id):

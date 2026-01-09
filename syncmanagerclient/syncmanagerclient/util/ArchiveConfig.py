@@ -6,12 +6,17 @@ class ArchiveConfig:
     def __init__(self, properties_path):
         config = ConfigParser()
         config.read(properties_path)
-        self.build_and_cached_dirs = ArchiveConfig.parse_and_prune(config.get('config', 'build_and_cached_dirs', fallback=''))
-        self.dependency_dirs = ArchiveConfig.parse_and_prune(config.get('config', 'dependency_dirs', fallback=''))
-        self.ignore_directories = ArchiveConfig.parse_and_prune(config.get('config', 'ignore_directories', fallback=''))
-        self.build_artefacts = ArchiveConfig.parse_and_prune(config.get('config', 'build_artefacts', fallback=''))
-        self.optional_files = ArchiveConfig.parse_and_prune(config.get('config', 'optional_files', fallback=''))
-        self.environment_files =  ArchiveConfig.parse_and_prune(config.get('config', 'environment_files', fallback=''))
+        self.build_and_cache = ArchiveConfig.parse_and_prune(
+            config.get('config', 'build_and_cache', fallback='__pycache__,.pytest_cache,.gradle,gradle,build,out,target,poetry.lock'))
+        self.dependency_dirs = ArchiveConfig.parse_and_prune(
+            config.get('config', 'dependency_dirs', fallback='.venv,venv,dist,node_modules'))
+        self.ignore_directories = ArchiveConfig.parse_and_prune(
+            config.get('config', 'ignore_directories', fallback='.idea,lib,.temp,tmp,temp,.tmp,logs'))
+        self.build_artefacts = ArchiveConfig.parse_and_prune(
+            config.get('config', 'build_artefacts', fallback='gradle-wrapper.jar'))
+        self.optional_files = ArchiveConfig.parse_and_prune(
+            config.get('config', 'optional_files', fallback='access.log'))
+        self.environment_files =  ArchiveConfig.parse_and_prune(config.get('config', 'environment_files', fallback='.DS_Store'))
         self.code_file_extensions = ArchiveConfig.parse_and_prune(config.get('config', 'code_file_extensions', fallback=''))
         self.max_archive_filesize_MB = int(config.get('config', 'max_archive_filesize_MB', fallback='10'))
 
@@ -19,7 +24,7 @@ class ArchiveConfig:
         return self.dependency_dirs + self.environment_files + self.optional_files + self.build_artefacts
 
     def skip_directory_list(self):
-        return  self.build_and_cached_dirs + self.ignore_directories
+        return  self.build_and_cache + self.ignore_directories
     
     @staticmethod
     def parse_and_prune(value):

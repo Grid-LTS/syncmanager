@@ -2,7 +2,7 @@ import os
 import re
 from jinja2 import Environment, FileSystemLoader
 from ..util import system
-import syncmanagerclient.util.globalproperties as globalproperties
+from ..util.globalproperties import Globalproperties
 
 class UnisonClientSync:
     unison_dir = os.path.join(system.home_dir, '.unison')
@@ -43,13 +43,13 @@ class UnisonClientSync:
         return {"template": template}
 
     def load_template_file(self, filename):
-        template_dir = os.path.join(globalproperties.conf_dir, 'unison-templates')
+        template_dir = os.path.join(Globalproperties.conf_dir, 'unison-templates')
         template_file = os.path.join(template_dir, filename)
         exists = False
         if os.path.exists(template_file):
             exists = True
         else:
-            template_dir = os.path.join(os.path.join(globalproperties.ini_path_prefix, 'templates'), 'unison')
+            template_dir = os.path.join(os.path.join(Globalproperties.ini_path_prefix, 'templates'), 'unison')
             # load one of built in templates
             template_file = os.path.join(template_dir, filename)
             if os.path.exists(template_file):

@@ -1,5 +1,6 @@
 import os
 import stat
+import sys
 from typing import Callable, Optional
 
 from git import Repo
@@ -9,57 +10,70 @@ import shutil
 from .git_base import GitClientBase
 from ..util.error import InvalidArgument
 from ..util.syncconfig import SyncConfig
-import syncmanagerclient.util.globalproperties as globalproperties
-import syncmanagerclient.util.system as system
+from ..util.globalproperties import Globalproperties
+from ..util.system import home_dir
 
 fileextension_filter = [".iml", ".lock"]
 
 
 class GitArchiveIgnoredFiles(GitClientBase):
 
-    def __init__(self, config : SyncConfig, gitrepo = None):
+    def __init__(self, config: SyncConfig, gitrepo=None):
         super().__init__(gitrepo)
         if config:
             self.set_config(config)
             self.config = config
-        self.archive_config = globalproperties.archiveconfig
-
+        project_root = os.path.basename(self.local_path)
+        self.archive_config = Globalproperties.archiveconfig
+        system_home_dir = Path(home_dir)
+        allconfig = Globalproperties.allconfig
+        # the var director folder should usually sit under the $HOME/.syncmanager folder
+        # if this is not the case we must prevent overlong paths
+        common_path = os.path.commonprefix([self.local_path.parents[1], Globalproperties.archive_dir_path.parents[1]])
+        if common_path and os.path.commonprefix([common_path, system_home_dir]) != common_path:
+            # mostly for e2e test environment
+            local_path_relative = self.local_path.parents[0].relative_to(common_path)
+        else:
+            if sys.platform.startswith("win") and Path(system_home_dir).parts[0] != \
+                    Path(self.local_path.parents[0]).parts[0]:
+                local_path_relative = Path(*Path(self.local_path.parents[0]).parts[1:])
+            else:
+                local_path_relative = self.local_path.parents[0].relative_to(system_home_dir)
+        self.archive_project_root = Globalproperties.archive_dir_path.joinpath(allconfig.organization,
+                                                                               local_path_relative, project_root)
+        self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
 
     def apply(self):
+        is_pristine = self.archive_ignored_files()
+        if is_pristine:
+            self.symlink_archived_files_back()
+
+    def archive_ignored_files(self):
         if not self.local_path.joinpath(".git").resolve().exists():
             raise InvalidArgument(f"{self.local_path} is not a git project root path")
-        system_home_dir = Path(system.home_dir)
-        if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
-            print(f"For security reasons only repositories in the home directory can be managed.")
-            return
-        project_root = os.path.basename(self.local_path)
         if not self.gitrepo:
             self.gitrepo = Repo(self.local_path)
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
         files_to_archive = [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")]
-        files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink() and not any(filename.endswith(x) for x in fileextension_filter)
-                            and not os.path.basename(filename.strip("/").strip("\\")) in self.archive_config.skip_list()]
-        files_to_archive = [filename for filename in files_to_archive if not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
-        files_to_archive = [filename for filename in files_to_archive if not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
-        files_to_archive = [filename for filename in files_to_archive if is_file_or_dir_and_smaller_than(Path(filename))]
-
-        allconfig = globalproperties.allconfig
-
-        # the var director folder should usually sit under the $HOME/syncmanager folder
-        # if this is not the case we must prevent overlong paths
-        common_path = os.path.commonprefix([self.local_path.parents[1], globalproperties.archive_dir_path.parents[1]])
-        if common_path and os.path.commonprefix([common_path, system_home_dir]) != common_path:
-            # mostly for e2e test environment
-            local_path_relative =  self.local_path.parents[0].relative_to(common_path)
-        else:
-            local_path_relative =  self.local_path.parents[0].relative_to(system_home_dir)
-        archive_project_root = globalproperties.archive_dir_path.joinpath(allconfig.organization,
-                                                                          local_path_relative,
-                                                                          project_root, allconfig.sync_env)
+        files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink() and not any(
+            filename.endswith(x) for x in fileextension_filter)
+                            and not os.path.basename(
+            filename.strip("/").strip("\\")) in self.archive_config.skip_list()]
+        files_to_archive = [filename for filename in files_to_archive if
+                            not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
+        files_to_archive = [filename for filename in files_to_archive if
+                            not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
+        files_to_archive = [filename for filename in files_to_archive if
+                            is_file_or_dir_and_smaller_than(Path(filename))]
+        files_to_archive = [filename for filename in files_to_archive if not os.path.islink(Path(filename))]
+        files_to_archive = [filename for filename in files_to_archive if
+                            not ('test' in filename or 'tests' in filename)]
+        if not files_to_archive:
+            return True
         for original_file_rel in files_to_archive:
             original_path = Path(original_file_rel)
             if original_path.exists():
-                new_path = archive_project_root.joinpath(original_file_rel)
+                new_path = self.archive_syncenv_root.joinpath(original_file_rel)
                 print(f"Archive file {original_file_rel} in new location {new_path}")
                 new_path.parents[0].mkdir(parents=True, exist_ok=True)
                 shutil.move(str(original_path), str(new_path))
@@ -73,10 +87,38 @@ class GitArchiveIgnoredFiles(GitClientBase):
                         print(f"Activate developer mode to allow creation of symlinks. Error : {e}")
                     else:
                         print(f"Unexpected error: {e}")
+        return False
+
+    def symlink_archived_files_back(self):
+        envs = os.listdir(self.archive_project_root)
+        if not envs:
+            return
+        if Globalproperties.allconfig.sync_env not in envs:
+            shutil.copy(os.path.join(self.archive_project_root, envs[0]), self.archive_syncenv_root)
+        linked_dirs = []
+        for root, dirs, files in os.walk(self.archive_syncenv_root):
+            relpath = Path(root).relative_to(self.archive_syncenv_root)
+            if str(relpath) in linked_dirs:
+                continue
+            for dirname in dirs:
+                dir_rel_path = os.path.join(relpath, dirname)
+                if not os.path.exists(self.local_path.joinpath(dir_rel_path)):
+                    link_location = self.local_path.joinpath(dir_rel_path)
+                    source_location = Path(root).joinpath(dirname)
+                    link_location.symlink_to(source_location, target_is_directory=True)
+                    print(f"Create directory symlink from {source_location} to {link_location}")
+                linked_dirs.append(dir_rel_path)
+            for filename in files:
+                file_rel_path = os.path.join(relpath, filename)
+                if not os.path.exists(self.local_path.joinpath(file_rel_path)):
+                    link_location = self.local_path.joinpath(file_rel_path)
+                    source_location = Path(root).joinpath(filename)
+                    print(f"Create file symlink from {source_location} to {link_location}")
+                    link_location.symlink_to(source_location)
 
 
 def is_file_or_dir_and_smaller_than(path: Path) -> bool:
-    max_file_size_for_archiving = globalproperties.archiveconfig.max_archive_filesize_MB * 1024 * 1024
+    max_file_size_for_archiving = Globalproperties.archiveconfig.max_archive_filesize_MB * 1024 * 1024
     try:
         if os.path.isfile(path):
             return os.path.getsize(path) <= max_file_size_for_archiving
@@ -87,6 +129,7 @@ def is_file_or_dir_and_smaller_than(path: Path) -> bool:
         raise FileNotFoundError(f"File not found or inaccessible: {path}") from e
     else:
         return False
+
 
 def get_dir_size(path: Path, follow_links: bool = False,
                  onerror: Optional[Callable[[Exception], None]] = None) -> int:

@@ -8,7 +8,7 @@ from git import Repo
 
 from .api import ApiService
 from .git_settings import GitClientSettings
-import syncmanagerclient.util.globalproperties as globalproperties
+from ..util.globalproperties import Globalproperties
 
 
 
@@ -124,7 +124,7 @@ class SyncDirRegistration:
         return server_repo_ref['user'] == self.first_path_part(server_repo_ref['git_repo']['server_path_rel'])
 
     def prompt_for_repo_name(self):
-        if not globalproperties.test_mode:
+        if not Globalproperties.test_mode:
             repo_name = input('Enter directory name of bare repository (optional): ').strip()
         else:
             repo_name = ''
@@ -162,7 +162,7 @@ class SyncDirRegistration:
         all_sync_env = False
         # in case the desired remote repo is already created and registered for other environments, we only
         # register this env as client
-        if not globalproperties.test_mode:
+        if not Globalproperties.test_mode:
             if not server_path in self.server_path_rels_of_other_repo:
                 all_envs = input("Should all environments sync this repo? 'Y/y/yes' or other input for 'no': ").strip()
                 if all_envs in ['Y', 'y', 'yes']:
@@ -189,7 +189,7 @@ class SyncDirRegistration:
 
     def update_reference(self):
         is_update_namespace = 'n'
-        if not globalproperties.test_mode:
+        if not Globalproperties.test_mode:
             if self.user_owns_repo(self.server_repo_ref):
                 is_update_namespace = input(
                     "Do you want to change the namespace of the repo? 'Y/y/yes' or other input for 'no': ").strip()
@@ -219,6 +219,6 @@ class SyncDirRegistration:
 
     @staticmethod
     def get_remote_url(remote_repo_path):
-        if globalproperties.ssh_user and globalproperties.ssh_host:
-            return f"ssh://{globalproperties.ssh_user}@{globalproperties.ssh_host}:{remote_repo_path}"
+        if Globalproperties.ssh_user and Globalproperties.ssh_host:
+            return f"ssh://{Globalproperties.ssh_user}@{Globalproperties.ssh_host}:{remote_repo_path}"
         return f"file:///{remote_repo_path}"

@@ -5,8 +5,8 @@ from pathlib import Path
 from typing import List, cast
 
 from git import Repo
-import syncmanagerclient.util.globalproperties as globalproperties
-from syncmanagerclient.util.syncconfig import SyncConfig
+from ..util.globalproperties import Globalproperties
+from ..util.syncconfig import SyncConfig
 from .git_base import GitClientBase
 
 class DeletionRegistrationEntry(GitClientBase):
@@ -24,7 +24,7 @@ class DeletionRegistration:
     def __init__(self, **kwargs):
         super().__init__()
         self.branch_path = kwargs.get('branch_path', None)
-        self.registry_dir = globalproperties.var_dir
+        self.registry_dir = Globalproperties.var_dir
         # first check if directory is a git working tree
         self.dir = cast(Path, kwargs.get('git_repo_path', None))
         self.entries : List[DeletionRegistrationEntry] = []

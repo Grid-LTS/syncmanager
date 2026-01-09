@@ -11,8 +11,8 @@ from .git_init_repo import GitInitRepo
 from .sync_dir_registration import SyncDirRegistration
 from .unison_sync import UnisonClientSync
 
-import syncmanagerclient.util.globalproperties as globalproperties
-from syncmanagerclient.util.syncconfig import SyncConfig
+from ..util.globalproperties import Globalproperties
+from ..util.syncconfig import SyncConfig
 
 from .api import ApiService
 
@@ -25,7 +25,7 @@ class SyncClient:
         if sync_env:
             self.sync_env = sync_env
         else:
-            self.sync_env = globalproperties.allconfig.sync_env
+            self.sync_env = Globalproperties.allconfig.sync_env
         self.force = force
         self.namespace = namespace
         self.errors = []

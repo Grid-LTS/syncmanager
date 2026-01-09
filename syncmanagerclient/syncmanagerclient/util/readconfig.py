@@ -1,12 +1,12 @@
 import re
 
 from .syncconfig import SyncConfig
-import syncmanagerclient.util.globalproperties as globalproperties
+from ..util.globalproperties import *
 
 class ConfigParser:
 
     def __init__(self, path):
-        self.config = SyncConfig.init(allconfig=globalproperties.allconfig)
+        self.config = SyncConfig.init(allconfig=Globalproperties.allconfig)
         self.mode = None
         self.path = path
 

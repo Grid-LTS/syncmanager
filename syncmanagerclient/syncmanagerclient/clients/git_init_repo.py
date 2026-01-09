@@ -8,8 +8,8 @@ from .git_base import GitClientBase
 from ..util.error import InvalidArgument
 from ..util.syncconfig import SyncConfig
 from ..util.system import change_dir, run_command
-import syncmanagerclient.util.globalproperties as globalproperties
-import syncmanagerclient.util.system as system
+from ..util.globalproperties import Globalproperties
+from ..util.system import home_dir
 
 fileextension_filter = [".iml", ".lock"]
 
@@ -29,7 +29,7 @@ class GitInitRepo(GitClientBase):
                 GitErrorItem(self.local_path_short, InvalidArgument(err_msg), "")
             )
             return
-        system_home_dir = Path(system.home_dir)
+        system_home_dir = Path(home_dir)
         if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
             print(f"For security reasons only repositories in the home directory can be managed.")
             return
@@ -38,7 +38,7 @@ class GitInitRepo(GitClientBase):
             os_dir = "win"
         else:
             os_dir = "unix"
-        script = os.path.join(globalproperties.module_dir, "exec", os_dir, "repo_init.sh")
+        script = os.path.join(Globalproperties.module_dir, "exec", os_dir, "repo_init.sh")
         try:
             run_command(script)
         except subprocess.CalledProcessError:

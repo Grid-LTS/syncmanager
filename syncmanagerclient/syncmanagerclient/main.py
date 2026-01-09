@@ -3,7 +3,7 @@ import os, sys
 from os.path import dirname
 from pathlib import Path
 
-import syncmanagerclient.util.globalproperties as globalproperties
+from .util.globalproperties import Globalproperties
 from .util.syncconfig import SyncConfig
 from .util.readconfig import ConfigParser, environment_parse
 
@@ -22,10 +22,10 @@ def init_global_properties(_stage='dev', _org=''):
         stage = _stage
     # initialize global properties
     module_dir = dirname(os.path.abspath(__file__))
-    globalproperties.module_dir = module_dir
+    Globalproperties.module_dir = module_dir
     properties_path_prefix = dirname(module_dir)
-    globalproperties.set_prefix(properties_path_prefix)
-    globalproperties.read_config(stage, _org)
+    Globalproperties.set_prefix(properties_path_prefix)
+    Globalproperties.read_config(stage, _org)
 
 
 def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enabled):
@@ -118,13 +118,13 @@ def legacy():
     if args.env:
         sync_env = args.env
     else:
-        sync_env = globalproperties.sync_env
+        sync_env = Globalproperties.sync_env
 
     
     if args.conf:
         if not os.path.dirname(args.conf):
-            conf_file_root = globalproperties.conf_dir
-            conf_file_path = os.path.join(globalproperties.conf_dir, args.conf)
+            conf_file_root = Globalproperties.conf_dir
+            conf_file_path = os.path.join(Globalproperties.conf_dir, args.conf)
         else:
             conf_file_root = os.path.dirname(args.conf)
             conf_file_path = args.conf
@@ -134,7 +134,7 @@ def legacy():
         apply_sync_conf_files(conf_file_root, [args.conf], action, force, sync_env, clients_enabled)
     else:
         # loop through all *.conf files in the directory
-        for root, dirs, filenames in os.walk(globalproperties.conf_dir):
+        for root, dirs, filenames in os.walk(Globalproperties.conf_dir):
             files = [fi for fi in filenames if fi.endswith(".conf")]
             apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
 
@@ -171,8 +171,8 @@ def main():
     init_global_properties(args.stage, args.org)
     # determine the environment which is synced
     if args.env:
-        globalproperties.allconfig.sync_env = args.env
-    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+        Globalproperties.allconfig.sync_env = args.env
+    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
     if args.action == ACTION_DELETE:
         path = args.path
     else:
