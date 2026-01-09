@@ -7,11 +7,12 @@ class ArchiveConfig:
         config = ConfigParser()
         config.read(properties_path)
         self.build_and_cache = ArchiveConfig.parse_and_prune(
-            config.get('config', 'build_and_cache', fallback='__pycache__,.pytest_cache,.gradle,gradle,build,out,target,poetry.lock'))
+            config.get('config', 'build_and_cache', fallback='__pycache__,.pytest_cache,.gradle,gradle,build,out,target,poetry.lock,package-lock.json'))
         self.dependency_dirs = ArchiveConfig.parse_and_prune(
             config.get('config', 'dependency_dirs', fallback='.venv,venv,dist,node_modules'))
         self.ignore_directories = ArchiveConfig.parse_and_prune(
-            config.get('config', 'ignore_directories', fallback='.idea,lib,.temp,tmp,temp,.tmp,logs'))
+            config.get('config', 'ignore_directories', fallback='lib,.temp,tmp,temp,.tmp,logs'))
+        self.ignore_directories += ["test", "tests", ".git"]
         self.build_artefacts = ArchiveConfig.parse_and_prune(
             config.get('config', 'build_artefacts', fallback='gradle-wrapper.jar'))
         self.optional_files = ArchiveConfig.parse_and_prune(

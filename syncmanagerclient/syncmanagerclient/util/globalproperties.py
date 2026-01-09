@@ -53,7 +53,7 @@ class Globalproperties:
             else:
                 raise FileNotFoundError(message)
         Globalproperties.archiveconfig = ArchiveConfig(properties_path)
-        Globalproperties.conf_dir = config.get('config', 'conf_dir', fallback=None)
+        Globalproperties.conf_dir = sanitize_path(config.get('config', 'conf_dir', fallback=None))
         if not Globalproperties.conf_dir:
             message = "Please specify the path to the config files in server-sync.ini."
             if not Globalproperties.test_mode:

@@ -13,7 +13,9 @@ from ..util.syncconfig import SyncConfig
 from ..util.globalproperties import Globalproperties
 from ..util.system import home_dir
 
-fileextension_filter = [".iml", ".lock"]
+fileextension_filter = [".iml", ".lock", ".egg-info"]
+
+DEFAULT_SYNC_ENV = 'default'
 
 
 class GitArchiveIgnoredFiles(GitClientBase):
@@ -41,6 +43,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 local_path_relative = self.local_path.parents[0].relative_to(system_home_dir)
         self.archive_project_root = Globalproperties.archive_dir_path.joinpath(allconfig.organization,
                                                                                local_path_relative, project_root)
+        self.archive_default_root = self.archive_project_root.joinpath(DEFAULT_SYNC_ENV)
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
 
     def apply(self):
@@ -54,11 +57,12 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if not self.gitrepo:
             self.gitrepo = Repo(self.local_path)
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
-        files_to_archive = [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")]
+        files_to_archive = [filename.replace("!! ", "").strip("/").strip("\\").strip(os.path.pathsep) for filename in
+                            files_to_archive if filename.startswith("!! ")]
         files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink() and not any(
             filename.endswith(x) for x in fileextension_filter)
                             and not os.path.basename(
-            filename.strip("/").strip("\\")) in self.archive_config.skip_list()]
+            filename) in self.archive_config.skip_list()]
         files_to_archive = [filename for filename in files_to_archive if
                             not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
         files_to_archive = [filename for filename in files_to_archive if
@@ -66,14 +70,15 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = [filename for filename in files_to_archive if
                             is_file_or_dir_and_smaller_than(Path(filename))]
         files_to_archive = [filename for filename in files_to_archive if not os.path.islink(Path(filename))]
-        files_to_archive = [filename for filename in files_to_archive if
-                            not ('test' in filename or 'tests' in filename)]
         if not files_to_archive:
             return True
+
         for original_file_rel in files_to_archive:
             original_path = Path(original_file_rel)
             if original_path.exists():
-                new_path = self.archive_syncenv_root.joinpath(original_file_rel)
+                new_path = self.archive_default_root.joinpath(original_file_rel)
+                if os.path.exists(new_path):
+                    new_path = self.archive_syncenv_root.joinpath(original_file_rel)
                 print(f"Archive file {original_file_rel} in new location {new_path}")
                 new_path.parents[0].mkdir(parents=True, exist_ok=True)
                 shutil.move(str(original_path), str(new_path))
@@ -89,32 +94,30 @@ class GitArchiveIgnoredFiles(GitClientBase):
                         print(f"Unexpected error: {e}")
         return False
 
-    def symlink_archived_files_back(self):
-        envs = os.listdir(self.archive_project_root)
-        if not envs:
-            return
-        if Globalproperties.allconfig.sync_env not in envs:
-            shutil.copy(os.path.join(self.archive_project_root, envs[0]), self.archive_syncenv_root)
-        linked_dirs = []
-        for root, dirs, files in os.walk(self.archive_syncenv_root):
-            relpath = Path(root).relative_to(self.archive_syncenv_root)
-            if str(relpath) in linked_dirs:
-                continue
+    def symlink_archived_files_for_env(self, archive_path):
+        for root, dirs, files in os.walk(archive_path):
+            relpath = Path(root).relative_to(archive_path)
             for dirname in dirs:
                 dir_rel_path = os.path.join(relpath, dirname)
                 if not os.path.exists(self.local_path.joinpath(dir_rel_path)):
                     link_location = self.local_path.joinpath(dir_rel_path)
                     source_location = Path(root).joinpath(dirname)
                     link_location.symlink_to(source_location, target_is_directory=True)
-                    print(f"Create directory symlink from {source_location} to {link_location}")
-                linked_dirs.append(dir_rel_path)
+                    print(f"Create directory symlink at {link_location} pointing to {source_location}")
             for filename in files:
                 file_rel_path = os.path.join(relpath, filename)
                 if not os.path.exists(self.local_path.joinpath(file_rel_path)):
                     link_location = self.local_path.joinpath(file_rel_path)
                     source_location = Path(root).joinpath(filename)
-                    print(f"Create file symlink from {source_location} to {link_location}")
+                    print(f"Create file symlink at {link_location} pointing to {source_location}")
                     link_location.symlink_to(source_location)
+
+    def symlink_archived_files_back(self):
+        envs = os.listdir(self.archive_project_root)
+        if not envs or not DEFAULT_SYNC_ENV in envs:
+            return
+        self.symlink_archived_files_for_env(self.archive_syncenv_root)
+        self.symlink_archived_files_for_env(self.archive_default_root)
 
 
 def is_file_or_dir_and_smaller_than(path: Path) -> bool:
