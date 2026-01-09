@@ -1,13 +1,11 @@
 from jinja2 import Environment, FileSystemLoader
 from git import Repo
 
-from pathlib import Path
-
 
 # Project files
 from syncmanagerclient.main import apply_sync_conf_files
 from syncmanagerclient.clients import ACTION_PUSH
-import syncmanagerclient.util.globalproperties as globalproperties
+from syncmanagerclient.util.globalproperties import Globalproperties
 
 from .testutils import *
 
@@ -57,8 +55,8 @@ def setup_repos(local_conf_file_name, repo_prefix):
     }
     detemplate_properties(context)
     # setup global properties file
-    globalproperties.set_prefix(os.path.dirname(test_dir))
-    globalproperties.read_config('test')
+    Globalproperties.set_prefix(os.path.dirname(test_dir))
+    Globalproperties.read_config('test')
 
     shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
     if not os.path.exists(repos_dir):

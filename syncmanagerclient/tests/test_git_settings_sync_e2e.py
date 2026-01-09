@@ -19,7 +19,7 @@ sys.path.insert(0, project_dir)
 from testlib.testsetup import USER_CLIENT_ENV, get_user_basic_authorization
 from testlib.api_utility import fetch_client_repo_from_api, get_clientenv_repos_url
 
-import syncmanagerclient.util.globalproperties as globalproperties
+from syncmanagerclient.util.globalproperties import Globalproperties
 from syncmanagerclient.util.syncconfig import SyncConfig
 
 from .conftest import e2e_test_workspace_root
@@ -34,8 +34,8 @@ USER_EMAIL = f"{USER_NAME}@test.com"
 def init_test(sync_api_user):
     repos_root_dir = os.path.join(e2e_test_workspace_root, sync_api_user["username"], "e2e")
     load_global_properties('e2e', repos_root_dir)
-    globalproperties.allconfig.username = USER_NAME
-    globalproperties.allconfig.email = USER_EMAIL
+    Globalproperties.allconfig.username = USER_NAME
+    Globalproperties.allconfig.email = USER_EMAIL
 
 @pytest.mark.dependency()
 def test_set_settings(app_initialized, local_repo, client, sync_api_user):
@@ -48,20 +48,20 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     origin_url = local_repo.remotes["origin"].url
 
     load_global_properties()
-    globalproperties.api_user = sync_api_user["username"]
-    globalproperties.api_pw = sync_api_user["password"]
+    Globalproperties.api_user = sync_api_user["username"]
+    Globalproperties.api_pw = sync_api_user["password"]
 
-    assert globalproperties.allconfig.username != USER_NAME
-    assert globalproperties.allconfig.email != USER_EMAIL
+    assert Globalproperties.allconfig.username != USER_NAME
+    assert Globalproperties.allconfig.email != USER_EMAIL
 
     # artificially overwrite the git config of the repo
-    sync_settings = GitClientSettings(SyncConfig.init(local_path_short=local_repo.working_dir, allconfig=globalproperties.allconfig), local_repo)
+    sync_settings = GitClientSettings(SyncConfig.init(local_path_short=local_repo.working_dir, allconfig=Globalproperties.allconfig), local_repo)
     sync_settings.set_user_config()
 
-    assert local_repo.config_reader().get_value("user", "name") == globalproperties.allconfig.username
-    assert local_repo.config_reader().get_value("user", "email") == globalproperties.allconfig.email
+    assert local_repo.config_reader().get_value("user", "name") == Globalproperties.allconfig.username
+    assert local_repo.config_reader().get_value("user", "email") == Globalproperties.allconfig.email
 
-    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
 
     args = ArgumentsTest()
     args.action = "set-config"

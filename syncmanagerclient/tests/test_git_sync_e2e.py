@@ -11,7 +11,7 @@ import pytest
 
 from syncmanagerclient.main import execute_command
 from syncmanagerclient.util.syncconfig import SyncConfig
-import syncmanagerclient.util.globalproperties as globalproperties
+from syncmanagerclient.util.globalproperties import Globalproperties
 from syncmanagerclient.util.system import change_dir, sanitize_posix_path
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
@@ -65,7 +65,7 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     assert response.status_code == 400
 
     # 2. test first sync
-    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
 
     args = ArgumentsTest()
     args.action = "push"
@@ -108,7 +108,7 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     args.sync_env = USER_CLIENT_ENV_EXTRA
     change_dir(other_repo_path)
     change_environment('e2e-extra', sync_api_user)
-    sync_config_other = SyncConfig.init(allconfig = globalproperties.allconfig)
+    sync_config_other = SyncConfig.init(allconfig = Globalproperties.allconfig)
     execute_command(args, sync_config_other, remote_name = "origin")
     query_params = {
         "clientenv": USER_CLIENT_ENV_EXTRA,
@@ -138,7 +138,7 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     args.action = "push"
     args.namespace = "e2e_repo"
     args.sync_env = USER_CLIENT_ENV
-    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
     execute_command(args, sync_config, remote_name="origin")
 
     # 2. change to extra env and fetch the branch
@@ -147,7 +147,7 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     args.action = "pull"
     args.namespace = "e2e_repo"
     args.sync_env = USER_CLIENT_ENV_EXTRA
-    other_sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    other_sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
     execute_command(args, other_sync_config, remote_name="origin")
 
     # after sync the file system pointer points to the parent dir of the repositories
@@ -177,7 +177,7 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     assert hasattr(Repo(other_repo_path).heads, test_branch)
 
     # registry entry exists
-    registry_file_path = os.path.join(globalproperties.var_dir, 'git.origin.txt')
+    registry_file_path = os.path.join(Globalproperties.var_dir, 'git.origin.txt')
     assert os.path.exists(registry_file_path), f"deletion registry file missing {registry_file_path}"
     with open(registry_file_path) as file:
         lines = [line.rstrip() for line in file]
@@ -221,9 +221,9 @@ def change_environment(clientenv, sync_api_user):
     :param sync_api_user:
     :return:
     """
-    globalproperties.loaded = False
+    Globalproperties.loaded = False
     load_global_properties(clientenv)
-    globalproperties.allconfig.username = USER_NAME
-    globalproperties.allconfig.email = USER_EMAIL
-    globalproperties.api_user = sync_api_user["username"]
-    globalproperties.api_pw = sync_api_user["password"]
+    Globalproperties.allconfig.username = USER_NAME
+    Globalproperties.allconfig.email = USER_EMAIL
+    Globalproperties.api_user = sync_api_user["username"]
+    Globalproperties.api_pw = sync_api_user["password"]

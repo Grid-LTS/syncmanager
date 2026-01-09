@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 from syncmanagerclient.util.system import change_dir
-import syncmanagerclient.util.globalproperties as globalproperties
+from syncmanagerclient.util.globalproperties import Globalproperties
 from syncmanagerclient.main import init_global_properties
 
 from testlib.testsetup import USER_CLIENT_ENV
@@ -37,9 +37,9 @@ class ArgumentsTest:
 
 def load_global_properties(stage="e2e", repos_root_dir=None):
     if not repos_root_dir:
-        if not globalproperties.var_dir:
+        if not Globalproperties.var_dir:
             raise ValueError("Your need configure 'var_dir' configuration parameter")
-        prev_repos_dir = os.path.dirname(globalproperties.var_dir)
+        prev_repos_dir = os.path.dirname(Globalproperties.var_dir)
         prev_stage = os.path.basename(prev_repos_dir)
         if stage != prev_stage:
             repos_root_dir = os.path.join(os.path.dirname(prev_repos_dir), stage)
@@ -50,9 +50,9 @@ def load_global_properties(stage="e2e", repos_root_dir=None):
     var_dir = os.path.join(repos_root_dir, "var")
     Path(var_dir).mkdir(parents=True, exist_ok=True)
     init_global_properties(stage)
-    globalproperties.set_prefix(os.path.dirname(test_dir))
-    globalproperties.test_mode = True
-    globalproperties.var_dir = var_dir
+    Globalproperties.set_prefix(os.path.dirname(test_dir))
+    Globalproperties.test_mode = True
+    Globalproperties.var_dir = var_dir
 
 def build_local_repo_path(parent_dir, base):
     if not parent_dir:

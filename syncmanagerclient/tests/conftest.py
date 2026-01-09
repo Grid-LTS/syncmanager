@@ -52,9 +52,9 @@ def setup_local_repo(sync_user, repo_name):
     Path(test_file_path).touch()
     local_repo.index.add([test_file_path])
     local_repo.index.commit("Initial commit on principal branch")
-    globalproperties.api_user = sync_user["username"]
-    globalproperties.api_pw = sync_user["password"]
-    sync_config = SyncConfig.init(allconfig = globalproperties.allconfig)
+    Globalproperties.api_user = sync_user["username"]
+    Globalproperties.api_pw = sync_user["password"]
+    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
 
     args = ArgumentsTest()
     args.action = "set-remote"
