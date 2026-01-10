@@ -66,7 +66,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
         files_to_archive = [filename.replace("!! ", "").strip("/").strip("\\").strip(os.path.pathsep) for filename in
                             files_to_archive if filename.startswith("!! ")]
-        files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink() and not any(
+        symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
+        files_to_archive = [filename for filename in files_to_archive if not filename in symlinks and not any(
             x.match(filename) for x in self.archive_config.skip_regex_pattern)
                             and not os.path.basename(
             filename) in self.archive_config.skip_list()]
@@ -81,14 +82,16 @@ class GitArchiveIgnoredFiles(GitClientBase):
         # are operational and contain only short-term or processed data
         files_to_archive = [filename for filename in files_to_archive if
                             not (Path(filename).parent / ".gitkeep").exists()]
-        unstaged_files = [x.replace("?? ", "") for x in self.gitrepo.git.status(porcelain=True).split('\n')]
-        if '' in unstaged_files:
-            unstaged_files.remove('')
-        for file in list(files_to_archive + unstaged_files):
+
+        for file in list(files_to_archive + symlinks):
             path = Path(file)
-            if not check_if_broken_symlink(path):
+            is_stale = path.is_symlink() and not os.path.exists(os.path.realpath(path))
+            if not check_if_broken_symlink(path) and not is_stale:
                 continue
-            print(f"{file} is a broken symlink. Delete")
+            if is_stale:
+                print(f"{file} is a stale symlink. Delete")
+            else:
+                print(f"{file} is a broken symlink. Delete")
             path.unlink()
             if file in files_to_archive:
                 files_to_archive.remove(file)
@@ -146,13 +149,23 @@ class GitArchiveIgnoredFiles(GitClientBase):
 
     def symlink_archived_files_back(self):
         if not self.archive_project_root.exists():
-            print(f"No archive registered for repo {self.local_path_short}")
+            #print(f"No archive registered for repo {self.local_path_short}")
             return
         envs = os.listdir(self.archive_project_root)
         if not envs or not DEFAULT_SYNC_ENV in envs:
             return
         self.symlink_archived_files_for_env(self.archive_syncenv_root)
         self.symlink_archived_files_for_env(self.archive_default_root)
+
+
+    def get_unstaged_files(self):
+        """
+        not used, but kept for further repo pruning
+        :return:
+        """
+        unstaged_files = [x.replace("?? ", "") for x in self.gitrepo.git.status(porcelain=True).split('\n') if x.startswith("?? ")]
+        if '' in unstaged_files:
+            unstaged_files.remove('')
 
 
 def directory_contains_git_repo(path: Path):

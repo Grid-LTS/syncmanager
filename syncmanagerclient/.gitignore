@@ -4,7 +4,6 @@
 !server-sync.e2e-extra.ini
 venv
 Pipfile.lock
-HELP.md
 
 local/**
 !local/.gitkeep
