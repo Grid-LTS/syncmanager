@@ -1,19 +1,17 @@
 import os
+import shutil
 import stat
 import sys
+from pathlib import Path
 from typing import Callable, Optional
 
 from git import Repo
-from pathlib import Path
-import shutil
 
 from .git_base import GitClientBase
 from ..util.error import InvalidArgument
-from ..util.syncconfig import SyncConfig
 from ..util.globalproperties import Globalproperties
+from ..util.syncconfig import SyncConfig
 from ..util.system import home_dir
-
-fileextension_filter = [".iml", ".lock", ".egg-info"]
 
 DEFAULT_SYNC_ENV = 'default'
 
@@ -59,7 +57,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = [filename.replace("!! ", "").strip("/").strip("\\").strip(os.path.pathsep) for filename in
                             files_to_archive if filename.startswith("!! ")]
         files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink() and not any(
-            filename.endswith(x) for x in fileextension_filter)
+            x.match(filename) for x in self.archive_config.skip_regex_pattern)
                             and not os.path.basename(
             filename) in self.archive_config.skip_list()]
         files_to_archive = [filename for filename in files_to_archive if
@@ -68,7 +66,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
                             not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
         files_to_archive = [filename for filename in files_to_archive if
                             is_file_or_dir_and_smaller_than(Path(filename))]
-        files_to_archive = [filename for filename in files_to_archive if not os.path.islink(Path(filename))]
         if not files_to_archive:
             return True
 

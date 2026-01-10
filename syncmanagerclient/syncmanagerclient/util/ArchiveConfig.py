@@ -1,3 +1,5 @@
+import re
+
 from configparser import ConfigParser
 
 
@@ -7,26 +9,29 @@ class ArchiveConfig:
         config = ConfigParser()
         config.read(properties_path)
         self.build_and_cache = ArchiveConfig.parse_and_prune(
-            config.get('config', 'build_and_cache', fallback='__pycache__,.pytest_cache,.gradle,gradle,build,out,target,poetry.lock,package-lock.json'))
+            config.get('config', 'build_and_cache',
+                       fallback="__pycache__,.pytest_cache,.gradle,gradle,"
+                                "build,out,target,poetry.lock,package-lock.json,gradle-wrapper.jar"))
         self.dependency_dirs = ArchiveConfig.parse_and_prune(
             config.get('config', 'dependency_dirs', fallback='.venv,venv,dist,node_modules'))
-        self.ignore_directories = ArchiveConfig.parse_and_prune(
-            config.get('config', 'ignore_directories', fallback='lib,.temp,tmp,temp,.tmp,logs'))
-        self.ignore_directories += ["test", "tests", ".git"]
-        self.build_artefacts = ArchiveConfig.parse_and_prune(
-            config.get('config', 'build_artefacts', fallback='gradle-wrapper.jar'))
-        self.optional_files = ArchiveConfig.parse_and_prune(
-            config.get('config', 'optional_files', fallback='access.log'))
-        self.environment_files =  ArchiveConfig.parse_and_prune(config.get('config', 'environment_files', fallback='.DS_Store'))
-        self.code_file_extensions = ArchiveConfig.parse_and_prune(config.get('config', 'code_file_extensions', fallback=''))
+        self.skip_directories = ArchiveConfig.parse_and_prune(
+            config.get('config', 'skip_directories', fallback='lib,.temp,tmp,temp,.tmp,logs'))
+        self.skip_directories += ["test", "tests", ".git"]
+        self.skip_regex_pattern = [re.compile(x) for x in ArchiveConfig.parse_and_prune(
+            config.get('config', 'skip_files_with_regex',
+                       fallback='.*\.iml$, .*\.lock$, .*\.egg-info$, access\.log'))]
+        self.environment_files = ArchiveConfig.parse_and_prune(
+            config.get('config', 'environment_files', fallback='.DS_Store'))
+        self.code_file_extensions = ArchiveConfig.parse_and_prune(
+            config.get('config', 'code_file_extensions', fallback=''))
         self.max_archive_filesize_MB = int(config.get('config', 'max_archive_filesize_MB', fallback='10'))
 
     def skip_list(self):
-        return self.dependency_dirs + self.environment_files + self.optional_files + self.build_artefacts
+        return self.dependency_dirs + self.environment_files
 
     def skip_directory_list(self):
-        return  self.build_and_cache + self.ignore_directories
-    
+        return self.build_and_cache + self.skip_directories
+
     @staticmethod
     def parse_and_prune(value):
         if not value:
