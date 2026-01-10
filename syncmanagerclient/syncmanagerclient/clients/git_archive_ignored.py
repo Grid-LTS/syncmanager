@@ -23,7 +23,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if config:
             self.set_config(config)
             self.config = config
-        project_root = os.path.basename(self.local_path).lower()
+        project_root = os.path.basename(self.local_path)
         self.archive_config = Globalproperties.archiveconfig
         system_home_dir = Path(home_dir)
         allconfig = Globalproperties.allconfig
@@ -38,6 +38,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 local_path_relative = Path(*Path(self.local_path.parents[0]).parts[1:])
             else:
                 local_path_relative = self.local_path.parents[0].relative_to(system_home_dir)
+        # normalize to be OS independent
+        local_path_relative = Path(*[part.lower() for part in local_path_relative.parts])
         self.archive_project_root = Globalproperties.archive_dir_path.joinpath(allconfig.organization,
                                                                                local_path_relative, project_root)
         self.archive_default_root = self.archive_project_root.joinpath(DEFAULT_SYNC_ENV)
@@ -95,23 +97,32 @@ class GitArchiveIgnoredFiles(GitClientBase):
                         print(f"Unexpected error: {e}")
         return False
 
-    def symlink_archived_files_for_env(self, archive_path):
+    def symlink_archived_files_for_env(self, archive_path: Path):
+        if not archive_path.exists():
+            return
+        skip_dirs = []  # contains directories that are already symlinked
         for root, dirs, files in os.walk(archive_path):
             relpath = Path(root).relative_to(archive_path)
+            if relpath in skip_dirs or relpath.parent in skip_dirs:
+                if relpath.parent in skip_dirs:
+                    skip_dirs.append(relpath)
+                continue
             for dirname in dirs:
-                dir_rel_path = os.path.join(relpath, dirname)
-                if not os.path.exists(self.local_path.joinpath(dir_rel_path)):
-                    link_location = self.local_path.joinpath(dir_rel_path)
+                dir_rel_path = relpath.joinpath(dirname)
+                would_be_link_location = self.local_path.joinpath(dir_rel_path)
+                if not would_be_link_location.exists() and not would_be_link_location.is_symlink():
                     source_location = Path(root).joinpath(dirname)
-                    link_location.symlink_to(source_location, target_is_directory=True)
-                    print(f"Create directory symlink at {link_location} pointing to {source_location}")
+                    would_be_link_location.symlink_to(source_location, target_is_directory=True)
+                    print(f"Create directory symlink at {would_be_link_location} pointing to {source_location}")
+                elif would_be_link_location.is_symlink():
+                    skip_dirs.append(dir_rel_path)
             for filename in files:
-                file_rel_path = os.path.join(relpath, filename)
-                if not os.path.exists(self.local_path.joinpath(file_rel_path)):
-                    link_location = self.local_path.joinpath(file_rel_path)
+                file_rel_path = relpath.joinpath(filename)
+                if not self.local_path.joinpath(file_rel_path).exists():
+                    would_be_link_location = self.local_path.joinpath(file_rel_path)
                     source_location = Path(root).joinpath(filename)
-                    print(f"Create file symlink at {link_location} pointing to {source_location}")
-                    link_location.symlink_to(source_location)
+                    print(f"Create file symlink at {would_be_link_location} pointing to {source_location}")
+                    would_be_link_location.symlink_to(source_location)
 
     def symlink_archived_files_back(self):
         envs = os.listdir(self.archive_project_root)
