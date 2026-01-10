@@ -4,6 +4,7 @@ import stat
 import sys
 from pathlib import Path
 from typing import Callable, Optional
+import re
 
 from git import Repo
 
@@ -73,6 +74,16 @@ class GitArchiveIgnoredFiles(GitClientBase):
         # are operational and contain only short-term or processed data
         files_to_archive = [filename for filename in files_to_archive if
                             not (Path(filename).parent / ".gitkeep").exists()]
+        unstaged_files = [x.replace("?? ", "") for x in self.gitrepo.git.status(porcelain=True).split('\n')]
+        for file in list(files_to_archive + unstaged_files):
+            path = Path(file)
+            if not check_if_broken_symlink(path):
+                continue
+            print(f"{file} is a broken symlink. Delete")
+            path.unlink()
+            if file in files_to_archive:
+                files_to_archive.remove(file)
+
         if not files_to_archive:
             return True
 
@@ -125,6 +136,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     would_be_link_location.symlink_to(source_location)
 
     def symlink_archived_files_back(self):
+        if not self.archive_project_root.exists():
+            print(f"No archive registered for repo {self.local_path_short}")
+            return
         envs = os.listdir(self.archive_project_root)
         if not envs or not DEFAULT_SYNC_ENV in envs:
             return
@@ -196,6 +210,31 @@ def find_git_repos_under(path: Path, max_depth: Optional[int] = None,
             continue
 
     return None
+
+
+_RE = re.compile(r'\AXSym\r?\n[0-9]{4}\r?\n[0-9A-Fa-f]{32}\r?\n/(?:[^/\x00]+(?:/(?!/)[^/\x00]+)*)/?\r?\Z')
+
+
+def check_if_broken_symlink(path: Path):
+    """
+    Return True if the file at `path` contains exactly the format:
+
+      XSym
+      <4 digits>
+      <32 hex chars>
+      <absolute filesystem path>
+
+    - accepts LF or CRLF line endings
+    - last line may or may not end with a newline
+    - hex is case-insensitive (0-9 a-f A-F)
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception:
+        # Could raise or return False depending on desired behavior
+        return False
+
+    return bool(_RE.match(text))
 
 
 def has_git_repo_under(path: Path,
