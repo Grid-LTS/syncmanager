@@ -6,7 +6,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 import pytest
-from conftest import git_base_dir_path
+from .conftest import git_base_dir_path
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 syncmanager_api_dir = os.path.dirname(test_dir)
@@ -15,7 +15,7 @@ sys.path.insert(0, project_dir)
 
 from testlib.testsetup import USER_CLIENT_ENV, get_user_basic_authorization
 from testlib.api_utility import fetch_client_repo_from_api, get_clientenv_repos_url, headers
-from testsetup import setup_test_repo, cleanup_test_resources
+from .testsetup import setup_test_repo, cleanup_test_resources
 
 
 

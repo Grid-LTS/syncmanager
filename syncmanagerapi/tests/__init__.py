@@ -1,0 +1,1 @@
+# added so that test modules are namespaced according to pytest recommendations
