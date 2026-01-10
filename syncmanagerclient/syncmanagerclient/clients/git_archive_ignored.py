@@ -65,7 +65,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = [filename for filename in files_to_archive if
                             not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
         files_to_archive = [filename for filename in files_to_archive if
-                            is_file_or_dir_and_smaller_than(Path(filename))]
+                            not directory_contains_git_repo(Path(filename))
+                            and is_file_or_dir_and_smaller_than(Path(filename))]
         if not files_to_archive:
             return True
 
@@ -116,12 +117,84 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.symlink_archived_files_for_env(self.archive_default_root)
 
 
+def directory_contains_git_repo(path: Path):
+    if not path.is_dir():
+        return False
+    return has_git_repo_under(path)
+
+
+def find_git_repos_under(path: Path, max_depth: Optional[int] = None,
+                         follow_symlinks: bool = False) -> Optional[Path]:
+    """
+    Recursively search downward from `path` for directories that contain a ".git" entry.
+
+    - `path`: directory (or file; file => its parent directory is used) to start the search from.
+    - `max_depth`: if provided, limits recursion depth (0 means only the start directory).
+                 Depth is measured in directory levels below the start directory.
+    - `follow_symlinks`: whether to follow directory symlinks while recursing (defaults False).
+
+    Returns a list of Path objects pointing to directories that contain a ".git" entry
+    (the directory which itself contains ".git"). If none found, returns an empty list.
+    """
+    # Use absolute path for predictable parent traversal (avoid relative surprises)
+    p = path.resolve()
+    if not p.exists() or not p.is_dir():
+        return None
+
+    # Use os.walk to allow pruning `dirs` for depth-limiting and permission handling.
+    for dirpath, dirnames, filenames in os.walk(str(p), topdown=True, followlinks=follow_symlinks):
+        try:
+            # depth relative to root
+            rel = os.path.relpath(dirpath, str(p))
+        except ValueError:
+            # In weird cases (different mounts / windows UNC) fallback to full parts count
+            rel = dirpath
+        depth = 0 if rel == '.' else rel.count(os.sep) + 1  # number of levels below root
+
+        # If max_depth specified and we are at or past it, prune further descent.
+        if max_depth is not None and depth > max_depth:
+            dirnames[:] = []
+            continue
+        if max_depth is not None and depth == max_depth:
+            # don't descend further from this level
+            dirnames[:] = []
+
+        current = Path(dirpath)
+        if str(current).endswith(".git"):
+            return current
+        git_entry = current / ".git"
+        try:
+            if git_entry.exists():
+                return git_entry
+            # check if bare git repo
+            # add more conditions
+            if (current / "HEAD").exists() and (current / "refs").exists() and (current / "config").exists():
+                return current
+
+        except PermissionError:
+            # skip directories we cannot stat, but continue searching other branches
+            dirnames[:] = []
+            continue
+
+    return None
+
+
+def has_git_repo_under(path: Path,
+                       max_depth: Optional[int] = None,
+                       follow_symlinks: bool = False) -> Optional[Path]:
+    """
+    Convenience wrapper that returns the first repository found (or None).
+    """
+    repo = find_git_repos_under(path, max_depth=max_depth, follow_symlinks=follow_symlinks)
+    return repo is not None
+
+
 def is_file_or_dir_and_smaller_than(path: Path) -> bool:
     max_file_size_for_archiving = Globalproperties.archiveconfig.max_archive_filesize_MB * 1024 * 1024
     try:
-        if os.path.isfile(path):
+        if path.is_file():
             return os.path.getsize(path) <= max_file_size_for_archiving
-        if os.path.isdir(path):
+        if path.is_dir():
             return get_dir_size(path) <= max_file_size_for_archiving
     except OSError as e:
         # File not found or inaccessible
