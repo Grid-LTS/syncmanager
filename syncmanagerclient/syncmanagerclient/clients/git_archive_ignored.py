@@ -8,6 +8,7 @@ import re
 
 from git import Repo
 
+from .error import GitErrorItem
 from .git_base import GitClientBase
 from ..util.error import InvalidArgument
 from ..util.globalproperties import Globalproperties
@@ -47,7 +48,13 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
 
     def apply(self):
-        is_pristine = self.archive_ignored_files()
+        if not self.local_path.exists():
+            return
+        try:
+            is_pristine = self.archive_ignored_files()
+        except InvalidArgument as err:
+            self.errors.append(GitErrorItem(self.local_path_short, err.message, None))
+            return
         if is_pristine:
             self.symlink_archived_files_back()
 
@@ -75,6 +82,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = [filename for filename in files_to_archive if
                             not (Path(filename).parent / ".gitkeep").exists()]
         unstaged_files = [x.replace("?? ", "") for x in self.gitrepo.git.status(porcelain=True).split('\n')]
+        if '' in unstaged_files:
+            unstaged_files.remove('')
         for file in list(files_to_archive + unstaged_files):
             path = Path(file)
             if not check_if_broken_symlink(path):
@@ -225,8 +234,6 @@ def check_if_broken_symlink(path: Path):
       <absolute filesystem path>
 
     - accepts LF or CRLF line endings
-    - last line may or may not end with a newline
-    - hex is case-insensitive (0-9 a-f A-F)
     """
     try:
         text = path.read_text(encoding="utf-8")
