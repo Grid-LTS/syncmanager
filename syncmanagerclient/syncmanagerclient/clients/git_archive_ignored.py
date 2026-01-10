@@ -23,7 +23,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if config:
             self.set_config(config)
             self.config = config
-        project_root = os.path.basename(self.local_path)
+        project_root = os.path.basename(self.local_path).lower()
         self.archive_config = Globalproperties.archiveconfig
         system_home_dir = Path(home_dir)
         allconfig = Globalproperties.allconfig
@@ -67,6 +67,10 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = [filename for filename in files_to_archive if
                             not directory_contains_git_repo(Path(filename))
                             and is_file_or_dir_and_smaller_than(Path(filename))]
+        # we do not archive files that live in git-managed directories, having .gitkeep file, because these directory
+        # are operational and contain only short-term or processed data
+        files_to_archive = [filename for filename in files_to_archive if
+                            not (Path(filename).parent / ".gitkeep").exists()]
         if not files_to_archive:
             return True
 
@@ -127,6 +131,8 @@ def find_git_repos_under(path: Path, max_depth: Optional[int] = None,
                          follow_symlinks: bool = False) -> Optional[Path]:
     """
     Recursively search downward from `path` for directories that contain a ".git" entry.
+    Also include directories with .gitkeep entry, since these directories are managed by git and should also not be
+    archived
 
     - `path`: directory (or file; file => its parent directory is used) to start the search from.
     - `max_depth`: if provided, limits recursion depth (0 means only the start directory).
@@ -169,6 +175,8 @@ def find_git_repos_under(path: Path, max_depth: Optional[int] = None,
             # check if bare git repo
             # add more conditions
             if (current / "HEAD").exists() and (current / "refs").exists() and (current / "config").exists():
+                return current
+            if (current / ".gitkeep").exists():
                 return current
 
         except PermissionError:
