@@ -73,9 +73,10 @@ class SyncClient:
         """
         api_service = ApiService(self.mode, self.sync_env)
         cache_repose_path = Globalproperties.cache_dir.joinpath("remote_repos.json")
-        if not Globalproperties.offline:
+        cache_disabled = Globalproperties.test_mode
+        if not sync_config.offline or cache_disabled:
             remote_repos = api_service.list_repos_by_client_env(sync_config.global_config, full=True)
-            if remote_repos:
+            if remote_repos and not cache_disabled:
                 with cache_repose_path.open("w", encoding="utf-8") as f:
                     json.dump(remote_repos, f, ensure_ascii=False, indent=2)
         else:

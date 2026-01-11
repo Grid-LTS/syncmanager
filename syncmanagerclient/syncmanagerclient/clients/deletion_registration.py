@@ -65,7 +65,7 @@ class DeletionRegistration:
                         print(f"No remote url defined. Skip")
                         continue
                     remote_url = remote_urls[0]
-                    config = SyncConfig()
+                    config = SyncConfig(Globalproperties.allconfig.args)
                     config.local_path = self.dir
                     config.remote_repo_url = remote_url
                     config.remote_repo = remote.name

@@ -55,8 +55,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         except InvalidArgument as err:
             self.errors.append(GitErrorItem(self.local_path_short, err.message, None))
             return
-        if is_pristine:
-            self.symlink_archived_files_back()
+        self.symlink_archived_files_back()
 
     def archive_ignored_files(self):
         if not self.local_path.joinpath(".git").resolve().exists():
@@ -106,6 +105,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 if os.path.exists(new_path):
                     new_path = self.archive_syncenv_root.joinpath(original_file_rel)
                 print(f"Archive file {original_file_rel} in new location {new_path}")
+                if self.config.dry_run:
+                    continue
                 new_path.parents[0].mkdir(parents=True, exist_ok=True)
                 shutil.move(str(original_path), str(new_path))
                 # Create symlink at the original location pointing to the new location
@@ -135,8 +136,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 would_be_link_location = self.local_path.joinpath(dir_rel_path)
                 if not would_be_link_location.exists() and not would_be_link_location.is_symlink():
                     source_location = Path(root).joinpath(dirname)
-                    would_be_link_location.symlink_to(source_location, target_is_directory=True)
                     print(f"Create directory symlink at {would_be_link_location} pointing to {source_location}")
+                    if not self.config.dry_run:
+                        would_be_link_location.symlink_to(source_location, target_is_directory=True)
                 elif would_be_link_location.is_symlink():
                     skip_dirs.append(dir_rel_path)
             for filename in files:
@@ -145,11 +147,12 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     would_be_link_location = self.local_path.joinpath(file_rel_path)
                     source_location = Path(root).joinpath(filename)
                     print(f"Create file symlink at {would_be_link_location} pointing to {source_location}")
-                    would_be_link_location.symlink_to(source_location)
+                    if not self.config.dry_run:
+                        would_be_link_location.symlink_to(source_location)
 
     def symlink_archived_files_back(self):
         if not self.archive_project_root.exists():
-            #print(f"No archive registered for repo {self.local_path_short}")
+            # print(f"No archive registered for repo {self.local_path_short}")
             return
         envs = os.listdir(self.archive_project_root)
         if not envs or not DEFAULT_SYNC_ENV in envs:
@@ -157,13 +160,13 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.symlink_archived_files_for_env(self.archive_syncenv_root)
         self.symlink_archived_files_for_env(self.archive_default_root)
 
-
     def get_unstaged_files(self):
         """
         not used, but kept for further repo pruning
         :return:
         """
-        unstaged_files = [x.replace("?? ", "") for x in self.gitrepo.git.status(porcelain=True).split('\n') if x.startswith("?? ")]
+        unstaged_files = [x.replace("?? ", "") for x in self.gitrepo.git.status(porcelain=True).split('\n') if
+                          x.startswith("?? ")]
         if '' in unstaged_files:
             unstaged_files.remove('')
 

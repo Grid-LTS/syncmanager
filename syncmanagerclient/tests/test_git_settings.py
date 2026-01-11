@@ -2,14 +2,14 @@ import os
 import pytest
 
 from .utils.testutils import local_conf_file_name, test_dir
-from .utils.conffileutils import setup_repos, teardown_repos_directory, detemplate_conf
+from .utils.conffileutils import setup_legacy_sync_repos, teardown_repos_directory, detemplate_conf
 from syncmanagerclient.main import apply_sync_conf_files
 from syncmanagerclient.clients import ACTION_SET_CONF
 
 @pytest.fixture(scope="module")
 def setup_git_repos(request):
     # Set up the repositories before tests
-    origin_repo, local_repo = setup_repos(local_conf_file_name, request.module.__name__.split(".")[-1])
+    origin_repo, local_repo = setup_legacy_sync_repos(local_conf_file_name, request.module.__name__.split(".")[-1])
     yield origin_repo, local_repo
     teardown_repos_directory([origin_repo, local_repo])
 

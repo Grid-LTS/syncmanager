@@ -30,10 +30,13 @@ system_tz = dt.datetime.now().astimezone().tzinfo
 USER_NAME = __name__.split(".")[-1]
 USER_EMAIL = f"{USER_NAME}@test.com"
 
+args = ArgumentsTest()
+args.action = "set-config"
+
 @pytest.fixture(scope="module", autouse=True)
 def init_test(sync_api_user):
     repos_root_dir = os.path.join(e2e_test_workspace_root, sync_api_user["username"], "e2e")
-    load_global_properties('e2e', repos_root_dir)
+    load_global_properties('e2e', repos_root_dir, args)
     Globalproperties.allconfig.username = USER_NAME
     Globalproperties.allconfig.email = USER_EMAIL
 
@@ -47,7 +50,7 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
     origin_url = local_repo.remotes["origin"].url
 
-    load_global_properties()
+    load_global_properties(args=args)
     Globalproperties.api_user = sync_api_user["username"]
     Globalproperties.api_pw = sync_api_user["password"]
 
@@ -63,8 +66,7 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
 
     sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
 
-    args = ArgumentsTest()
-    args.action = "set-config"
+
     execute_command(args, sync_config, remote_name="origin")
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL

@@ -4,7 +4,7 @@ from os.path import dirname
 from pathlib import Path
 
 from .util.globalproperties import Globalproperties
-from .util.syncconfig import SyncConfig
+from .util.syncconfig import SyncConfig, SyncAllConfig
 from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
@@ -73,7 +73,7 @@ staging_envs = ['dev', 'tests', 'prod']
 clients = ['git','unison']
 
 
-def legacy():
+def parse_arguments_legacy():
     global clients
     global staging_envs
     parser = argparse.ArgumentParser()
@@ -91,7 +91,11 @@ def legacy():
     sub_parser_delete = sub_parser_action.add_parser('delete')
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def legacy():
+    args = parse_arguments_legacy()
     init_global_properties(args.stage)
     if args.action in [ACTION_PULL, ACTION_PUSH]:
         action = args.action
@@ -138,8 +142,7 @@ def legacy():
             files = [fi for fi in filenames if fi.endswith(".conf")]
             apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
 
-
-def main():
+def parse_arguments():
     """
       Parses arguments and initiates the respective sync clients
     """
@@ -156,7 +159,8 @@ def main():
     parser.add_argument("-o","--org", default="",
                         help="Specifies organization to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
-    parser.add_argument("-off", "--offline", action='store_true', help="when offline server is not called")
+    parser.add_argument("-off", "--offline", action='store_true', help="when offline. server is not called")
+    parser.add_argument("-dry", "--dryrun", action='store_true', help="dry run does not execution the action")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
     parser.add_argument("-ry", "--retention_years", help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
     allowed_actions = [ACTION_PUSH, ACTION_PULL, ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
@@ -167,11 +171,14 @@ def main():
     sub_parser_delete = sub_parser_action.add_parser(ACTION_DELETE)
     # add another positional argument to specify the path or branch to delete
     sub_parser_delete.add_argument('path', type=str)
-    args = parser.parse_args()
+    return parser.parse_args()
+
+
+def main():
+    args = parse_arguments()
     init_global_properties(args.stage, args.org)
     # determine the environment which is synced
-    if args.env:
-        Globalproperties.allconfig.sync_env = args.env
+    Globalproperties.init_allconfig(args)
     sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
     if args.action == ACTION_DELETE:
         path = args.path
@@ -183,8 +190,7 @@ def main():
 
 
 def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=None):
-    Globalproperties.offline = arguments.offline
-    single_repo_mode = Globalproperties.offline and Path(os.getcwd()).joinpath(".git").exists()
+    single_repo_mode = sync_config.offline and Path(os.getcwd()).joinpath(".git").exists()
     if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE, ACTION_INIT_REPO]:
         sync_config.local_path=Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:

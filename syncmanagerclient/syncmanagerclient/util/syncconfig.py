@@ -12,17 +12,29 @@ class GlobalConfig:
 
 class SyncAllConfig:
     """
-    SyncAllConfig is the static config defined by the ini file
+    SyncAllConfig is the static config given ini file and the run parameters provided on the command line
+    The paramters here, different to Globalproperties, are dynamic, e.g. they can be set via command line parameters
+    They can be overwritten by special config for the repos. Globalproperties cannot overwitten, they are fixed for all
+    repos.
     """
-
-    def __init__(self, sync_env=None, username=None, email=None, organization=None,
+    def __init__(self, args, sync_env=None, username=None, email=None, organization=None,
                  settings=None, global_config=None):
-        self.sync_env = sync_env
+        self.args = args
+        if sync_env:
+            self.sync_env = sync_env
+        else:
+            self.sync_env = args.env
         self.username = username
         self.email = email
         self.organization = organization
         self.settings = settings
         self.global_config = global_config
+        if args:
+            self.offline = args.offline
+            self.dry_run = args.dryrun
+        else:
+            self.offline = False
+            self.dry_run = False
 
 
 class SyncConfig(SyncAllConfig):
@@ -31,11 +43,10 @@ class SyncConfig(SyncAllConfig):
     overwritten and configured dynamically via command line parameter
     """
 
-    def __init__(self, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None,
-                 sync_env=None,
+    def __init__(self, args, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, sync_env=None,
                  username=None, email=None, organization=None,
                  settings=None, global_config=None):
-        super().__init__(sync_env=sync_env, username=username, email=email, organization=organization,
+        super().__init__(args, sync_env=sync_env, username=username, email=email, organization=organization,
                          settings=settings, global_config=global_config)
         self.remote_repo = remote_repo
         self.remote_repo_url = remote_repo_url
@@ -49,7 +60,7 @@ class SyncConfig(SyncAllConfig):
     @classmethod
     def init(cls, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None,
              allconfig: SyncAllConfig = None):
-        return cls(local_path_short=local_path_short, local_path=local_path, remote_repo=remote_repo,
+        return cls(allconfig.args, local_path_short=local_path_short, local_path=local_path, remote_repo=remote_repo,
                    remote_repo_url=remote_repo_url, sync_env=allconfig.sync_env, username=allconfig.username,
                    email=allconfig.email,
                    organization=allconfig.organization,
@@ -58,7 +69,7 @@ class SyncConfig(SyncAllConfig):
 
     @classmethod
     def from_sync_config(cls, other_config: SyncConfig):
-        return cls(local_path_short=other_config.local_path_short, local_path=other_config.local_path,
+        return cls(other_config.args, local_path_short=other_config.local_path_short, local_path=other_config.local_path,
                    remote_repo=other_config.remote_repo,
                    remote_repo_url=other_config.remote_repo_url, sync_env=other_config.sync_env,
                    username=other_config.username, email=other_config.email,

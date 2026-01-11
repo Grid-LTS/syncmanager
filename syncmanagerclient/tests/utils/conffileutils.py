@@ -3,7 +3,7 @@ from git import Repo
 
 
 # Project files
-from syncmanagerclient.main import apply_sync_conf_files
+from syncmanagerclient.main import apply_sync_conf_files, parse_arguments_legacy
 from syncmanagerclient.clients import ACTION_PUSH
 from syncmanagerclient.util.globalproperties import Globalproperties
 
@@ -31,7 +31,7 @@ def detemplate_properties(context):
     f.close()
 
 
-def setup_repos(local_conf_file_name, repo_prefix):
+def setup_legacy_sync_repos(local_conf_file_name, repo_prefix):
     if not repo_prefix:
         raise ValueError(f"Base dir for repos must not be empty")
     repos_dir = os.path.join(test_dir, 'repos', repo_prefix)
@@ -57,6 +57,12 @@ def setup_repos(local_conf_file_name, repo_prefix):
     # setup global properties file
     Globalproperties.set_prefix(os.path.dirname(test_dir))
     Globalproperties.read_config('test')
+    args = ArgumentsTest()
+    args.force = False
+    args.env = ''
+    args.offline = False
+    args.dryrun = False
+    Globalproperties.init_allconfig(args)
 
     shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
     if not os.path.exists(repos_dir):

@@ -15,7 +15,7 @@ test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 var_dir_path = os.path.join(test_dir, 'var')
 # workspace and others_ws are different downstream clones of the same repo
 # these are called stations here, in reality they are on different computer
-get_origin_repo_path = lambda repos_dir:  build_local_repo_path(repos_dir, 'origin_repo.git')
+get_origin_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'origin_repo.git')
 get_local_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'workspace')
 get_other_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'extra_ws')
 local_conf_file_name = 'local.conf'
@@ -32,10 +32,12 @@ class ArgumentsTest:
         self.namespace = "e2e_repo"
         self.force = False
         self.client = 'git'
-        self.sync_env = USER_CLIENT_ENV
+        self.env = ''
+        self.offline = False
+        self.dryrun = False
 
 
-def load_global_properties(stage="e2e", repos_root_dir=None):
+def load_global_properties(stage="e2e", repos_root_dir=None, args=None):
     if not repos_root_dir:
         if not Globalproperties.var_dir:
             raise ValueError("Your need configure 'var_dir' configuration parameter")
@@ -53,25 +55,31 @@ def load_global_properties(stage="e2e", repos_root_dir=None):
     Globalproperties.set_prefix(os.path.dirname(test_dir))
     Globalproperties.test_mode = True
     Globalproperties.var_dir = var_dir
+    if args:
+        Globalproperties.init_allconfig(args)
+
 
 def build_local_repo_path(parent_dir, base):
     if not parent_dir:
         raise ValueError(f"Base dir for repos must not be empty")
     return os.path.join(parent_dir, base)
 
+
 def teardown_repos_directory(repos=[]):
-        for repo in repos:
-            repo.close()
-            teardown_repo_directory(repo.working_dir)
+    for repo in repos:
+        repo.close()
+        teardown_repo_directory(repo.working_dir)
+
 
 def teardown_repo_directory(working_dir):
     change_dir(os.path.dirname(working_dir))
     time.sleep(1)
     try:
-        shutil.rmtree(working_dir,onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
+        shutil.rmtree(working_dir, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
     except PermissionError as err:
         print(f"Cannot delete {working_dir}")
         raise err
+
 
 def checkout_principal_branch(repo):
     # checkout principal branch
@@ -89,6 +97,7 @@ def checkout_principal_branch(repo):
     except AttributeError as e:
         raise e
     return principal_branch
+
 
 def create_local_branch_from_remote(repo, local_branch, remote_branch):
     repo.create_head(local_branch, remote_branch)  # create local branch from remote

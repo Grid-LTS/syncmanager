@@ -105,9 +105,10 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     args = ArgumentsTest()
     args.namespace = "e2e_repo"
     args.action = "set-remote"
-    args.sync_env = USER_CLIENT_ENV_EXTRA
+    args.env = USER_CLIENT_ENV_EXTRA
     change_dir(other_repo_path)
     change_environment('e2e-extra', sync_api_user)
+    Globalproperties.init_allconfig(args)
     sync_config_other = SyncConfig.init(allconfig = Globalproperties.allconfig)
     execute_command(args, sync_config_other, remote_name = "origin")
     query_params = {
@@ -133,20 +134,22 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     local_repo.create_head(test_branch)
 
     # 1. sync with server, branch is pushed
-    change_environment('e2e', sync_api_user)
     args = ArgumentsTest()
     args.action = "push"
     args.namespace = "e2e_repo"
     args.sync_env = USER_CLIENT_ENV
+    change_environment('e2e', sync_api_user, args)
+
     sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
     execute_command(args, sync_config, remote_name="origin")
 
     # 2. change to extra env and fetch the branch
-    change_environment('e2e-extra', sync_api_user)
     args = ArgumentsTest()
     args.action = "pull"
     args.namespace = "e2e_repo"
-    args.sync_env = USER_CLIENT_ENV_EXTRA
+    args.env = USER_CLIENT_ENV_EXTRA
+    change_environment('e2e-extra', sync_api_user, args)
+
     other_sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
     execute_command(args, other_sync_config, remote_name="origin")
 
@@ -213,7 +216,7 @@ def fetch_server_repo(client, client_env, sync_api_user):
     local_repo_api = response.json()[0]
     return local_repo_api['git_repo']
 
-def change_environment(clientenv, sync_api_user):
+def change_environment(clientenv, sync_api_user, args=None):
     """
     # stage is not to be confused with sync env = clientenv. we don't have the possiblity of test with a physically different
     # environment so we introduce another stage that allows us to configure a different environment/machine
@@ -222,7 +225,7 @@ def change_environment(clientenv, sync_api_user):
     :return:
     """
     Globalproperties.loaded = False
-    load_global_properties(clientenv)
+    load_global_properties(clientenv, args=args)
     Globalproperties.allconfig.username = USER_NAME
     Globalproperties.allconfig.email = USER_EMAIL
     Globalproperties.api_user = sync_api_user["username"]

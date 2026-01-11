@@ -31,6 +31,7 @@ def create_client_env(client, env_name, sync_user):
     client.post(create_clientenv_url, json=body, headers=headers)
 
 def setup_users_and_env(client, sync_user):
+    # called when setting up the repos
     create_client_env(client, USER_CLIENT_ENV_DEFAULT, sync_user)
     create_client_env(client, USER_CLIENT_ENV, sync_user)
     create_client_env(client, USER_CLIENT_ENV_EXTRA, sync_user)
