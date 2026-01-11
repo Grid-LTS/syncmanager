@@ -183,6 +183,8 @@ def main():
 
 
 def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=None):
+    Globalproperties.offline = arguments.offline
+    single_repo_mode = Globalproperties.offline and Path(os.getcwd()).joinpath(".git").exists()
     if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE, ACTION_INIT_REPO]:
         sync_config.local_path=Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:
@@ -204,7 +206,7 @@ def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=
     elif arguments.action == ACTION_INIT_REPO:
         pass
     elif arguments.action == ACTION_ARCHIVE_IGNORED_FILES:
-        if arguments.offline:
+        if single_repo_mode:
             processor = GitArchiveIgnoredFiles(sync_config)
             processor.apply()
             return

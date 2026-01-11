@@ -1,4 +1,5 @@
 import pathlib
+import json
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF_ALIASES, \
     ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO
@@ -40,7 +41,7 @@ class SyncClient:
                 return GitClientSync(self.action, config, force=self.force)
             elif self.action == ACTION_ARCHIVE_IGNORED_FILES:
                 return GitArchiveIgnoredFiles(config)
-            elif self.action ==  ACTION_INIT_REPO:
+            elif self.action == ACTION_INIT_REPO:
                 return GitInitRepo(config)
             else:
                 raise Exception('Unknown command \'' + self.action + '\'.')
@@ -71,7 +72,15 @@ class SyncClient:
         :return:
         """
         api_service = ApiService(self.mode, self.sync_env)
-        remote_repos = api_service.list_repos_by_client_env(sync_config.global_config, full=True)
+        cache_repose_path = Globalproperties.cache_dir.joinpath("remote_repos.json")
+        if not Globalproperties.offline:
+            remote_repos = api_service.list_repos_by_client_env(sync_config.global_config, full=True)
+            if remote_repos:
+                with cache_repose_path.open("w", encoding="utf-8") as f:
+                    json.dump(remote_repos, f, ensure_ascii=False, indent=2)
+        else:
+            with cache_repose_path.open("r", encoding="utf-8") as f:
+                remote_repos = json.load(f)
         if self.namespace:
             print(f"Only syncing repos in namespace {self.namespace}")
         for remote_repo in remote_repos:

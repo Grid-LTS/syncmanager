@@ -14,6 +14,7 @@ class Globalproperties:
     ini_path_prefix = ''
     conf_dir = ''
     var_dir = ''
+    cache_dir:Path = None
     archive_dir_path: Path = None
     api_base_url = ''
     api_user = ''
@@ -27,6 +28,7 @@ class Globalproperties:
     module_dir = ''
     archiveconfig = None
     allconfig = SyncAllConfig()
+    offline = False
 
     @staticmethod
     def set_prefix(prefix):
@@ -74,6 +76,8 @@ class Globalproperties:
         if Globalproperties.archive_dir_relative:
             Globalproperties.archive_dir_path = Path(Globalproperties.var_dir).joinpath(Globalproperties.archive_dir_relative)
             Globalproperties.archive_dir_path.mkdir(parents=True, exist_ok=True)
+        Globalproperties.cache_dir = Path(Globalproperties.var_dir).joinpath("cache")
+        Globalproperties.cache_dir.mkdir(parents=True, exist_ok=True)
         global_config = GlobalConfig(int(config.get('config', 'retention_years', fallback=2)),
                                      int(config.get('config', 'refresh_rate_months', fallback=6)))
         allconfig = Globalproperties.allconfig
