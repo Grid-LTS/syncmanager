@@ -47,6 +47,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
     def apply(self):
         if not self.local_path.exists():
             return
+        code = self.change_to_local_repo()
+        if code != 0:
+            return
         try:
             is_pristine = self.archive_ignored_files()
         except InvalidArgument as err:

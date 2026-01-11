@@ -11,8 +11,6 @@ from ..util.system import change_dir, run_command
 from ..util.globalproperties import Globalproperties
 from ..util.system import home_dir
 
-fileextension_filter = [".iml", ".lock"]
-
 
 class GitInitRepo(GitClientBase):
 
@@ -29,11 +27,13 @@ class GitInitRepo(GitClientBase):
                 GitErrorItem(self.local_path_short, InvalidArgument(err_msg), "")
             )
             return
+        code = self.change_to_local_repo()
+        if code != 0:
+            return
         system_home_dir = Path(home_dir)
         if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
             print(f"For security reasons only repositories in the home directory can be managed.")
             return
-        change_dir(self.local_path)
         if sys.platform.startswith('win'):
             os_dir = "win"
         else:

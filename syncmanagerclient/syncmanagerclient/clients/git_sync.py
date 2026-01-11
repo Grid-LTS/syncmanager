@@ -31,7 +31,7 @@ class GitClientSync(GitClientBase):
 
     def apply(self, **kwargs):
         start_dir = os.getcwd()
-        code = self.change_to_local_repo()
+        code = self.change_to_local_repo_create_if_not_exists()
         if code != 0:
             return
         self.gitrepo = Repo(self.local_path)
@@ -349,24 +349,11 @@ class GitClientSync(GitClientBase):
             print("Updated %s to %s" % (fetch_info.ref, fetch_info.commit))
         return 0
 
-    def change_to_local_repo(self):
+    def change_to_local_repo_create_if_not_exists(self):
         # first check if the local repo exists and is a git working space
         repo_exists = os.path.isdir(self.local_path)
         print('Change to Git project \'{0}\'.'.format(self.local_path_short))
-        if os.path.isdir(os.path.join(self.local_path, '.git')):
-            ret_val = change_dir(self.local_path)
-            if ret_val != 0:
-                print('Cannot change to repository \'{0}\'.'.format(self.local_path))
-            return ret_val
-        elif repo_exists:
-            message = f"The repository '{self.local_path}' exists, but is not a git repository"
-            error = GitSyncError(message)
-            self.errors.append(
-                GitErrorItem(self.local_path_short, error, "git clone")
-            )
-            print(message)
-            return 1
-        else:
+        if not os.path.isdir(os.path.join(self.local_path, '.git')) and not repo_exists:
             # local repo does not exist and must be cloned
             parent_dir = os.path.dirname(self.local_path)
             ret_code = 0
@@ -377,6 +364,7 @@ class GitClientSync(GitClientBase):
                 print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code
             return self.clone_remote_repo()
+        return self.change_to_local_repo()
 
 
     def clone_remote_repo(self):

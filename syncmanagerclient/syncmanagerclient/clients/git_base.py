@@ -1,6 +1,8 @@
 import os
 from configparser import ConfigParser
 
+from ..util.system import change_dir
+from .error import GitSyncError, GitErrorItem
 from ..util.syncconfig import SyncConfig
 
 
@@ -29,3 +31,22 @@ class GitClientBase:
     def close(self):
         if self.gitrepo:
             self.gitrepo.close()
+
+    def change_to_local_repo(self):
+        # first check if the local repo exists and is a git working space
+        repo_exists = os.path.isdir(self.local_path)
+        print('Change to Git project \'{0}\'.'.format(self.local_path_short))
+        if os.path.isdir(os.path.join(self.local_path, '.git')):
+            ret_val = change_dir(self.local_path)
+            if ret_val != 0:
+                print('Cannot change to repository \'{0}\'.'.format(self.local_path))
+            return ret_val
+        elif repo_exists:
+            message = f"The repository '{self.local_path}' exists, but is not a git repository"
+            error = GitSyncError(message)
+            self.errors.append(
+                GitErrorItem(self.local_path_short, error, "git clone")
+            )
+            print(message)
+            return 1
+

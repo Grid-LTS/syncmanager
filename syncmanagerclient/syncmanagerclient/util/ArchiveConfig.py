@@ -11,7 +11,7 @@ class ArchiveConfig:
         self.build_and_cache = ArchiveConfig.parse_and_prune(
             config.get('config', 'build_and_cache',
                        fallback="__pycache__,.pytest_cache,.gradle,gradle,"
-                                "build,out,target,poetry.lock,package-lock.json,gradle-wrapper.jar"))
+                                "bin,build,out,target,poetry.lock,package-lock.json,gradle-wrapper.jar"))
         self.dependency_dirs = ArchiveConfig.parse_and_prune(
             config.get('config', 'dependency_dirs', fallback='.venv,venv,dist,node_modules,vendor'))
         self.skip_directories = ArchiveConfig.parse_and_prune(
@@ -19,7 +19,7 @@ class ArchiveConfig:
         self.skip_directories += ["test", "tests", ".git"]
         self.skip_regex_pattern = [re.compile(x) for x in ArchiveConfig.parse_and_prune(
             config.get('config', 'skip_files_with_regex',
-                       fallback='.*\.iml$, .*\.lock$, .*\.egg-info$, access\.log'))]
+                       fallback='.*\.iml$, .*\.lock$, .*\.egg-info$, .*\.log'))]
         self.environment_files = ArchiveConfig.parse_and_prune(
             config.get('config', 'environment_files', fallback='.DS_Store'))
         self.code_file_extensions = ArchiveConfig.parse_and_prune(
