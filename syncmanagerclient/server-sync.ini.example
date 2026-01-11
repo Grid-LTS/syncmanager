@@ -10,11 +10,11 @@ SYNC_ENV=home
 org_default=default
 retention_years = 2 # maximum number of years a repo can be inactive before it is excluded from the sync
 refresh_rate_months = 6 # This rate defines the number of months where each repo is synced/refreshed at least once. It ensures return of repos that have not been synced in the recent time given by the refresh_rate.
-build_and_cache = __pycache__, .pytest_cache, .gradle, gradle, build, out,target,poetry.lock,package-lock.json
-dependency_dirs = .venv,venv,dist,node_modules
-skip_directories = lib,.temp,tmp,temp,.tmp,logs,contrib,.idea
+build_and_cache =  build,cache,.gradle,gradle,gradle-wrapper.jar,__pycache__, .pytest_cache,out,target,package-lock.json
+dependency_dirs = dist,node_modules,.venv,venv,vendor
+skip_directories = contrib,.idea,lib,logs,.temp,tmp,temp,.tmp,var
 skip_files_with_regex = .*\.iml$, .*\.lock$, .*\.egg-info$, access\.log
-environment_files =  .DS_Store
+environment_files =  .buildpath,.DS_Store,
 code_file_extensions = js, jsx, js.map, ts, tsx, py, pyc, java, kt, php
 max_archive_filesize_MB = 10
 

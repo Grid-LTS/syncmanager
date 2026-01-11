@@ -21,10 +21,7 @@ DEFAULT_SYNC_ENV = 'default'
 class GitArchiveIgnoredFiles(GitClientBase):
 
     def __init__(self, config: SyncConfig, gitrepo=None):
-        super().__init__(gitrepo)
-        if config:
-            self.set_config(config)
-            self.config = config
+        super().__init__(config, gitrepo)
         project_root = os.path.basename(self.local_path)
         self.archive_config = Globalproperties.archiveconfig
         system_home_dir = Path(home_dir)
@@ -42,7 +39,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 local_path_relative = self.local_path.parents[0].relative_to(system_home_dir)
         # normalize to be OS independent
         local_path_relative = Path(*[part.lower() for part in local_path_relative.parts])
-        self.archive_project_root = Globalproperties.archive_dir_path.joinpath(allconfig.organization,
+        self.archive_project_root = Globalproperties.archive_dir_path.joinpath(self.config.organization,
                                                                                local_path_relative, project_root)
         self.archive_default_root = self.archive_project_root.joinpath(DEFAULT_SYNC_ENV)
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)

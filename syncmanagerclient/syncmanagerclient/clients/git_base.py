@@ -1,4 +1,8 @@
+import os
+from configparser import ConfigParser
+
 from ..util.syncconfig import SyncConfig
+
 
 class GitClientBase:
 
@@ -7,6 +11,7 @@ class GitClientBase:
         self.errors = []
         self.local_path_short = None
         self.local_path = None
+        self.config = None
         if config:
             self.set_config(config)
 
@@ -14,6 +19,12 @@ class GitClientBase:
         self.local_path_short = config.local_path_short
         self.local_path = config.local_path
         self.config = config
+        config_in_repo = os.path.join(self.local_path, 'syncmanager.ini')
+        if os.path.exists(config_in_repo):
+            config_parser = ConfigParser()
+            config_parser.read(config_in_repo)
+            self.config.organization = config_parser.get('config', 'org_default', fallback=config.organization)
+
 
     def close(self):
         if self.gitrepo:

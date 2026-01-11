@@ -13,7 +13,7 @@ class ArchiveConfig:
                        fallback="__pycache__,.pytest_cache,.gradle,gradle,"
                                 "build,out,target,poetry.lock,package-lock.json,gradle-wrapper.jar"))
         self.dependency_dirs = ArchiveConfig.parse_and_prune(
-            config.get('config', 'dependency_dirs', fallback='.venv,venv,dist,node_modules'))
+            config.get('config', 'dependency_dirs', fallback='.venv,venv,dist,node_modules,vendor'))
         self.skip_directories = ArchiveConfig.parse_and_prune(
             config.get('config', 'skip_directories', fallback='lib,.temp,tmp,temp,.tmp,logs'))
         self.skip_directories += ["test", "tests", ".git"]
