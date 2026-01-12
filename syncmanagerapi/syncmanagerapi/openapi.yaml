@@ -37,6 +37,24 @@ paths:
       responses:
         204:
           description: "Successfully added client environment entry"
+
+  /search/git/repos:
+    get:
+      operationId: "syncmanagerapi.git.api.search_repo"
+      tags:
+        - "Git"
+      summary: "Returns all Git repositories und given namespace"
+      description: ""
+      parameters:
+        - name: namespace
+          in: query
+          description: env descriptor of the synchronization client
+          schema:
+            type: string
+          required: true
+      responses:
+        200:
+          description: "List of Git repositories"
   /git/repos:
     get:
       operationId: "syncmanagerapi.git.api.get_repos"

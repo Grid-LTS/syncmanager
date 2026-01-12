@@ -13,7 +13,6 @@ from ..model import User, ClientEnv, ClientEnvSchema
 from ..error import DataInconsistencyException
 
 
-
 def get_bare_repo_fs_path(server_path_relative):
     fs_root_dir = current_app.config['FS_ROOT']
     return osp.join(osp.join(fs_root_dir, 'git'), server_path_relative)
@@ -53,6 +52,17 @@ class GitRepo(db.Model):
             .filter(UserGitReposAssoc.user_id == _user_id) \
             .filter(GitRepo.id == _id) \
             .one_or_none()
+
+    @staticmethod
+    def get_repos_by_namespace_and_user_id(namespace, _user_id):
+        if not namespace:
+            return []
+        try:
+            uuid.UUID(namespace.split('/')[0])
+        except ValueError:
+            namespace = osp.join(_user_id, namespace)
+        return GitRepo.query.filter(GitRepo.server_path_rel.like(namespace + '%')) \
+            .all()
 
     @staticmethod
     def load_by_server_path(_server_path_rel):
@@ -116,7 +126,6 @@ class GitRepo(db.Model):
             user_info.client_envs = [env for env in user_info.client_envs if env.env_name != client_env]
             db.session.add(user_info)
             db.session.commit()
-
 
     def __repr__(self):
         return '<GitRepo %r>' % self.repo_id
@@ -224,7 +233,7 @@ class UserGitReposAssoc(db.Model):
                 .filter(or_(
             GitRepo.last_commit_date >= retention_date,
             GitRepo.last_commit_date == None,
-            GitRepo.updated <= datetime.now() -relativedelta(months=_refresh_rate)
+            GitRepo.updated <= datetime.now() - relativedelta(months=_refresh_rate)
         )).all())
 
     @staticmethod

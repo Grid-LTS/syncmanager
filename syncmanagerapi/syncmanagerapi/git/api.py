@@ -291,6 +291,16 @@ def get_repos(clientenv, retention_years=None, refresh_rate:int=None, full_info=
         return jsonify([])
     return user_gitrepo_assoc_schema.dump(repos)
 
+@login_required
+def search_repo(namespace):
+    from .model import GitRepo, GitRepoFullSchema
+    user = get_user()
+    results = GitRepo.get_repos_by_namespace_and_user_id(namespace, user.id)
+    gitrepo_schema = GitRepoFullSchema(many=True)
+    return gitrepo_schema.dump(results)
+
+
+
 
 @login_required
 def get_repos_by_clientenv(full_info=False):

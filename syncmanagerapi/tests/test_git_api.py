@@ -14,7 +14,7 @@ project_dir = os.path.dirname(syncmanager_api_dir)
 sys.path.insert(0, project_dir)
 
 from testlib.testsetup import USER_CLIENT_ENV, get_user_basic_authorization
-from testlib.api_utility import fetch_client_repo_from_api, get_clientenv_repos_url, headers
+from testlib.api_utility import fetch_client_repo_from_api, get_clientenv_repos_url, headers, search_repos_from_api
 from .testsetup import setup_test_repo, cleanup_test_resources
 
 
@@ -55,17 +55,29 @@ def test_create_repo(app_with_user, client, sync_api_user):
     # test that repo is returned even with applied retention_years filter
     query_params = {
         "clientenv" : USER_CLIENT_ENV,
-        "retention_years" : 3
+        "retention_years" : 3,
+        "full_info" : True
     }
-    # fetch all repos
+    # 1. fetch all repos by client env
     repo_list_resp = client.get(get_clientenv_repos_url + "?" + urllib.parse.urlencode(query_params), headers=http_headers)
     assert repo_list_resp.status_code == 200
     repo_list = repo_list_resp.json()
     assert len(repo_list) == 1
     fetched_created_repo = repo_list[0]
-    assert fetched_created_repo['git_repo'] == repo_id
+    assert fetched_created_repo['git_repo']['id'] == repo_id
     assert fetched_created_repo['id'] == user_git_repo_id
     assert osp.exists(repo_server_path)
+
+    # 2. search repos by namespace
+    namespace = fetched_created_repo['git_repo']['server_path_rel']
+    namespace_search_resp = search_repos_from_api(client, sync_api_user, namespace=namespace)
+    assert len(namespace_search_resp) == 1
+    search_repo = namespace_search_resp[0]
+    assert search_repo['id'] == repo_id
+
+    # 3. search repos by shorter namespace
+    namespace_search_resp2 = search_repos_from_api(client, sync_api_user, namespace='/'.join(namespace.split('/')[1:]))
+    assert len(namespace_search_resp2) == 1
 
 
 @pytest.mark.dependency(depends=["test_create_repo"])
