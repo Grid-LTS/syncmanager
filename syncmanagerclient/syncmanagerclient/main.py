@@ -2,18 +2,21 @@ import argparse
 import os, sys
 from os.path import dirname
 from pathlib import Path
+from platform import processor
 
+from .clients.git_delete_repo import GitRepoDeletion
 from .util.globalproperties import Globalproperties
 from .util.syncconfig import SyncConfig, SyncAllConfig
 from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
-    ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO
+    ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO, ACTION_DELETE_REPO
 from .clients.sync_client import SyncClient
 from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
 from .clients.sync_env_registration import SyncEnvRegistration
-from .clients.git_archive_ignored import  GitArchiveIgnoredFiles
+from .clients.git_archive_ignored import GitArchiveIgnoredFiles
+
 
 def init_global_properties(_stage='dev', _org=''):
     if os.environ.get('SYNCMANAGER_STAGE'):
@@ -37,15 +40,15 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
             continue
         only_once = False
         config_parser = ConfigParser(path)
-        for client, config in config_parser.parse():
+        for client, sync_config in config_parser.parse():
             if not client in clients_enabled:
                 if not only_once:
                     only_once = True
                     print('Ignoring client ' + client + '.')
                 continue
             only_once = False
-            sync_client = SyncClient(client, action, sync_env, force)
-            sync_client.sync_with_remote_repo(config)
+            sync_client = SyncClient(action, client, sync_config, force)
+            sync_client.sync_with_remote_repo(sync_config)
 
 
 def register_local_branch_for_deletion(path, git_repo_path: Path):
@@ -60,7 +63,7 @@ def register_local_branch_for_deletion(path, git_repo_path: Path):
         exit(1)
     entry = entries[0]
     if delete_action.local_branch_exists:
-        client_factory = SyncClient(client, ACTION_DELETE, force=False)
+        client_factory = SyncClient(ACTION_DELETE, client, force=False)
         client_instance = client_factory.get_instance(entry.config)
         # delete the local branches
         client_instance.apply(path=path)
@@ -70,7 +73,7 @@ def register_local_branch_for_deletion(path, git_repo_path: Path):
 
 
 staging_envs = ['dev', 'tests', 'prod']
-clients = ['git','unison']
+clients = ['git', 'unison']
 
 
 def parse_arguments_legacy():
@@ -124,7 +127,6 @@ def legacy():
     else:
         sync_env = Globalproperties.sync_env
 
-    
     if args.conf:
         if not os.path.dirname(args.conf):
             conf_file_root = Globalproperties.conf_dir
@@ -142,6 +144,7 @@ def legacy():
             files = [fi for fi in filenames if fi.endswith(".conf")]
             apply_sync_conf_files(root, files, action, force, sync_env, clients_enabled)
 
+
 def parse_arguments():
     """
       Parses arguments and initiates the respective sync clients
@@ -156,14 +159,16 @@ def parse_arguments():
                              "$SYNC_ENV or in the properties file.")
     parser.add_argument("--stage", choices=staging_envs, default="prod",
                         help="Specify staging environment to be used.")
-    parser.add_argument("-o","--org", default="",
+    parser.add_argument("-o", "--org", default="",
                         help="Specifies organization to be used.")
     parser.add_argument("-c", "--client", choices=clients, help="Restrict syncing to a certain client")
     parser.add_argument("-off", "--offline", action='store_true', help="when offline. server is not called")
     parser.add_argument("-dry", "--dryrun", action='store_true', help="dry run does not execution the action")
     parser.add_argument("-n", "--namespace", help="Restrict syncing to a certain namespace")
-    parser.add_argument("-ry", "--retention_years", help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
-    allowed_actions = [ACTION_PUSH, ACTION_PULL, ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
+    parser.add_argument("-ry", "--retention_years",
+                        help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
+    allowed_actions = [ACTION_PUSH, ACTION_PULL, ACTION_ARCHIVE_IGNORED_FILES,
+                       ACTION_INIT_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in allowed_actions:
         # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
@@ -179,7 +184,7 @@ def main():
     init_global_properties(args.stage, args.org)
     # determine the environment which is synced
     Globalproperties.init_allconfig(args)
-    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
+    sync_config = SyncConfig.init(namespace=args.namespace, allconfig=Globalproperties.allconfig)
     if args.action == ACTION_DELETE:
         path = args.path
     else:
@@ -189,13 +194,14 @@ def main():
     execute_command(args, sync_config, path=path)
 
 
-def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=None):
+def execute_command(arguments, sync_config: SyncConfig, remote_name=None, path=None):
     single_repo_mode = sync_config.offline and Path(os.getcwd()).joinpath(".git").exists()
-    if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE, ACTION_INIT_REPO]:
-        sync_config.local_path=Path(os.getcwd())
+    if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE, ACTION_INIT_REPO,
+                                                        ACTION_DELETE_REPO]:
+        sync_config.local_path = Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:
         sync_config.remote_repo = remote_name
-        new_sync_dir = SyncDirRegistration(namespace=arguments.namespace, sync_config=sync_config)
+        new_sync_dir = SyncDirRegistration(sync_config=sync_config)
         new_sync_dir.register()
         return
     elif arguments.action in ACTION_ADD_ENV_ALIASES:
@@ -216,6 +222,10 @@ def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=
             processor = GitArchiveIgnoredFiles(sync_config)
             processor.apply()
             return
+    elif arguments.action == ACTION_DELETE_REPO:
+        sync_client = SyncClient(arguments.action, sync_config, arguments.force)
+        sync_client.sync_repo(sync_config)
+        return
     else:
         print('Unknown command \'{0}\'. Abort.'.format(arguments.action))
         exit(1)
@@ -226,5 +236,5 @@ def execute_command(arguments, sync_config:  SyncConfig, remote_name=None, path=
     print('Enabled clients: ' + ', '.join(clients_enabled))
     for mode in clients_enabled:
         print(f"Syncing client {mode}")
-        sync_client = SyncClient(mode, arguments.action, sync_config.sync_env, arguments.force, arguments.namespace)
+        sync_client = SyncClient(arguments.action, mode, sync_config, arguments.force)
         sync_client.get_and_sync_repos(sync_config)

@@ -1,5 +1,7 @@
 import os
+
 from configparser import ConfigParser
+from git import Repo, InvalidGitRepositoryError
 
 from ..util.system import change_dir
 from .error import GitSyncError, GitErrorItem
@@ -49,4 +51,15 @@ class GitClientBase:
             )
             print(message)
             return 1
+
+    def initialize(self):
+        if not self.gitrepo:
+            # change to the directory and apply git settings
+            try:
+                self.gitrepo = Repo(self.local_path)
+            except InvalidGitRepositoryError as err:
+                self.errors.append(
+                    GitErrorItem(self.local_path_short, err, "Invalid local repo")
+                )
+                return
 

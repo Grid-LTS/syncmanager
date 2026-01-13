@@ -54,10 +54,15 @@ def setup_local_repo(sync_user, repo_name):
     local_repo.index.commit("Initial commit on principal branch")
     Globalproperties.api_user = sync_user["username"]
     Globalproperties.api_pw = sync_user["password"]
-    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
-
     args = ArgumentsTest()
     args.action = "set-remote"
+    args.force = False
+    args.env = ''
+    args.offline = False
+    args.dryrun = False
+    if not Globalproperties.allconfig:
+        Globalproperties.init_allconfig(args)
+    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
     execute_command(args, sync_config, remote_name = "origin")
     return local_repo
 

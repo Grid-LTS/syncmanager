@@ -4,6 +4,7 @@ import os.path as osp
 from pathlib import PurePosixPath, Path
 from ..util.system import sanitize_posix_path, home_dir
 
+
 class GlobalConfig:
     def __init__(self, retention_years=None, refresh_rate_months=None):
         self.retention_years = retention_years
@@ -17,6 +18,7 @@ class SyncAllConfig:
     They can be overwritten by special config for the repos. Globalproperties cannot overwitten, they are fixed for all
     repos.
     """
+
     def __init__(self, args, sync_env=None, username=None, email=None, organization=None,
                  settings=None, global_config=None):
         self.args = args
@@ -43,8 +45,8 @@ class SyncConfig(SyncAllConfig):
     overwritten and configured dynamically via command line parameter
     """
 
-    def __init__(self, args, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, sync_env=None,
-                 username=None, email=None, organization=None,
+    def __init__(self, args, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None,
+                 namespace='', sync_env=None, username=None, email=None, organization=None,
                  settings=None, global_config=None):
         super().__init__(args, sync_env=sync_env, username=username, email=email, organization=organization,
                          settings=settings, global_config=global_config)
@@ -52,28 +54,34 @@ class SyncConfig(SyncAllConfig):
         self.remote_repo_url = remote_repo_url
         self._local_path_short = None
         self._local_path = None
+        if namespace:
+            self.namespace = namespace
+        else:
+            self.namespace = args.namespace
         if local_path_short:
             self.local_path_short = local_path_short
         if local_path:
             self.local_path = local_path
 
     @classmethod
-    def init(cls, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None,
+    def init(cls, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, namespace='',
              allconfig: SyncAllConfig = None):
-        return cls(allconfig.args, local_path_short=local_path_short, local_path=local_path, remote_repo=remote_repo,
-                   remote_repo_url=remote_repo_url, sync_env=allconfig.sync_env, username=allconfig.username,
+                         return cls(allconfig.args, local_path_short=local_path_short, local_path=local_path, remote_repo=remote_repo,
+                   remote_repo_url=remote_repo_url, namespace=namespace,
+                   sync_env=allconfig.sync_env,
+                   username=allconfig.username,
                    email=allconfig.email,
                    organization=allconfig.organization,
                    settings=allconfig.settings,
-                   global_config = allconfig.global_config)
+                   global_config=allconfig.global_config)
 
     @classmethod
     def from_sync_config(cls, other_config: SyncConfig):
-        return cls(other_config.args, local_path_short=other_config.local_path_short, local_path=other_config.local_path,
-                   remote_repo=other_config.remote_repo,
-                   remote_repo_url=other_config.remote_repo_url, sync_env=other_config.sync_env,
-                   username=other_config.username, email=other_config.email,
-                   organization=other_config.organization,
+        return cls(other_config.args, local_path_short=other_config.local_path_short,
+                   local_path=other_config.local_path,
+                   remote_repo=other_config.remote_repo, remote_repo_url=other_config.remote_repo_url,
+                   namespace=other_config.namespace, sync_env=other_config.sync_env, username=other_config.username,
+                   email=other_config.email, organization=other_config.organization,
                    settings=other_config.settings, global_config=other_config.global_config)
 
     @property

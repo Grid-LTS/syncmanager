@@ -19,7 +19,7 @@ class ArchiveConfig:
         self.skip_directories += ["test", "tests", ".git"]
         self.skip_regex_pattern = [re.compile(x) for x in ArchiveConfig.parse_and_prune(
             config.get('config', 'skip_files_with_regex',
-                       fallback='.*\.iml$, .*\.lock$, .*\.egg-info$, .*\.log'))]
+                       fallback='.*\.iml$, .*\.lock$, .*\.egg-info$, .*\.log,projectFilesBackup[0-9]?$, .*\.class,.*\.pyc'))]
         self.environment_files = ArchiveConfig.parse_and_prune(
             config.get('config', 'environment_files', fallback='.DS_Store'))
         self.code_file_extensions = ArchiveConfig.parse_and_prune(

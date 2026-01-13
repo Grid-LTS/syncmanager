@@ -15,7 +15,7 @@ from ..util.globalproperties import Globalproperties
 class SyncDirRegistration:
     mode = None
 
-    def __init__(self, namespace=None, sync_config : SyncConfig=None):
+    def __init__(self, sync_config : SyncConfig=None):
         self.local_path = sync_config.local_path
         self.local_path_short = sync_config.local_path_short
         self.gitrepo = None
@@ -28,7 +28,7 @@ class SyncDirRegistration:
         self.server_path_rels_of_other_repo = []
         self.sync_config = sync_config
         self.remote_name = sync_config.remote_repo
-        self.namespace = namespace
+        self.namespace = sync_config.namespace
 
 
     def get_mode(self):

@@ -10,10 +10,22 @@ class ApiService:
 
     def __init__(self, mode=None, sync_env=None):
         self.base_api_url = f"{Globalproperties.api_base_url}/{mode}"
+        self.search_repos_url = f"{Globalproperties.api_base_url}/search/{mode}/repos"
         self.get_repos_url = f"{self.base_api_url}/repos"
         self.get_repos_by_clientenv_url = f"{self.base_api_url}/repos_by_clientenv"
         self.sync_env = sync_env
         self.auth = Globalproperties.api_user, Globalproperties.api_pw
+
+    def search_repos_by_namespace(self, namespace):
+        query_params = {
+            "namespace" : namespace,
+            'full_info': True
+        }
+        repo_list = []
+        for server_repo in self.list_repos(self.search_repos_url, query_params):
+            repo_list.append(ApiService.retrieve_repo_reference(server_repo['userinfo'], self.sync_env))
+        return repo_list
+
 
     def list_repos_by_client_env(self, global_config, full=False):
         query_params = {
