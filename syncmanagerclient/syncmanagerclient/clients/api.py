@@ -11,14 +11,14 @@ class ApiService:
     def __init__(self, mode=None, sync_env=None):
         self.base_api_url = f"{Globalproperties.api_base_url}/{mode}"
         self.search_repos_url = f"{Globalproperties.api_base_url}/search/{mode}/repos"
-        self.get_repos_url = f"{self.base_api_url}/repos"
+        self.repos_base_url = f"{self.base_api_url}/repos"
         self.get_repos_by_clientenv_url = f"{self.base_api_url}/repos_by_clientenv"
         self.sync_env = sync_env
         self.auth = Globalproperties.api_user, Globalproperties.api_pw
 
     def search_repos_by_namespace(self, namespace):
         query_params = {
-            "namespace" : namespace,
+            "namespace": namespace,
             'full_info': True
         }
         repo_list = []
@@ -26,15 +26,14 @@ class ApiService:
             repo_list.append(ApiService.retrieve_repo_reference(server_repo['userinfo'], self.sync_env))
         return repo_list
 
-
     def list_repos_by_client_env(self, global_config, full=False):
         query_params = {
-            "clientenv" : self.sync_env,
-            "retention_years" : global_config.retention_years,
-            "refresh_rate" : global_config.refresh_rate_months,
+            "clientenv": self.sync_env,
+            "retention_years": global_config.retention_years,
+            "refresh_rate": global_config.refresh_rate_months,
             'full_info': full
         }
-        return self.list_repos(self.get_repos_url, query_params)
+        return self.list_repos(self.repos_base_url, query_params)
 
     def list_repos_all_client_envs(self, full=False):
         url = self.get_repos_by_clientenv_url
@@ -68,8 +67,8 @@ class ApiService:
             'local_path': local_path,
             'remote_name': remote_name,
             'client_env': self.sync_env,
-            'user_name_config' : Globalproperties.allconfig.username,
-            'user_email_config' : Globalproperties.allconfig.email,
+            'user_name_config': Globalproperties.allconfig.username,
+            'user_email_config': Globalproperties.allconfig.email,
         }
         # optional fields
         if server_parent_path_relative:
@@ -79,7 +78,7 @@ class ApiService:
         body['all_client_envs'] = all_client_envs
         # create repo
         url = f"{self.base_api_url}/repos"
-        resp =  req.post(url, json=body, auth=self.auth)
+        resp = req.post(url, json=body, auth=self.auth)
         if resp.status_code == 500:
             raise InvalidStateErr(resp.text)
         return resp.json()
@@ -88,8 +87,8 @@ class ApiService:
         body = {
             'local_path': local_path,
             'server_path_rel': server_path_rel,
-            'user_name_config' : Globalproperties.allconfig.username,
-            'user_email_config' : Globalproperties.allconfig.email,
+            'user_name_config': Globalproperties.allconfig.username,
+            'user_email_config': Globalproperties.allconfig.email,
         }
         url = f"{self.base_api_url}/repos/{server_repo_id}/{self.sync_env}"
         response = req.put(url, json=body, auth=self.auth)
@@ -98,13 +97,10 @@ class ApiService:
         server_repo_ref = ApiService.retrieve_repo_reference(git_repo['userinfo'], self.sync_env)
         return git_repo, server_repo_ref
 
-
     def update_client_repo(self, payload):
         url = f"{self.base_api_url}/clientrepos/{payload["id"]}"
         response = req.put(url, json=payload, auth=self.auth)
         ApiService.check_response(response, 200)
-
-
 
     def add_client_env(self, client_env_name):
         body = {

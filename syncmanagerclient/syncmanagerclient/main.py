@@ -2,11 +2,9 @@ import argparse
 import os, sys
 from os.path import dirname
 from pathlib import Path
-from platform import processor
 
-from .clients.git_delete_repo import GitRepoDeletion
 from .util.globalproperties import Globalproperties
-from .util.syncconfig import SyncConfig, SyncAllConfig
+from .util.syncconfig import SyncConfig
 from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
@@ -40,14 +38,14 @@ def apply_sync_conf_files(root, filenames, action, force, sync_env, clients_enab
             continue
         only_once = False
         config_parser = ConfigParser(path)
-        for client, sync_config in config_parser.parse():
-            if not client in clients_enabled:
+        for sync_config in config_parser.parse():
+            if not sync_config.mode in clients_enabled:
                 if not only_once:
                     only_once = True
-                    print('Ignoring client ' + client + '.')
+                    print('Ignoring client ' + sync_config.mode + '.')
                 continue
             only_once = False
-            sync_client = SyncClient(action, client, sync_config, force)
+            sync_client = SyncClient(action, sync_config, force)
             sync_client.sync_with_remote_repo(sync_config)
 
 
@@ -63,7 +61,7 @@ def register_local_branch_for_deletion(path, git_repo_path: Path):
         exit(1)
     entry = entries[0]
     if delete_action.local_branch_exists:
-        client_factory = SyncClient(ACTION_DELETE, client, force=False)
+        client_factory = SyncClient(ACTION_DELETE, entry.config, force=False)
         client_instance = client_factory.get_instance(entry.config)
         # delete the local branches
         client_instance.apply(path=path)
@@ -168,7 +166,7 @@ def parse_arguments():
     parser.add_argument("-ry", "--retention_years",
                         help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
     allowed_actions = [ACTION_PUSH, ACTION_PULL, ACTION_ARCHIVE_IGNORED_FILES,
-                       ACTION_INIT_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
+                       ACTION_INIT_REPO, ACTION_DELETE_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in allowed_actions:
         # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
@@ -223,8 +221,8 @@ def execute_command(arguments, sync_config: SyncConfig, remote_name=None, path=N
             processor.apply()
             return
     elif arguments.action == ACTION_DELETE_REPO:
-        sync_client = SyncClient(arguments.action, sync_config, arguments.force)
-        sync_client.sync_repo(sync_config)
+        sync_client = SyncClient(arguments.action, sync_config=sync_config, force=arguments.force)
+        sync_client.sync_single_repo()
         return
     else:
         print('Unknown command \'{0}\'. Abort.'.format(arguments.action))
@@ -236,5 +234,7 @@ def execute_command(arguments, sync_config: SyncConfig, remote_name=None, path=N
     print('Enabled clients: ' + ', '.join(clients_enabled))
     for mode in clients_enabled:
         print(f"Syncing client {mode}")
-        sync_client = SyncClient(arguments.action, mode, sync_config, arguments.force)
-        sync_client.get_and_sync_repos(sync_config)
+        config = SyncConfig.from_sync_config(sync_config)
+        config.mode = mode
+        sync_client = SyncClient(arguments.action, config, arguments.force)
+        sync_client.get_and_sync_repos()

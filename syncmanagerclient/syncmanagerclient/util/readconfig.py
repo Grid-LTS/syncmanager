@@ -3,6 +3,7 @@ import re
 from .syncconfig import SyncConfig
 from ..util.globalproperties import *
 
+
 class ConfigParser:
 
     def __init__(self, path):
@@ -37,19 +38,21 @@ class ConfigParser:
                     conffile.close()
                     raise StopIteration
                 continue
-            self.config.local_path = source
+            sync_config = SyncConfig.from_sync_config(self.config)
+            sync_config.mode = self.mode
+            sync_config.local_path = source
             if self.mode == 'git':
                 # split url in remote repo descriptor and url
-                self.parse_remote_repo_descriptor(url)
+                sync_config.remote_repo, sync_config.remote_repo_url = self.parse_remote_repo_descriptor(url)
             else:
-                self.config.remote_repo_url = url
-            self.config.username, self.config.email = self.parse_settings(rest)
+                sync_config.remote_repo_url = url
+            sync_config.username, sync_config.email = self.parse_settings(rest)
             if not self.mode:
                 print(f"No client specified in the config file '{self.path}'. File is ignored")
                 conffile.close()
                 raise StopIteration
             else:
-                yield self.mode, self.config
+                yield sync_config
         conffile.close()
 
     def parse_remote_repo_descriptor(self, url):
@@ -60,8 +63,7 @@ class ConfigParser:
         else:
             repo_name = parts[0].strip()
             repo_url = parts[1]
-        self.config.remote_repo = repo_name
-        self.config.remote_repo_url = repo_url
+        return repo_name, repo_url
 
     def parse_settings(self, settings):
         settings = settings.strip()

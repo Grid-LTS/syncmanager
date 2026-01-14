@@ -2,6 +2,8 @@ from __future__ import annotations
 import os.path as osp
 
 from pathlib import PurePosixPath, Path
+
+from .error import InvalidArgument
 from ..util.system import sanitize_posix_path, home_dir
 
 
@@ -45,7 +47,8 @@ class SyncConfig(SyncAllConfig):
     overwritten and configured dynamically via command line parameter
     """
 
-    def __init__(self, args, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None,
+    def __init__(self, args, mode, local_path_short=None, local_path: Path = None, remote_repo=None,
+                 remote_repo_url=None,
                  namespace='', sync_env=None, username=None, email=None, organization=None,
                  settings=None, global_config=None):
         super().__init__(args, sync_env=sync_env, username=username, email=email, organization=organization,
@@ -62,12 +65,19 @@ class SyncConfig(SyncAllConfig):
             self.local_path_short = local_path_short
         if local_path:
             self.local_path = local_path
+        if mode:
+            self.mode = mode
+        else:
+            if args.client:
+                self.mode = args.client
+            else:
+                self.mode = self.determine_mode()
 
     @classmethod
     def init(cls, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, namespace='',
              allconfig: SyncAllConfig = None):
-                         return cls(allconfig.args, local_path_short=local_path_short, local_path=local_path, remote_repo=remote_repo,
-                   remote_repo_url=remote_repo_url, namespace=namespace,
+        return cls(allconfig.args, allconfig.args.client, local_path_short=local_path_short, local_path=local_path,
+                   remote_repo=remote_repo, remote_repo_url=remote_repo_url, namespace=namespace,
                    sync_env=allconfig.sync_env,
                    username=allconfig.username,
                    email=allconfig.email,
@@ -77,7 +87,7 @@ class SyncConfig(SyncAllConfig):
 
     @classmethod
     def from_sync_config(cls, other_config: SyncConfig):
-        return cls(other_config.args, local_path_short=other_config.local_path_short,
+        return cls(other_config.args, other_config.mode, local_path_short=other_config.local_path_short,
                    local_path=other_config.local_path,
                    remote_repo=other_config.remote_repo, remote_repo_url=other_config.remote_repo_url,
                    namespace=other_config.namespace, sync_env=other_config.sync_env, username=other_config.username,
@@ -115,3 +125,10 @@ class SyncConfig(SyncAllConfig):
             return '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())
         else:
             return str(path)
+
+    def determine_mode(self):
+        if not self.local_path:
+            return ''
+        if self.local_path.joinpath(".git").exists():
+            return "git"
+        return ''

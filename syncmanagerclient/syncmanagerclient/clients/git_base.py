@@ -54,7 +54,7 @@ class GitClientBase:
 
     def initialize(self):
         if not self.gitrepo:
-            # change to the directory and apply git settings
+            # initialize repository
             try:
                 self.gitrepo = Repo(self.local_path)
             except InvalidGitRepositoryError as err:
