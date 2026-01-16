@@ -14,6 +14,8 @@ class GitRepoDeletion(GitClientBase):
     def apply(self):
         self.initialize()
         print(f"Delete remote repo {self.gitrepo.remote}")
+        remote_repo_id = self.config.remote_repo_info["id"]
+        self.api_service.delete_server_repo(remote_repo_id)
 
     def get_remote_repo(self):
         try:

@@ -1,6 +1,7 @@
 import os.path as osp
 import uuid
 
+import urllib.parse
 import datetime as dt
 
 from .git import GitRepoFs
@@ -295,7 +296,8 @@ def get_repos(clientenv, retention_years=None, refresh_rate:int=None, full_info=
 def search_repo(namespace):
     from .model import GitRepo, GitRepoFullSchema
     user = get_user()
-    results = GitRepo.get_repos_by_namespace_and_user_id(namespace, user.id)
+    namespace_decode = urllib.parse.unquote(namespace)
+    results = GitRepo.get_repos_by_namespace_and_user_id(namespace_decode, user.id)
     gitrepo_schema = GitRepoFullSchema(many=True)
     return gitrepo_schema.dump(results)
 

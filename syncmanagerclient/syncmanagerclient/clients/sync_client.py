@@ -140,6 +140,7 @@ class SyncClient:
             remote_repo['git_repo']['server_path_absolute'])
         config.username = remote_repo["user_name_config"] if remote_repo["user_name_config"] else config.username
         config.email = remote_repo["user_email_config"] if remote_repo["user_email_config"] else config.email
+        config.remote_repo_info =  remote_repo['git_repo']
         return config
 
     def report_errors(self):

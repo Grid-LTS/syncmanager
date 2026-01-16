@@ -23,7 +23,10 @@ class ApiService:
         }
         repo_list = []
         for server_repo in self.list_repos(self.search_repos_url, query_params):
-            repo_list.append(ApiService.retrieve_repo_reference(server_repo['userinfo'], self.sync_env))
+            server_repo = ApiService.retrieve_repo_reference(server_repo['userinfo'], self.sync_env)
+            if not server_repo:
+                continue
+            repo_list.append(server_repo)
         return repo_list
 
     def list_repos_by_client_env(self, global_config, full=False):
@@ -113,16 +116,19 @@ class ApiService:
         url = f"{self.base_api_url}/repos/{server_repo_id}"
         return req.patch(url, data='{}', auth=self.auth)
 
+    def delete_server_repo(self, server_repo_id):
+        url = f"{self.base_api_url}/repos/{server_repo_id}"
+        return req.delete(url, auth=self.auth)
+
     @staticmethod
     def check_response(response, desired_status_code):
         if response.status_code != desired_status_code:
             print(f"Error in processing. Received status {response.status_code} from server.")
 
     @staticmethod
-    def retrieve_repo_reference(user_info, sync_env):
-        for user_info in user_info:
-            referenced_envs = [env['env_name'] for env in user_info['client_envs']]
-            if sync_env in referenced_envs:
+    def retrieve_repo_reference(user_infos, sync_env):
+        for user_info in user_infos:
+            if sync_env in user_info['clientenvs']:
                 server_repo_ref = user_info
                 # existing reference found, abort lookup
                 return server_repo_ref

@@ -167,6 +167,10 @@ class UserGitReposAssoc(db.Model):
     client_envs = db.relationship(ClientEnv,
                                   secondary=user_clientenv_gitrepo_table)
 
+    @property
+    def clientenvs(self):
+        return [env.env_name for env in self.client_envs]
+
     @staticmethod
     def create_user_gitrepo_assoc(_user_id, _local_path_rel, _remote_name, _client_envs,
                                   _repo_id=None,  # can be set by foreign key relation when persisting sqlalchemy
@@ -252,11 +256,12 @@ class UserGitReposAssocSchema(ma.SQLAlchemyAutoSchema):
         model = UserGitReposAssoc
         sqla_session = db.session
         include_relationships = True
+        exclude = ('client_envs',)
+    clientenvs = fields.List(attribute="clientenvs", cls_or_instance=fields.Str())
 
 
 class UserGitReposAssocFullSchema(UserGitReposAssocSchema):
     git_repo = fields.Nested(GitRepoSchema, dump_default={}, load_default={}, many=False)
-    client_envs = fields.Nested(ClientEnvSchema, dump_default=[], load_default=[], many=True)
 
 
 class GitRepoFullSchema(ma.SQLAlchemyAutoSchema):

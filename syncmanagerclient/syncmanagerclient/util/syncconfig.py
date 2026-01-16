@@ -72,6 +72,7 @@ class SyncConfig(SyncAllConfig):
                 self.mode = args.client
             else:
                 self.mode = self.determine_mode()
+        self.remote_repo_data = None
 
     @classmethod
     def init(cls, local_path_short=None, local_path: Path = None, remote_repo=None, remote_repo_url=None, namespace='',
