@@ -4,11 +4,10 @@ import os.path
 from git import Repo
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF_ALIASES, \
-    ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO, ACTION_DELETE_REPO
+    ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE_REPO
 from .api import ApiService
 from .git_archive_ignored import GitArchiveIgnoredFiles
 from .git_delete_repo import GitRepoDeletion
-from .git_init_repo import GitInitRepo
 from .git_settings import GitClientSettings
 from .git_sync import GitClientSync
 from .sync_dir_registration import SyncDirRegistration
@@ -45,8 +44,6 @@ class SyncClient:
                 return GitClientSync(self.action, config, force=self.force)
             elif self.action == ACTION_ARCHIVE_IGNORED_FILES:
                 return GitArchiveIgnoredFiles(config)
-            elif self.action == ACTION_INIT_REPO:
-                return GitInitRepo(config)
             elif self.action == ACTION_DELETE_REPO:
                 return GitRepoDeletion(config)
             else:

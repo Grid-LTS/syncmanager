@@ -1,4 +1,5 @@
 import os
+from os.path import dirname
 from configparser import ConfigParser
 
 from pathlib import Path
@@ -10,7 +11,6 @@ from .system import sanitize_path
 
 class Globalproperties:
     # this module encloses all globally accessible properties
-    ini_path_prefix = ''
     conf_dir = ''
     var_dir = ''
     cache_dir: Path = None
@@ -24,7 +24,8 @@ class Globalproperties:
     loaded = False
     retention_years = None
     refresh_rate_months = None
-    module_dir = ''
+    module_dir = dirname(dirname(os.path.abspath(__file__)))
+    ini_path_prefix = dirname(module_dir)
     archiveconfig = None
     allconfig: SyncAllConfig = None
     config_parser = None

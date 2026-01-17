@@ -1,6 +1,5 @@
 import argparse
 import os, sys
-from os.path import dirname
 from pathlib import Path
 
 from .util.globalproperties import Globalproperties
@@ -8,7 +7,7 @@ from .util.syncconfig import SyncConfig
 from .util.readconfig import ConfigParser, environment_parse
 
 from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_PULL, ACTION_PUSH, ACTION_SET_CONF, \
-    ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES, ACTION_INIT_REPO, ACTION_DELETE_REPO
+    ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE_REPO
 from .clients.sync_client import SyncClient
 from .clients.deletion_registration import DeletionRegistration
 from .clients.sync_dir_registration import SyncDirRegistration
@@ -22,10 +21,6 @@ def init_global_properties(_stage='dev', _org=''):
     else:
         stage = _stage
     # initialize global properties
-    module_dir = dirname(os.path.abspath(__file__))
-    Globalproperties.module_dir = module_dir
-    properties_path_prefix = dirname(module_dir)
-    Globalproperties.set_prefix(properties_path_prefix)
     Globalproperties.read_config(stage, _org)
 
 
@@ -166,7 +161,7 @@ def parse_arguments():
     parser.add_argument("-ry", "--retention_years",
                         help="Only sync repositories that have been updated at least inside the recent time frame given by retention years")
     allowed_actions = [ACTION_PUSH, ACTION_PULL, ACTION_ARCHIVE_IGNORED_FILES,
-                       ACTION_INIT_REPO, ACTION_DELETE_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
+                       ACTION_DELETE_REPO] + ACTION_SET_REMOTE_ALIASES + ACTION_SET_CONF_ALIASES + ACTION_ADD_ENV_ALIASES
     sub_parser_action = parser.add_subparsers(dest='action', help="Action to perform")
     for act in allowed_actions:
         # Todo: improve see https://stackoverflow.com/questions/7498595/python-argparse-add-argument-to-multiple-subparsers
@@ -194,7 +189,7 @@ def main():
 
 def execute_command(arguments, sync_config: SyncConfig, remote_name=None, path=None):
     single_repo_mode = sync_config.offline and Path(os.getcwd()).joinpath(".git").exists()
-    if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE, ACTION_INIT_REPO,
+    if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE,
                                                         ACTION_DELETE_REPO]:
         sync_config.local_path = Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:
@@ -212,8 +207,6 @@ def execute_command(arguments, sync_config: SyncConfig, remote_name=None, path=N
     elif arguments.action in ACTION_SET_CONF_ALIASES:
         pass
     elif arguments.action in [ACTION_PULL, ACTION_PUSH]:
-        pass
-    elif arguments.action == ACTION_INIT_REPO:
         pass
     elif arguments.action == ACTION_ARCHIVE_IGNORED_FILES:
         if single_repo_mode:

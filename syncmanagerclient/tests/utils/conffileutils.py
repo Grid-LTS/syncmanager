@@ -3,9 +3,8 @@ from git import Repo
 
 
 # Project files
-from syncmanagerclient.main import apply_sync_conf_files, parse_arguments_legacy
+from syncmanagerclient.main import apply_sync_conf_files
 from syncmanagerclient.clients import ACTION_PUSH
-from syncmanagerclient.util.globalproperties import Globalproperties
 
 from .testutils import *
 

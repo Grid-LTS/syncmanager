@@ -8,4 +8,3 @@ ACTION_DELETE_REPO = 'delete-repo'
 ACTION_SET_CONF = 'set_conf'
 ACTION_SET_CONF_ALIASES = ['set_conf', 'set-conf', 'set-config', 'set_config']
 ACTION_ARCHIVE_IGNORED_FILES = 'archive-ignored-files'
-ACTION_INIT_REPO = 'initialize-repo'

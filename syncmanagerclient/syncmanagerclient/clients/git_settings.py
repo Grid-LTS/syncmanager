@@ -1,4 +1,16 @@
+import os
+import sys
+import subprocess
+
+from pathlib import Path
+
 from git import Repo, InvalidGitRepositoryError
+
+
+from ..util.error import InvalidArgument
+from ..util.system import change_dir, run_command
+from ..util.globalproperties import Globalproperties
+from ..util.system import home_dir
 
 from ..util.syncconfig import SyncConfig
 from .git_base import GitClientBase
@@ -11,6 +23,7 @@ class GitClientSettings(GitClientBase):
 
     def apply(self):
         self.set_settings()
+        self.reinitialize_repo()
 
     def set_settings(self):
         """
@@ -50,16 +63,31 @@ class GitClientSettings(GitClientBase):
                 print('Git config \'user.email\' could not be set. Error: ' + str(err))
         conf_writer.release()
 
-    def initialize(self):
-        if not self.gitrepo:
-            # change to the directory and apply git settings
-            try:
-                self.gitrepo = Repo(self.local_path)
-            except InvalidGitRepositoryError as err:
-                self.errors.append(
-                    GitErrorItem(self.local_path_short, err, "Invalid local repo")
-                )
-                return
+    def reinitialize_repo(self):
+        if not self.local_path.joinpath(".git").resolve().exists():
+            err_msg = f"{self.local_path} is not a git project root path"
+            self.errors.append(
+                GitErrorItem(self.local_path_short, InvalidArgument(err_msg), "")
+            )
+            return
+        code = self.change_to_local_repo()
+        if code != 0:
+            return
+        system_home_dir = Path(home_dir)
+        if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
+            print(f"For security reasons only repositories in the home directory can be managed.")
+            return
+        if sys.platform.startswith('win'):
+            os_dir = "win"
+        else:
+            os_dir = "unix"
+        script = os.path.join(Globalproperties.module_dir, "exec", os_dir, "repo_init.sh")
+        try:
+            run_command(script)
+        except subprocess.CalledProcessError:
+            self.errors.append(
+                GitErrorItem(self.local_path_short, subprocess.CalledProcessError, "")
+            )
 
     def get_remote_repo(self):
         try:
