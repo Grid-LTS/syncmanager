@@ -213,6 +213,11 @@ printf "MySQL password for admin user ${DB_ROOT_USER}: "
 read db_password
 stty echo
 
+if [[ db_password =~ ^[[:upper:]]+$ ]]; then
+  echo "All letters in password are uppercase!"
+fi
+
+
 sudo mkdir $INSTALL_DIR/conf > /dev/null 2>&1
 vars_file=$INSTALL_DIR/conf/application.cfg
 if ! sudo mysql -h $DB_HOST -u $DB_ROOT_USER -P $DB_PORT -p$db_password -e "use ${DB_SCHEMA_NAME}" > /dev/null 2>&1; then

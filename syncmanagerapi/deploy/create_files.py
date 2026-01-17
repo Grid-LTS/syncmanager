@@ -41,6 +41,8 @@ if os.path.isfile(properties_path):
             db_user_name = config['default_section'].get('DB_USER', 'syncmanager').strip('"\'')
             # password must be provided, in future this should be replaced by a retrieval from a password vault
             passw = getpass.getpass("Provide password for Mysql user {}:".format(db_user_name))
+            if passw.isupper():
+                print("All letters in password are uppercase!")
             context = {
                 'db_schema_name': config['default_section'].get('DB_SCHEMA_NAME', 'syncmanerapi').strip('"\''),
                 'db_user': db_user_name,
