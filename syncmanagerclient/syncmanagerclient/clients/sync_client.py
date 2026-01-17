@@ -34,6 +34,7 @@ class SyncClient:
         if not self.sync_config.mode:
             raise InvalidArgument(f"Sync client cannot be determined or is not supported")
         self.api_service = ApiService(self.sync_config.mode, self.sync_env)
+        self.cache_repos = []
 
     def get_instance(self, config: SyncConfig = None):
         if self.sync_config.mode == 'git':
@@ -117,20 +118,34 @@ class SyncClient:
         self.report_errors()
 
     def fetch_repos(self, sync_config: SyncConfig):
+        cache_disabled = Globalproperties.test_mode
+        cache_response_path = Globalproperties.cache_dir.joinpath("remote_repos.json")
+        if not cache_disabled:
+            if cache_response_path.exists():
+                with cache_response_path.open("r", encoding="utf-8") as f:
+                    self.cache_repos = json.load(f)
         if sync_config.namespace:
             return self.api_service.search_repos_by_namespace(sync_config.namespace)
-        cache_repose_path = Globalproperties.cache_dir.joinpath("remote_repos.json")
-        cache_disabled = Globalproperties.test_mode
         remote_repos = []
         if not sync_config.offline or cache_disabled:
             remote_repos = self.api_service.list_repos_by_client_env(sync_config.global_config, full=True)
             if remote_repos and not cache_disabled:
-                with cache_repose_path.open("w", encoding="utf-8") as f:
-                    json.dump(remote_repos, f, ensure_ascii=False, indent=2)
+                self.update_cache(remote_repos)
         else:
-            with cache_repose_path.open("r", encoding="utf-8") as f:
-                remote_repos = json.load(f)
+            with cache_response_path.open("r", encoding="utf-8") as f:
+                remote_repos = self.cache_repos
         return remote_repos
+
+    def update_cache(self, remote_repos):
+        cached_repos_before = list(self.cache_repos)
+        cache_response_path = Globalproperties.cache_dir.joinpath("remote_repos.json")
+        cached_ids = [remote_repo["id"] for remote_repo in self.cache_repos]
+        for remote_repo in remote_repos:
+            if remote_repo["id"] not in cached_ids:
+                self.cache_repos.append(remote_repo)
+        if cached_repos_before != self.cache_repos:
+            with cache_response_path.open("w", encoding="utf-8") as f:
+                json.dump(self.cache_repos, f, ensure_ascii=False, indent=2)
 
     def update_config(self, sync_config, remote_repo):
         config = SyncConfig.from_sync_config(sync_config)
@@ -140,7 +155,7 @@ class SyncClient:
             remote_repo['git_repo']['server_path_absolute'])
         config.username = remote_repo["user_name_config"] if remote_repo["user_name_config"] else config.username
         config.email = remote_repo["user_email_config"] if remote_repo["user_email_config"] else config.email
-        config.remote_repo_info =  remote_repo['git_repo']
+        config.remote_repo_info = remote_repo['git_repo']
         return config
 
     def report_errors(self):
@@ -156,4 +171,3 @@ class SyncClient:
                 print(error.error)
                 print('-------------------------------------------------------------------------------------')
                 print('')
-
