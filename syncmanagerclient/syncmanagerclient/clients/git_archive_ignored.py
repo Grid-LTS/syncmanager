@@ -3,7 +3,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 import re
 
 from git import Repo
@@ -43,6 +43,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
                                                                                local_path_relative, project_root)
         self.archive_default_root = self.archive_project_root.joinpath(DEFAULT_SYNC_ENV)
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
+        self.symlinks = []
+        self.directory_registry = dict()
 
     def apply(self):
         if not self.local_path.exists():
@@ -63,26 +65,12 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if not self.gitrepo:
             self.gitrepo = Repo(self.local_path)
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
-        files_to_archive = [filename.replace("!! ", "").strip("/").strip("\\").strip(os.path.pathsep) for filename in
-                            files_to_archive if filename.startswith("!! ")]
-        symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
-        files_to_archive = [filename for filename in files_to_archive if not filename in symlinks and not any(
-            x.match(filename) for x in self.archive_config.skip_regex_pattern)
-                            and not os.path.basename(
-            filename) in self.archive_config.skip_list()]
-        files_to_archive = [filename for filename in files_to_archive if
-                            not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
-        files_to_archive = [filename for filename in files_to_archive if
-                            not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
-        files_to_archive = [filename for filename in files_to_archive if
-                            not directory_contains_git_repo(Path(filename))
-                            and is_file_or_dir_and_smaller_than(Path(filename))]
-        # we do not archive files that live in git-managed directories, having .gitkeep file, because these directory
-        # are operational and contain only short-term or processed data
-        files_to_archive = [filename for filename in files_to_archive if
-                            not (Path(filename).parent / ".gitkeep").exists()]
+        files_to_archive = prune_filenames(
+            [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")])
+        self.symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
+        files_to_archive = self.filter_ignored_files(files_to_archive)
 
-        for file in list(files_to_archive + symlinks):
+        for file in list(files_to_archive + self.symlinks):
             path = Path(file)
             is_stale = path.is_symlink() and not os.path.exists(os.path.realpath(path))
             if not check_if_broken_symlink(path) and not is_stale:
@@ -120,6 +108,23 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     else:
                         print(f"Unexpected error: {e}")
         return False
+
+    def filter_ignored_files(self, files_to_archive):
+        files_to_archive = [filename for filename in files_to_archive if not filename in self.symlinks and not any(
+            x.match(filename) for x in self.archive_config.skip_regex_pattern)
+                            and not os.path.basename(
+            filename) in self.archive_config.skip_list()]
+        files_to_archive = [filename for filename in files_to_archive if
+                            not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
+        files_to_archive = [filename for filename in files_to_archive if
+                            not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
+        files_to_archive = [filename for filename in files_to_archive if
+                            self.directory_is_archivable(Path(filename))
+                            and is_file_or_dir_and_smaller_than(Path(filename))]
+        # we do not archive files that live in git-managed directories, having .gitkeep file, because these directory
+        # are operational and contain only short-term or processed data
+        return [filename for filename in files_to_archive if
+                not (Path(filename).parent / ".gitkeep").exists()]
 
     def symlink_archived_files_for_env(self, archive_path: Path):
         if not archive_path.exists():
@@ -170,71 +175,80 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if '' in unstaged_files:
             unstaged_files.remove('')
 
+    def directory_is_archivable(self, path: Path, max_depth: Optional[int] = None,
+                                follow_symlinks: bool = False) -> bool:
+        if not path.is_dir():
+            return True
+        archivable_files = self.find_git_repos_under(path, max_depth=max_depth, follow_symlinks=follow_symlinks)
+        return len(archivable_files) > 0
 
-def directory_contains_git_repo(path: Path):
-    if not path.is_dir():
-        return False
-    return has_git_repo_under(path)
+    def find_git_repos_under(self, path: Path, max_depth: Optional[int] = None,
+                             follow_symlinks: bool = False) -> List[Path]:
+        """
+        Recursively search downward from `path` for directories that contain a ".git" entry.
+        Also include directories with .gitkeep entry, since these directories are managed by git and should also not be
+        archived
 
+        - `path`: directory (or file; file => its parent directory is used) to start the search from.
+        - `max_depth`: if provided, limits recursion depth (0 means only the start directory).
+                     Depth is measured in directory levels below the start directory.
+        - `follow_symlinks`: whether to follow directory symlinks while recursing (defaults False).
 
-def find_git_repos_under(path: Path, max_depth: Optional[int] = None,
-                         follow_symlinks: bool = False) -> Optional[Path]:
-    """
-    Recursively search downward from `path` for directories that contain a ".git" entry.
-    Also include directories with .gitkeep entry, since these directories are managed by git and should also not be
-    archived
+        Returns a list of Path objects pointing to directories that contain a ".git" entry
+        (the directory which itself contains ".git"). If none found, returns an empty list.
+        """
+        file_registry = []
+        skip_directories = []
+        # Use absolute path for predictable parent traversal (avoid relative surprises)
+        p = path.resolve()
+        if not p.exists() or not p.is_dir():
+            return []
 
-    - `path`: directory (or file; file => its parent directory is used) to start the search from.
-    - `max_depth`: if provided, limits recursion depth (0 means only the start directory).
-                 Depth is measured in directory levels below the start directory.
-    - `follow_symlinks`: whether to follow directory symlinks while recursing (defaults False).
+        # Use os.walk to allow pruning `dirs` for depth-limiting and permission handling.
+        for dirpath, dirnames, filenames in os.walk(str(p), topdown=True, followlinks=follow_symlinks):
+            # if any(x in Path(dirpath).parents for x in skip_directories):
+            #    continue
+            try:
+                # depth relative to root
+                rel = os.path.relpath(dirpath, str(p))
+            except ValueError:
+                # In weird cases (different mounts / windows UNC) fallback to full parts count
+                rel = dirpath
+            depth = 0 if rel == '.' else rel.count(os.sep) + 1  # number of levels below root
 
-    Returns a list of Path objects pointing to directories that contain a ".git" entry
-    (the directory which itself contains ".git"). If none found, returns an empty list.
-    """
-    # Use absolute path for predictable parent traversal (avoid relative surprises)
-    p = path.resolve()
-    if not p.exists() or not p.is_dir():
-        return None
+            # If max_depth specified and we are at or past it, prune further descent.
+            if max_depth is not None and depth > max_depth:
+                dirnames[:] = []
+                continue
+            if max_depth is not None and depth == max_depth:
+                # don't descend further from this level
+                dirnames[:] = []
 
-    # Use os.walk to allow pruning `dirs` for depth-limiting and permission handling.
-    for dirpath, dirnames, filenames in os.walk(str(p), topdown=True, followlinks=follow_symlinks):
-        try:
-            # depth relative to root
-            rel = os.path.relpath(dirpath, str(p))
-        except ValueError:
-            # In weird cases (different mounts / windows UNC) fallback to full parts count
-            rel = dirpath
-        depth = 0 if rel == '.' else rel.count(os.sep) + 1  # number of levels below root
-
-        # If max_depth specified and we are at or past it, prune further descent.
-        if max_depth is not None and depth > max_depth:
-            dirnames[:] = []
-            continue
-        if max_depth is not None and depth == max_depth:
-            # don't descend further from this level
-            dirnames[:] = []
-
-        current = Path(dirpath)
-        if str(current).endswith(".git"):
-            return current
-        git_entry = current / ".git"
-        try:
-            if git_entry.exists():
-                return git_entry
-            # check if bare git repo
-            # add more conditions
-            if (current / "HEAD").exists() and (current / "refs").exists() and (current / "config").exists():
-                return current
-            if (current / ".gitkeep").exists():
-                return current
-
-        except PermissionError:
-            # skip directories we cannot stat, but continue searching other branches
-            dirnames[:] = []
-            continue
-
-    return None
+            current = Path(dirpath)
+            if str(current).endswith(".git"):
+                dirnames[:] = []
+                continue
+            git_entry = current / ".git"
+            try:
+                if git_entry.exists():
+                    dirnames[:] = []
+                    continue
+                # check if bare git repo
+                # add more conditions
+                if (current / "HEAD").exists() and (current / "refs").exists() and (current / "config").exists():
+                    dirnames[:] = []
+                    continue
+                if (current / ".gitkeep").exists():
+                    dirnames[:] = []
+                    continue
+            except PermissionError:
+                # skip directories we cannot stat, but continue searching other branches
+                dirnames[:] = []
+                continue
+            if filenames:
+                file_registry += self.filter_ignored_files(prune_filepaths([
+                    Path(dirpath).joinpath(filename).relative_to(self.local_path) for filename in filenames]))
+        return file_registry
 
 
 _RE = re.compile(r'\AXSym\r?\n[0-9]{4}\r?\n[0-9A-Fa-f]{32}\r?\n/(?:[^/\x00]+(?:/(?!/)[^/\x00]+)*)/?\r?\Z')
@@ -258,16 +272,6 @@ def check_if_broken_symlink(path: Path):
         return False
 
     return bool(_RE.match(text))
-
-
-def has_git_repo_under(path: Path,
-                       max_depth: Optional[int] = None,
-                       follow_symlinks: bool = False) -> Optional[Path]:
-    """
-    Convenience wrapper that returns the first repository found (or None).
-    """
-    repo = find_git_repos_under(path, max_depth=max_depth, follow_symlinks=follow_symlinks)
-    return repo is not None
 
 
 def is_file_or_dir_and_smaller_than(path: Path) -> bool:
@@ -314,3 +318,12 @@ def get_dir_size(path: Path, follow_links: bool = False,
             seen_inodes.add(key)
             total += st.st_size
     return total
+
+
+def prune_filenames(files_to_archive: List[str]):
+    files = [filename.strip("/").strip("\\").strip(os.path.pathsep) for filename in files_to_archive]
+    return files
+
+
+def prune_filepaths(files_to_archive: List[Path]):
+    return prune_filenames([str(x) for x in files_to_archive])
