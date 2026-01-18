@@ -66,11 +66,13 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if not self.gitrepo:
             self.gitrepo = Repo(self.local_path)
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
-        check_for_broken_symlinks =   [filename.replace("?? ", "") for filename in files_to_archive if filename.startswith("?? ")]
-        check_for_broken_symlinks =  [filename for filename in check_for_broken_symlinks if Path(filename).is_symlink()]
+        check_for_broken_symlinks = [filename.replace("?? ", "") for filename in files_to_archive if
+                                     filename.startswith("?? ")]
+        check_for_broken_symlinks = [filename for filename in check_for_broken_symlinks if Path(filename).is_symlink()]
         files_to_archive = prune_filenames(
             [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")])
         self.symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
+        files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink()]
         files_to_archive = self.filter_ignored_files(files_to_archive)
 
         for file in list(files_to_archive + self.symlinks + check_for_broken_symlinks):
@@ -113,21 +115,31 @@ class GitArchiveIgnoredFiles(GitClientBase):
         return False
 
     def filter_ignored_files(self, files_to_archive):
+        files_to_archive = self.filter_ignored_files_based_on_name(files_to_archive)
+        files_to_archive = [filename for filename in files_to_archive if
+                            is_file_or_dir_and_smaller_than(Path(filename))]
+        for path in list(files_to_archive):
+            if not os.path.isdir(path):
+                continue
+            archivable_paths = self.find_archivable_file_paths(Path(path))
+            if len(archivable_paths) == 1 and archivable_paths[0].relative_to(self.local_path) == path:
+                continue
+            files_to_archive.remove(path)
+            files_to_archive += [x.relative_to(self.local_path) for x in archivable_paths]
+        # we do not archive files that live in git-managed directories, having .gitkeep file, because these directory
+        # are operational and contain only short-term or processed data
+        return [filename for filename in files_to_archive if
+                not (Path(filename).parent / ".gitkeep").exists()]
+
+    def filter_ignored_files_based_on_name(self, files_to_archive: List[str]):
         files_to_archive = [filename for filename in files_to_archive if not filename in self.symlinks and not any(
             x.match(filename) for x in self.archive_config.skip_regex_pattern)
                             and not os.path.basename(
             filename) in self.archive_config.skip_list()]
         files_to_archive = [filename for filename in files_to_archive if
                             not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
-        files_to_archive = [filename for filename in files_to_archive if
-                            not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
-        files_to_archive = [filename for filename in files_to_archive if
-                            self.directory_is_archivable(Path(filename))
-                            and is_file_or_dir_and_smaller_than(Path(filename))]
-        # we do not archive files that live in git-managed directories, having .gitkeep file, because these directory
-        # are operational and contain only short-term or processed data
         return [filename for filename in files_to_archive if
-                not (Path(filename).parent / ".gitkeep").exists()]
+                not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
 
     def symlink_archived_files_for_env(self, archive_path: Path):
         if not archive_path.exists():
@@ -146,7 +158,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
             for filename in files:
                 file_rel_path = relpath.joinpath(filename)
                 would_be_file_link_location = self.local_path.joinpath(file_rel_path)
-                if not self.local_path.joinpath(file_rel_path).exists() and not would_be_file_link_location.is_symlink():
+                if not self.local_path.joinpath(
+                        file_rel_path).exists() and not would_be_file_link_location.is_symlink():
                     source_location = Path(root).joinpath(filename)
                     print(f"Create file symlink at {would_be_file_link_location} pointing to {source_location}")
                     if not self.config.dry_run:
@@ -154,7 +167,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
 
     def symlink_archived_files_back(self):
         if not self.archive_project_root.exists():
-            print(f"No archive registered under {self.archive_project_root} for repo {self.local_path_short}")
             return
         envs = os.listdir(self.archive_project_root)
         if not envs or not DEFAULT_SYNC_ENV in envs:
@@ -172,15 +184,19 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if '' in unstaged_files:
             unstaged_files.remove('')
 
-    def directory_is_archivable(self, path: Path, max_depth: Optional[int] = None,
-                                follow_symlinks: bool = False) -> bool:
+    def find_archivable_file_paths(self, path: Path, max_depth: Optional[int] = None,
+                                   follow_symlinks: bool = False) -> List[Path]:
         if not path.is_dir():
-            return True
-        archivable_files = self.find_git_repos_under(path, max_depth=max_depth, follow_symlinks=follow_symlinks)
-        return len(archivable_files) > 0
+            return [path]
+        archivable_paths = self.find_archivable_files(path, max_depth=max_depth, follow_symlinks=follow_symlinks)
+        # consolidate
+        for path in list(archivable_paths):
+            if any(parent_path in archivable_paths for parent_path in path.parents) or path.is_symlink():
+                archivable_paths.remove(path)
+        return archivable_paths
 
-    def find_git_repos_under(self, path: Path, max_depth: Optional[int] = None,
-                             follow_symlinks: bool = False) -> List[Path]:
+    def find_archivable_files(self, path: Path, max_depth: Optional[int] = None,
+                              follow_symlinks: bool = False) -> List[Path]:
         """
         Recursively search downward from `path` for directories that contain a ".git" entry.
         Also include directories with .gitkeep entry, since these directories are managed by git and should also not be
@@ -194,13 +210,12 @@ class GitArchiveIgnoredFiles(GitClientBase):
         Returns a list of Path objects pointing to directories that contain a ".git" entry
         (the directory which itself contains ".git"). If none found, returns an empty list.
         """
-        file_registry = []
+        path_registry = []
         skip_directories = []
         # Use absolute path for predictable parent traversal (avoid relative surprises)
         p = path.resolve()
         if not p.exists() or not p.is_dir():
             return []
-
         # Use os.walk to allow pruning `dirs` for depth-limiting and permission handling.
         for dirpath, dirnames, filenames in os.walk(str(p), topdown=True, followlinks=follow_symlinks):
             # if any(x in Path(dirpath).parents for x in skip_directories):
@@ -223,19 +238,32 @@ class GitArchiveIgnoredFiles(GitClientBase):
 
             current = Path(dirpath)
             if str(current).endswith(".git"):
+                if current.parent in path_registry:
+                    path_registry.remove(current.parent)
                 dirnames[:] = []
                 continue
             git_entry = current / ".git"
             try:
                 if git_entry.exists():
+                    if current.parent in path_registry:
+                        path_registry.remove(current.parent)
                     dirnames[:] = []
                     continue
                 # check if bare git repo
                 # add more conditions
                 if (current / "HEAD").exists() and (current / "refs").exists() and (current / "config").exists():
+                    if current.parent in path_registry:
+                        path_registry.remove(current.parent)
                     dirnames[:] = []
                     continue
                 if (current / ".gitkeep").exists():
+                    if current.parent in path_registry:
+                        path_registry.remove(current.parent)
+                    dirnames[:] = []
+                    continue
+                if not self.filter_ignored_files_based_on_name([str(current.relative_to(self.local_path))]):
+                    if current.parent in path_registry:
+                        path_registry.remove(current.parent)
                     dirnames[:] = []
                     continue
             except PermissionError:
@@ -243,9 +271,14 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 dirnames[:] = []
                 continue
             if filenames:
-                file_registry += self.filter_ignored_files(prune_filepaths([
+                okay_files = self.filter_ignored_files_based_on_name(prune_filepaths([
                     Path(dirpath).joinpath(filename).relative_to(self.local_path) for filename in filenames]))
-        return file_registry
+                path_registry += [self.local_path.joinpath(file) for file in okay_files]
+                if len(okay_files) == len(filenames):
+                    path_registry.append(current)
+            else:
+                path_registry.append(current)
+        return path_registry
 
 
 _RE = re.compile(r'\AXSym\r?\n[0-9]{4}\r?\n[0-9A-Fa-f]{32}\r?\n/(?:[^/\x00]+(?:/(?!/)[^/\x00]+)*)/?\r?\Z')
