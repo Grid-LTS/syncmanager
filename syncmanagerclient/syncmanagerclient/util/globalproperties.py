@@ -16,7 +16,7 @@ class Globalproperties:
     cache_dir: Path = None
     archive_dir_path: Path = None
     api_base_url = ''
-    api_user = ''
+    username = ''
     api_pw = ''
     ssh_user = ''
     ssh_host = ''
@@ -103,7 +103,7 @@ class Globalproperties:
 
         cls.api_base_url = f"http://{cls.config_parser.get('server', 'API_HOST', fallback='')}" \
                            f":{cls.config_parser.get('server', 'API_PORT', fallback='5010')}/api"
-        cls.api_user = cls.config_parser.get(f"org_{organization}", 'API_USER', fallback='')
+        cls.username = cls.config_parser.get(f"org_{organization}", 'API_USER', fallback='')
         cls.api_pw = cls.config_parser.get(f"org_{organization}", 'API_PW', fallback='')
         cls.ssh_user = cls.config_parser.get('ssh', 'SSH_USER', fallback=None)
         cls.ssh_host = cls.config_parser.get('ssh', 'SSH_HOST', fallback=None)

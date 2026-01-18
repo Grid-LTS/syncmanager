@@ -51,7 +51,7 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     origin_url = local_repo.remotes["origin"].url
 
     load_global_properties(args=args)
-    Globalproperties.api_user = sync_api_user["username"]
+    Globalproperties.username = sync_api_user["username"]
     Globalproperties.api_pw = sync_api_user["password"]
 
     assert Globalproperties.allconfig.username != USER_NAME

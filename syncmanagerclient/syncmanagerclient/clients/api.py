@@ -14,7 +14,7 @@ class ApiService:
         self.repos_base_url = f"{self.base_api_url}/repos"
         self.get_repos_by_clientenv_url = f"{self.base_api_url}/repos_by_clientenv"
         self.sync_env = sync_env
-        self.auth = Globalproperties.api_user, Globalproperties.api_pw
+        self.auth = Globalproperties.username, Globalproperties.api_pw
 
     def search_repos_by_namespace(self, namespace):
         query_params = {

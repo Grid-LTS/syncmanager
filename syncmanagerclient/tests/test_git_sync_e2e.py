@@ -244,5 +244,5 @@ def change_environment(clientenv, sync_api_user, args=None):
     load_global_properties(clientenv, args=args)
     Globalproperties.allconfig.username = USER_NAME
     Globalproperties.allconfig.email = USER_EMAIL
-    Globalproperties.api_user = sync_api_user["username"]
+    Globalproperties.username = sync_api_user["username"]
     Globalproperties.api_pw = sync_api_user["password"]
