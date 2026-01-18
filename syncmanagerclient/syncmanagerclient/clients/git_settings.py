@@ -4,11 +4,8 @@ import subprocess
 
 from pathlib import Path
 
-from git import Repo, InvalidGitRepositoryError
-
-
 from ..util.error import InvalidArgument
-from ..util.system import change_dir, run_command
+from ..util.system import run_command
 from ..util.globalproperties import Globalproperties
 from ..util.system import home_dir
 

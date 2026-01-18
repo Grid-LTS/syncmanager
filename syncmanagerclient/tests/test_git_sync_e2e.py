@@ -18,20 +18,20 @@ test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
 sys.path.insert(0, project_dir)
 
-from testlib.testsetup import USER_CLIENT_ENV, USER_CLIENT_ENV_EXTRA,  get_user_basic_authorization
+from testlib.testsetup import USER_CLIENT_ENV, USER_CLIENT_ENV_EXTRA, get_user_basic_authorization
 
-from .utils.testutils import checkout_principal_branch, ArgumentsTest, get_other_repo_path, checkout_all_upstream_branches, load_global_properties
-from .conftest import e2e_test_workspace_root # DO NOT IMPORT fixtures, rely on pytest discovery mechanism via
+from .utils.testutils import checkout_principal_branch, ArgumentsTest, get_other_repo_path, \
+    checkout_all_upstream_branches, load_global_properties
+from .conftest import e2e_test_workspace_root  # DO NOT IMPORT fixtures, rely on pytest discovery mechanism via
+
 # conftest.py
 
 system_tz = dt.datetime.now().astimezone().tzinfo
-
 
 """
 Define or import fixtures functions only in conftest.py
 """
 
-local_repo_path = ''
 other_repo_path = ''
 
 USER_NAME = __name__.split(".")[-1]
@@ -46,7 +46,6 @@ def init_test(sync_api_user):
 
 @pytest.mark.dependency()
 def test_push_sync(app_initialized, local_repo, client, sync_api_user):
-    global local_repo_path
     global other_repo_path
     get_clientenv_repos_url = f"/api/git/repos"
     headers = {"Authorization": get_user_basic_authorization(sync_api_user)}
@@ -65,7 +64,7 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     assert response.status_code == 400
 
     # 2. test first sync
-    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
+    sync_config = SyncConfig.init(allconfig=Globalproperties.allconfig)
 
     args = ArgumentsTest()
     args.action = "push"
@@ -88,7 +87,8 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     args.action = "push"
     execute_command(args, sync_config, remote_name="origin")
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
-    assert dt.datetime.fromisoformat(remote_repo_api["last_commit_date"]).replace( tzinfo=system_tz) == new_commit.committed_datetime
+    assert dt.datetime.fromisoformat(remote_repo_api["last_commit_date"]).replace(
+        tzinfo=system_tz) == new_commit.committed_datetime
 
     other_repo_path = get_other_repo_path(os.path.join(e2e_test_workspace_root, sync_api_user["username"], 'e2e-extra'))
     local_repo.close()
@@ -109,24 +109,24 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     change_dir(other_repo_path)
     change_environment('e2e-extra', sync_api_user)
     Globalproperties.init_allconfig(args)
-    sync_config_other = SyncConfig.init(allconfig = Globalproperties.allconfig)
-    execute_command(args, sync_config_other, remote_name = "origin")
+    sync_config_other = SyncConfig.init(allconfig=Globalproperties.allconfig)
+    execute_command(args, sync_config_other, remote_name="origin")
     query_params = {
         "clientenv": USER_CLIENT_ENV_EXTRA,
         "full_info": True
     }
-    other_repo_api_resp = client.get(get_clientenv_repos_url + "?" + urllib.parse.urlencode(query_params), headers=headers)
+    other_repo_api_resp = client.get(get_clientenv_repos_url + "?" + urllib.parse.urlencode(query_params),
+                                     headers=headers)
     assert other_repo_api_resp.status_code == 200
     other_repos = other_repo_api_resp.json()
     assert len(other_repos) == 1
     assert str(sanitize_posix_path(other_repos[0]['local_path_rel'])) == other_repo_path
 
 
-
 @pytest.mark.dependency(depends=["test_push_sync"])
-def test_delete_branch(app_initialized, client, sync_api_user):
-    global local_repo_path
+def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     global other_repo_path
+    local_repo_path = local_repo.working_dir
     # 0. create branch
     test_branch = 'feature/test-for-deletion'
     change_dir(local_repo_path)
@@ -140,7 +140,7 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     args.sync_env = USER_CLIENT_ENV
     change_environment('e2e', sync_api_user, args)
 
-    sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
+    sync_config = SyncConfig.init(allconfig=Globalproperties.allconfig)
     execute_command(args, sync_config, remote_name="origin")
 
     # 2. change to extra env and fetch the branch
@@ -150,7 +150,7 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     args.env = USER_CLIENT_ENV_EXTRA
     change_environment('e2e-extra', sync_api_user, args)
 
-    other_sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
+    other_sync_config = SyncConfig.init(allconfig=Globalproperties.allconfig)
     execute_command(args, other_sync_config, remote_name="origin")
 
     # after sync the file system pointer points to the parent dir of the repositories
@@ -161,7 +161,8 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     checkout_all_upstream_branches(other_repo, ['origin/' + test_branch])
 
     syncmanagerapi_dir = app_initialized.app.config.get("SYNCMANAGER_SERVER_CONF")
-    server_repo = Repo(os.path.join(syncmanagerapi_dir,"tests", "var", "git", sync_api_user["id"], args.namespace, f"{os.path.basename(local_repo_path)}.git"))
+    server_repo = Repo(os.path.join(syncmanagerapi_dir, "tests", "var", "git", sync_api_user["id"], args.namespace,
+                                    f"{os.path.basename(local_repo_path)}.git"))
 
     # confirm that branch exists in both remote repo and in other repo
     assert hasattr(server_repo.heads, test_branch)
@@ -204,6 +205,18 @@ def test_delete_branch(app_initialized, client, sync_api_user):
     assert not hasattr(other_repo.heads, test_branch)
 
 
+@pytest.mark.dependency(depends=["test_delete_branch"])
+def test_delete_remote_repo(app_initialized, local_repo, client, sync_api_user):
+    local_repo_path = local_repo.working_dir
+    sync_config = SyncConfig.init(allconfig=Globalproperties.allconfig)
+    #  delete remote server repo
+    change_dir(local_repo_path)
+    args = ArgumentsTest()
+    args.action = "delete-repo"
+    execute_command(args, sync_config, remote_name="origin")
+    remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
+    assert remote_repo_api is None
+
 
 def fetch_server_repo(client, client_env, sync_api_user):
     headers = {"Authorization": get_user_basic_authorization(sync_api_user)}
@@ -213,8 +226,11 @@ def fetch_server_repo(client, client_env, sync_api_user):
     }
     get_clientenv_repos_url = f"/api/git/repos"
     response = client.get(get_clientenv_repos_url + "?" + urllib.parse.urlencode(query_params), headers=headers)
+    if len(response.json()) == 0:
+        return None
     local_repo_api = response.json()[0]
     return local_repo_api['git_repo']
+
 
 def change_environment(clientenv, sync_api_user, args=None):
     """
