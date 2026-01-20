@@ -45,7 +45,9 @@ syncmanager delete <branch name>
 ```
 
 #### Setting configuration
-for setting the config (name + email address only possible for git repos)
+for setting the config (name + email address only possible for git repos).
+Also runs operating system specific script on the registered repos, e.g. clean-up scripts
+
 ```
 syncmanager set-conf
 ```
@@ -56,14 +58,6 @@ Consolidate and archive the ignored files by moving them to the location defined
 ```
 syncmanager archive-ignored-files
 ```
-
-#### initialize the repo
-Run operating system specific script on the registered repos. Can also be used to run clean-up scripts.
-
-```
-syncmanager initialize-repo
-```
-
 
 
 #### Options

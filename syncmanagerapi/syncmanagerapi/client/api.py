@@ -23,6 +23,19 @@ def create_syncdir():
             raise InvalidRequest('No permissions to create resource {}'.format(target_dir), 'target_dir', 403)
     return Response(status=204)
 
+
+@login_required
+def get_all_client_envs():
+    from ..decorators import requires_auth
+    from ..model import User, ClientEnv, ClientEnvSchema
+    requires_auth()
+    auth = request.authorization
+    user = User.user_by_username(auth['username'])
+    schema = ClientEnvSchema(many=True)
+    client_envs = ClientEnv.get_client_envs(_user_id=user.id)
+    return schema.dump(client_envs)
+
+
 @login_required
 def add_client_env():
     from ..decorators import requires_auth
@@ -32,10 +45,34 @@ def add_client_env():
     user = User.user_by_username(auth['username'])
     body = request.data
     if not body:
-        raise InvalidRequest('Provide descriptor for the client environment', 'client_env_name')
+        raise InvalidRequest('Provide descriptor for the client environment', 'env_name')
     data = request.get_json(force=True)
-    if not data['client_env_name']:
-        raise InvalidRequest('Provide descriptor for the client environment', 'client_env_name')
-    client_env_name = data['client_env_name']
-    ClientEnv.add_client_env(_user_id=user.id, _env_name=client_env_name)
+    if not data['env_name']:
+        raise InvalidRequest('Provide descriptor for the client environment', 'env_name')
+    ClientEnv.add_client_env(_user_id=user.id, _env_name=data['env_name'],
+                             _filesystem_root_dir=data.get('filesystem_root_dir', None))
     return Response(status=204)
+
+
+@login_required
+def update_client_env(env_name):
+    from ..decorators import requires_auth
+    from ..model import User, ClientEnv, ClientEnvSchema
+    from ..database import db
+    requires_auth()
+    auth = request.authorization
+    user = User.user_by_username(auth['username'])
+    body = request.data
+    if not body:
+        raise InvalidRequest('Provide update body for the client environment')
+    data = request.get_json(force=True)
+    if not data['env_name']:
+        raise InvalidRequest('Provide descriptor for the client environment', 'env_name')
+    if data['env_name'] != env_name:
+        raise InvalidRequest('Client environment name cannot be changed', 'env_name')
+    client_env = ClientEnv.get_client_env(_user_id=user.id, _env_name=env_name)
+    client_env.filesystem_root_dir = data['filesystem_root_dir']
+    db.session.add(client_env)
+    db.session.commit()
+    schema = ClientEnvSchema()
+    return schema.dump(client_env)

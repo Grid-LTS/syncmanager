@@ -63,18 +63,20 @@ class ClientEnv(db.Model):
 
     id = db.Column(db.String(36), primary_key=True)
     env_name = db.Column(db.String(100), nullable=False)
+    filesystem_root_dir = db.Column(db.String(255), nullable=True)
     created = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user_id = db.Column(db.String(36), db.ForeignKey('user.id'))
 
     user = db.relationship(User, backref="client_envs")
 
     @staticmethod
-    def add_client_env(_user_id, _env_name):
+    def add_client_env(_user_id, _env_name, _filesystem_root_dir):
         client_env_entity = ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
             .one_or_none()
         if not client_env_entity:
             _id = uuid.uuid4()
-            client_env_entity = ClientEnv(id=str(_id), user_id=_user_id, env_name=_env_name)
+            client_env_entity = ClientEnv(id=str(_id), user_id=_user_id, env_name=_env_name,
+                                          filesystem_root_dir=_filesystem_root_dir)
             db.session.add(client_env_entity)
             db.session.commit()
         return client_env_entity
@@ -83,6 +85,10 @@ class ClientEnv(db.Model):
     def get_client_env(_user_id, _env_name):
         return ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
             .first()
+
+    @staticmethod
+    def get_client_envs(_user_id):
+        return ClientEnv.query.filter_by(user_id=_user_id).all()
 
 
 class ClientEnvSchema(ma.SQLAlchemyAutoSchema):
