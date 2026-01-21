@@ -1,7 +1,7 @@
 import subprocess
 import os
-import pathlib
-from pathlib import PurePosixPath, Path
+
+from pathlib import Path
 
 home_dir = os.path.expanduser('~')
 def execute(command, env={}, *args, **kwargs):
@@ -40,20 +40,13 @@ def run_command(command, *args, **kwargs):
         print(f"Scraping failed {e.stderr}")
 
 
-def sanitize_posix_path(path):
-    """
-    makes it a valid posix path
-    :param path:
-    :return:
-    """
-    if isinstance(path, Path):
-        return path
-    posix = PurePosixPath(path)
-    parts = list(posix.parts)
-    if parts[0] == '~':
-        parts[0] = home_dir
-    ret_path = pathlib.Path(*parts)
-    return ret_path
+def change_dir(path):
+    if os.path.isdir(path):
+        os.chdir(path)
+        return 0
+    else:
+        return 1
+
 
 def sanitize_path(path:str) -> Path:
     """
@@ -68,12 +61,3 @@ def sanitize_path(path:str) -> Path:
     else:
         sanitized = Path(path)
     return sanitized
-
-
-def change_dir(path):
-    if os.path.isdir(path):
-        os.chdir(path)
-        return 0
-    else:
-        return 1
-

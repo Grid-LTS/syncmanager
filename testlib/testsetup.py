@@ -25,7 +25,7 @@ def get_user_basic_authorization(sync_user):
 def create_client_env(client, env_name, sync_user):
     create_clientenv_url = "/api/clientenv"
     body = {
-        'client_env_name': env_name
+        'env_name': env_name
     }
     headers = {"Authorization": get_user_basic_authorization(sync_user)}
     client.post(create_clientenv_url, json=body, headers=headers)

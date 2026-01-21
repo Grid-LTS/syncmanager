@@ -1,16 +1,9 @@
 from __future__ import annotations
-import os.path as osp
 
-from pathlib import PurePosixPath, Path
+from pathlib import Path
 
-from .error import InvalidArgument
-from ..util.system import sanitize_posix_path, home_dir
+from .globalproperties import resolve_repo_path, determine_local_path_short
 
-
-class GlobalConfig:
-    def __init__(self, retention_years=None, refresh_rate_months=None):
-        self.retention_years = retention_years
-        self.refresh_rate_months = refresh_rate_months
 
 
 class SyncAllConfig:
@@ -105,27 +98,19 @@ class SyncConfig(SyncAllConfig):
 
     @local_path.setter
     def local_path(self, path):
-        path = sanitize_posix_path(path)
-        self._local_path_short = SyncConfig.determine_local_path_short(path)
+        path = resolve_repo_path(path)
+        self._local_path_short = determine_local_path_short(path)
         self._local_path = path
 
     @local_path_short.setter
     def local_path_short(self, value: str):
         if isinstance(value, Path):
-            self._local_path_short = SyncConfig.determine_local_path_short(value)
+            self._local_path_short = determine_local_path_short(value)
             self._local_path = value
         else:
             self._local_path_short = value
-            self._local_path = sanitize_posix_path(value)
+            self._local_path = resolve_repo_path(value)
 
-    @staticmethod
-    def determine_local_path_short(path):
-        system_home_dir = PurePosixPath(Path(home_dir))
-        local_path_posix = PurePosixPath(path)
-        if osp.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
-            return '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())
-        else:
-            return str(path)
 
     def determine_mode(self):
         if not self.local_path:

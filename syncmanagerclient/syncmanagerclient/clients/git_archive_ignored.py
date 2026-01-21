@@ -13,7 +13,6 @@ from .git_base import GitClientBase
 from ..util.error import InvalidArgument
 from ..util.globalproperties import Globalproperties
 from ..util.syncconfig import SyncConfig
-from ..util.system import home_dir
 
 DEFAULT_SYNC_ENV = 'default'
 
@@ -24,7 +23,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         super().__init__(config, gitrepo)
         project_root = os.path.basename(self.local_path)
         self.archive_config = Globalproperties.archiveconfig
-        system_home_dir = Path(home_dir)
+        system_home_dir = Path(Globalproperties.allconfig.global_config.filesystem_root_dir)
         allconfig = Globalproperties.allconfig
         # the var director folder should usually sit under the $HOME/.syncmanager folder
         common_path = os.path.commonprefix([self.local_path.parents[1], Globalproperties.archive_dir_path.parents[1]])

@@ -2,12 +2,12 @@ import os
 from os.path import dirname
 from configparser import ConfigParser
 
-from pathlib import Path
+from pathlib import PurePosixPath,Path
+import pathlib
 
 from .ArchiveConfig import ArchiveConfig
-from .syncconfig import GlobalConfig, SyncAllConfig
+from .baseconfig import GlobalConfig, SyncAllConfig
 from .system import sanitize_path
-
 
 class Globalproperties:
     # this module encloses all globally accessible properties
@@ -38,11 +38,8 @@ class Globalproperties:
     @classmethod
     def init_allconfig(cls, args):
         allconfig = SyncAllConfig(args)
-        config_parser = cls.config_parser
-        global_config = GlobalConfig(int(config_parser.get('config', 'retention_years', fallback=2)),
-                                     int(config_parser.get('config', 'refresh_rate_months', fallback=6)))
         cls.allconfig = allconfig
-        allconfig.global_config = global_config
+        config_parser = cls.config_parser
 
         # determine sync environment
         if not os.environ.get('SYNC_ENV', None) and not config_parser.get('config', 'SYNC_ENV', fallback=None):
@@ -54,7 +51,12 @@ class Globalproperties:
         allconfig.username = config_parser.get(f"git_{cls.organization}", 'user_default', fallback=None)
         allconfig.email = config_parser.get(f"git_{cls.organization}", 'email_default', fallback=None)
         allconfig.organization = cls.organization
-        return allconfig
+        filesystem_root_dir = config_parser.get(f"org_{allconfig.sync_env}","filesystem_root_dir",
+                                                fallback=os.path.expanduser('~'))
+        global_config = GlobalConfig(filesystem_root_dir,
+                                     int(config_parser.get('config', 'retention_years', fallback=2)),
+                                     int(config_parser.get('config', 'refresh_rate_months', fallback=6)))
+        allconfig.global_config = global_config
 
     @classmethod
     def read_config(cls, stage, organization=''):
@@ -107,3 +109,28 @@ class Globalproperties:
         cls.api_pw = cls.config_parser.get(f"org_{organization}", 'API_PW', fallback='')
         cls.ssh_user = cls.config_parser.get('ssh', 'SSH_USER', fallback=None)
         cls.ssh_host = cls.config_parser.get('ssh', 'SSH_HOST', fallback=None)
+
+
+def determine_local_path_short(path):
+    system_home_dir = PurePosixPath(Path(Globalproperties.allconfig.global_config.filesystem_root_dir))
+    local_path_posix = PurePosixPath(path)
+    if os.path.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
+        return '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())
+    else:
+        return str(path)
+
+
+def resolve_repo_path(path):
+    """
+    makes it a valid posix path
+    :param path:
+    :return:
+    """
+    if isinstance(path, Path):
+        return path
+    posix = PurePosixPath(path)
+    parts = list(posix.parts)
+    if parts[0] == '~':
+        parts[0] = Globalproperties.allconfig.global_config.filesystem_root_dir
+    ret_path = pathlib.Path(*parts)
+    return ret_path

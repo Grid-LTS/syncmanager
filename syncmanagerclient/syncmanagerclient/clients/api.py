@@ -107,7 +107,7 @@ class ApiService:
 
     def add_client_env(self, client_env_name):
         body = {
-            'client_env_name': client_env_name
+            'env_name': client_env_name
         }
         url = f"{Globalproperties.api_base_url}/clientenv"
         return req.post(url, data=json.dumps(body), auth=self.auth)

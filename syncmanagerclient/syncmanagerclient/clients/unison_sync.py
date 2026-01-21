@@ -50,7 +50,7 @@ class UnisonClientSync:
             exists = True
         else:
             template_dir = os.path.join(os.path.join(Globalproperties.ini_path_prefix, 'templates'), 'unison')
-            # load one of built in templates
+            # load one of built-in templates
             template_file = os.path.join(template_dir, filename)
             if os.path.exists(template_file):
                 exists = True

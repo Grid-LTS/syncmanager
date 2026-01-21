@@ -11,8 +11,8 @@ import pytest
 
 from syncmanagerclient.main import execute_command
 from syncmanagerclient.util.syncconfig import SyncConfig
-from syncmanagerclient.util.globalproperties import Globalproperties
-from syncmanagerclient.util.system import change_dir, sanitize_posix_path
+from syncmanagerclient.util.globalproperties import Globalproperties, resolve_repo_path
+from syncmanagerclient.util.system import change_dir
 
 test_dir = os.path.dirname(os.path.abspath(__file__))
 project_dir = os.path.dirname(os.path.dirname(test_dir))
@@ -120,7 +120,7 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     assert other_repo_api_resp.status_code == 200
     other_repos = other_repo_api_resp.json()
     assert len(other_repos) == 1
-    assert str(sanitize_posix_path(other_repos[0]['local_path_rel'])) == other_repo_path
+    assert str(resolve_repo_path(other_repos[0]['local_path_rel'])) == other_repo_path
 
 
 @pytest.mark.dependency(depends=["test_push_sync"])

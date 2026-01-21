@@ -7,7 +7,6 @@ from pathlib import Path
 from ..util.error import InvalidArgument
 from ..util.system import run_command
 from ..util.globalproperties import Globalproperties
-from ..util.system import home_dir
 
 from ..util.syncconfig import SyncConfig
 from .git_base import GitClientBase
@@ -70,7 +69,7 @@ class GitClientSettings(GitClientBase):
         code = self.change_to_local_repo()
         if code != 0:
             return
-        system_home_dir = Path(home_dir)
+        system_home_dir = Path(Globalproperties.allconfig.global_config.filesystem_root_dir)
         if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
             print(f"For security reasons only repositories in the home directory can be managed.")
             return

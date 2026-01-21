@@ -2,8 +2,9 @@ import os
 
 from git import Repo, GitCommandError
 
-from ..util.system import change_dir, sanitize_posix_path
+from ..util.system import change_dir
 from ..util.syncconfig import SyncConfig
+from ..util.globalproperties import resolve_repo_path
 from .deletion_registration import DeletionRegistration
 from .git_settings import GitClientSettings
 from .error import GitSyncError, GitErrorItem
@@ -165,7 +166,7 @@ class GitClientSync(GitClientBase):
         entries = deletion_registry.read_and_flush_registry(self.remote_reponame)
         entries_copy = entries[:]
         for index, entry in enumerate(entries_copy):
-            if not self.local_path == sanitize_posix_path(entry[0]):
+            if not self.local_path == resolve_repo_path(entry[0]):
                 continue
             branch_path = entry[1]
             branch_path_full = self.remote_reponame + '/' + branch_path
