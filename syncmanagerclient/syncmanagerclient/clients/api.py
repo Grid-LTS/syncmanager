@@ -86,9 +86,9 @@ class ApiService:
             raise InvalidStateErr(resp.text)
         return resp.json()
 
-    def update_server_repo_client_repo_association(self, server_repo_id, local_path, server_path_rel):
+    def update_server_repo_client_repo_association(self, server_repo_id, local_path_rel, server_path_rel):
         body = {
-            'local_path': local_path,
+            'local_path_rel': local_path_rel,
             'server_path_rel': server_path_rel,
             'user_name_config': Globalproperties.allconfig.username,
             'user_email_config': Globalproperties.allconfig.email,
@@ -104,6 +104,11 @@ class ApiService:
         url = f"{self.base_api_url}/clientrepos/{payload["id"]}"
         response = req.put(url, json=payload, auth=self.auth)
         ApiService.check_response(response, 200)
+
+    def delete_client_repo(self, client_repo_id):
+        url = f"{self.base_api_url}/clientrepos/{client_repo_id}"
+        response = req.delete(url, auth=self.auth)
+        ApiService.check_response(response, 204)
 
     def add_client_env(self, client_env_name):
         body = {

@@ -4,7 +4,7 @@ from git import Repo, GitCommandError
 
 from ..util.system import change_dir
 from ..util.syncconfig import SyncConfig
-from ..util.globalproperties import resolve_repo_path
+from ..util.globalproperties import resolve_repo_path, Globalproperties
 from .deletion_registration import DeletionRegistration
 from .git_settings import GitClientSettings
 from .error import GitSyncError, GitErrorItem
@@ -31,7 +31,6 @@ class GitClientSync(GitClientBase):
 
 
     def apply(self, **kwargs):
-        start_dir = os.getcwd()
         code = self.change_to_local_repo_create_if_not_exists()
         if code != 0:
             return
@@ -118,13 +117,13 @@ class GitClientSync(GitClientBase):
             # fetch and prune all branches in local repo
             self.git_fetch(True)
             self.sync_deletion()
-            # delete local branches with with the remote tracking branches 'gone',
+            # delete local branches with the remote tracking branches 'gone',
             self.cleanup_orphaned_local_branches()
             self.sync_push()
             # nothing to do for ACTION_PULL as the updates have been sync with FETCH
         elif self.action == ACTION_DELETE:
             self.delete_local_branch(**kwargs)
-        change_dir(os.path.dirname(start_dir))
+        change_dir(Globalproperties.allconfig.global_config.filesystem_root_dir)
         self.close()
 
     def initial_pull(self):

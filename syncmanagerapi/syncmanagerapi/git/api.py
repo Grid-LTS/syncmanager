@@ -5,7 +5,7 @@ import urllib.parse
 import datetime as dt
 
 from .git import GitRepoFs
-from flask import jsonify, request
+from flask import jsonify, request, Response
 from ..error import InvalidRequest
 from ..auth import login_required
 
@@ -147,22 +147,23 @@ def update_server_repo_and_clientrepo_association(repo_id, client_env):
                 git_repo_entity.server_path_rel = data['server_path_rel']
                 db.session.add(git_repo_entity)
                 db.session.commit()
-    if 'local_path' in data and data['local_path']:
-        if git_user_repo_assoc.local_path_rel != data['local_path']:
+    if 'local_path_rel' in data and data['local_path_rel']:
+        local_path_rel_update = data['local_path_rel']
+        if git_user_repo_assoc.local_path_rel != local_path_rel_update:
             if len(git_user_repo_assoc.client_envs) > 1:
                 client_env_entity = git_user_repo_assoc.client_envs.pop(client_env_index)
                 new_git_user_repo_assoc = find_git_user_repo_assoc_ref_by_local_path(git_repo_entity.userinfo,
-                                                                                     data['local_path'])
+                                                                                     local_path_rel_update)
                 if not new_git_user_repo_assoc:
                     id = uuid.uuid4()
                     new_git_user_repo_assoc = UserGitReposAssoc(id=str(id), user_id=user.id, repo_id=git_repo_entity.id,
                                                                 remote_name=git_user_repo_assoc.remote_name,
-                                                                local_path_rel=data['local_path'])
+                                                                local_path_rel=local_path_rel_update)
                     new_git_user_repo_assoc.client_envs.append(client_env_entity)
                     db.session.add(new_git_user_repo_assoc)
             else:
                 # Todo improve: delete git_user_repo_assoc if new local_path is already accommodated by another reference
-                git_user_repo_assoc.local_path_rel = data['local_path']
+                git_user_repo_assoc.local_path_rel = local_path_rel_update
             db.session.add(git_user_repo_assoc)
             db.session.commit()
         # else nothing changed
@@ -187,6 +188,16 @@ def update_client_repo(client_repo_id):
     db.session.commit()
     serializer = UserGitReposAssocSchema(many=False)
     return serializer.dump(client_repo)
+
+@login_required
+def delete_client_repo(client_repo_id):
+    from .model import UserGitReposAssoc
+    client_repo = UserGitReposAssoc.query_gitrepo_assoc_by_id(client_repo_id)
+    if not client_repo:
+        return Response(status=204)
+    client_repo.remove()
+    return Response(status=204)
+
 
 def find_git_user_repo_assoc(git_repo_entity, client_env):
     # find the reference to git repo for this user

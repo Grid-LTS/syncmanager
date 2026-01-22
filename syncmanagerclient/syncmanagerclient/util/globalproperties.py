@@ -51,7 +51,7 @@ class Globalproperties:
         allconfig.username = config_parser.get(f"git_{cls.organization}", 'user_default', fallback=None)
         allconfig.email = config_parser.get(f"git_{cls.organization}", 'email_default', fallback=None)
         allconfig.organization = cls.organization
-        filesystem_root_dir = config_parser.get(f"org_{allconfig.sync_env}","filesystem_root_dir",
+        filesystem_root_dir = config_parser.get(f"sync_env_{allconfig.sync_env}","filesystem_root_dir",
                                                 fallback=os.path.expanduser('~'))
         global_config = GlobalConfig(filesystem_root_dir,
                                      int(config_parser.get('config', 'retention_years', fallback=2)),

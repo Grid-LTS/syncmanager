@@ -154,7 +154,7 @@ def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     execute_command(args, other_sync_config, remote_name="origin")
 
     # after sync the file system pointer points to the parent dir of the repositories
-    assert os.getcwd() == os.path.dirname(os.path.dirname(other_repo_path))
+    assert os.getcwd() == Globalproperties.allconfig.global_config.filesystem_root_dir
     assert os.path.basename(os.path.dirname(other_repo_path)) == "e2e-extra"
 
     other_repo = Repo(other_repo_path)

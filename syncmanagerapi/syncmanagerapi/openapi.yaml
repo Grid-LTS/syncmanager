@@ -232,6 +232,22 @@ paths:
       responses:
         200:
           description: "Returns updated server repo reference"
+    delete:
+      operationId: syncmanagerapi.git.api.delete_client_repo
+      tags:
+        - "Git"
+      summary: "Deletes the client reference of server repository"
+      description: ""
+      parameters:
+        - name: client_repo_id
+          in: path
+          description: identifier for client repo
+          schema:
+            type: string
+          required: true
+      responses:
+        204:
+          description: "Client repo reference deleted"
   /admin/user:
     get:
       operationId: syncmanagerapi.admin.controller.get_standard_users
