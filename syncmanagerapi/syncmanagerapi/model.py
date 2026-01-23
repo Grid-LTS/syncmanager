@@ -90,6 +90,10 @@ class ClientEnv(db.Model):
     def get_client_envs(_user_id):
         return ClientEnv.query.filter_by(user_id=_user_id).all()
 
+    def remove(self):
+        db.session.delete(self)
+        db.session.commit()
+
 
 class ClientEnvSchema(ma.SQLAlchemyAutoSchema):
     class Meta:

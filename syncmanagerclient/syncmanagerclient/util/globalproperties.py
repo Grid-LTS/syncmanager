@@ -30,6 +30,7 @@ class Globalproperties:
     allconfig: SyncAllConfig = None
     config_parser = None
     organization = "default"
+    sync_env_default = ''
 
     @staticmethod
     def set_prefix(prefix):
@@ -43,8 +44,8 @@ class Globalproperties:
 
         # determine sync environment
         if not os.environ.get('SYNC_ENV', None) and not config_parser.get('config', 'SYNC_ENV', fallback=None):
-            print("Please specify the environment with --env option or as SYNC_ENV in properties file. Using 'default'")
-            config_parser.set('config', 'SYNC_ENV', 'default')
+            print(f"Please specify the environment with --env option or as SYNC_ENV in properties file. Using '{cls.sync_env_default}'")
+            config_parser.set('config', 'SYNC_ENV', cls.sync_env_default)
         allconfig.sync_env = config_parser.get('config', 'SYNC_ENV', fallback=None)
         if not allconfig.sync_env:
             allconfig.sync_env = os.environ.get('SYNC_ENV', None)
@@ -107,11 +108,13 @@ class Globalproperties:
                            f":{cls.config_parser.get('server', 'API_PORT', fallback='5010')}/api"
         cls.username = cls.config_parser.get(f"org_{organization}", 'API_USER', fallback='')
         cls.api_pw = cls.config_parser.get(f"org_{organization}", 'API_PW', fallback='')
+        cls.sync_env_default = cls.config_parser.get(f"org_{organization}", 'sync_env_default', fallback='default')
         cls.ssh_user = cls.config_parser.get('ssh', 'SSH_USER', fallback=None)
         cls.ssh_host = cls.config_parser.get('ssh', 'SSH_HOST', fallback=None)
 
 
-def determine_local_path_short(path):
+
+def determine_local_path_short(path) -> str:
     system_home_dir = PurePosixPath(Path(Globalproperties.allconfig.global_config.filesystem_root_dir))
     local_path_posix = PurePosixPath(path)
     if os.path.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
@@ -120,7 +123,7 @@ def determine_local_path_short(path):
         return str(path)
 
 
-def resolve_repo_path(path):
+def resolve_repo_path(path) -> Path:
     """
     makes it a valid posix path
     :param path:

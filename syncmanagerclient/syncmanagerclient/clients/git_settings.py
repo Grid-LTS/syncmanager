@@ -1,4 +1,5 @@
 import os
+import stat
 import sys
 import subprocess
 
@@ -73,11 +74,19 @@ class GitClientSettings(GitClientBase):
         if os.path.commonprefix([self.local_path, system_home_dir]) != str(system_home_dir):
             print(f"For security reasons only repositories in the home directory can be managed.")
             return
+        is_windows = False
         if sys.platform.startswith('win'):
+            is_windows = True   
             os_dir = "win"
         else:
             os_dir = "unix"
         script = os.path.join(Globalproperties.module_dir, "exec", os_dir, "repo_init.sh")
+        if not os.path.exists(script):
+            return
+        if not is_windows and not os.access(script, os.X_OK):
+            current_permissions = os.stat(script).st_mode
+            os.chmod(script, current_permissions | stat.S_IXUSR)
+            print(f"Made {script} executable")
         try:
             run_command(script)
         except subprocess.CalledProcessError:

@@ -10,7 +10,7 @@ from .clients import ACTION_SET_REMOTE_ALIASES, ACTION_ADD_ENV_ALIASES, ACTION_P
     ACTION_SET_CONF_ALIASES, ACTION_DELETE, ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE_REPO
 from .clients.sync_client import SyncClient
 from .clients.deletion_registration import DeletionRegistration
-from .clients.sync_dir_registration import SyncDirRegistration
+from .clients.sync_dir_registration import GitSyncDirRegistration
 from .clients.sync_env_registration import SyncEnvRegistration
 from .clients.git_archive_ignored import GitArchiveIgnoredFiles
 
@@ -187,15 +187,14 @@ def main():
     execute_command(args, sync_config, path=path)
 
 
-def execute_command(arguments, sync_config: SyncConfig, remote_name=None, path=None):
+def execute_command(arguments, sync_config: SyncConfig, path=None):
     single_repo_mode = sync_config.offline and Path(os.getcwd()).joinpath(".git").exists()
     if arguments.action in ACTION_SET_REMOTE_ALIASES + [ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE,
                                                         ACTION_DELETE_REPO]:
         sync_config.local_path = Path(os.getcwd())
     if arguments.action in ACTION_SET_REMOTE_ALIASES:
-        sync_config.remote_repo = remote_name
-        new_sync_dir = SyncDirRegistration(sync_config=sync_config)
-        new_sync_dir.register()
+        sync_client = SyncClient(arguments.action, sync_config=sync_config, force=arguments.force)
+        sync_client.sync_single_repo()
         return
     elif arguments.action in ACTION_ADD_ENV_ALIASES:
         new_sync_env = SyncEnvRegistration()

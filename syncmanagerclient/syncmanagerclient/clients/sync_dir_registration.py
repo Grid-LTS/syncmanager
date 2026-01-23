@@ -2,6 +2,7 @@ import os.path as osp
 
 import pathlib
 
+from .git_base import GitClientBase
 from ..util.syncconfig import SyncConfig
 
 from git import Repo
@@ -11,33 +12,20 @@ from .git_settings import GitClientSettings
 from ..util.globalproperties import Globalproperties
 
 
-class SyncDirRegistration:
-    mode = None
+class GitSyncDirRegistration(GitClientBase):
 
-    def __init__(self, sync_config: SyncConfig = None):
-        self.local_path = sync_config.local_path
-        self.local_path_short = sync_config.local_path_short
-        self.gitrepo = None
+    def __init__(self, sync_config: SyncConfig = None, gitrepo=None):
+        super().__init__(sync_config, gitrepo)
+        self.gitrepo = Repo(self.local_path)
         self.sync_env = sync_config.sync_env
-        self.mode = self.get_mode()
+        self.mode = sync_config.mode
         self.api_service = ApiService(self.mode, self.sync_env)
         self.existing_repos_env_ids = []
         self.server_repo_ref = None
         self.other_envs_repos = None
         self.server_path_rels_of_other_repo = []
-        self.sync_config = sync_config
         self.remote_name = sync_config.remote_repo
         self.namespace = sync_config.namespace
-
-    def get_mode(self):
-        if self.local_path.joinpath(".git").resolve().is_dir():
-            # first check if this branch exists
-            self.gitrepo = Repo(self.local_path)
-            return 'git'
-        else:
-            print('Cannot determine the synchronization protocol')
-            exit(1)
-        # Todo implement Unison check
 
     def find_server_repo_for_env(self, sync_env, existing_repos_all):
         if not sync_env in existing_repos_all:
@@ -53,10 +41,10 @@ class SyncDirRegistration:
             url = next(self.gitrepo.remote(repo_ref['remote_name']).urls)
             # find entry for repo in the list from the server by comparing the url of the remotes with the
             # one provided by Git
-            if url == SyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
+            if url == GitSyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
                 return repo_ref
 
-    def register(self):
+    def apply(self):
         existing_repos_all = self.api_service.list_repos_all_client_envs(full=True)
         if not existing_repos_all:
             existing_repos_env = []
@@ -71,7 +59,11 @@ class SyncDirRegistration:
         self.other_envs_repos = existing_repos_all
         is_update = self.server_repo_ref is not None
         # check if the repo might be registered under the default env
-        server_repo_ref_default = self.find_server_repo_for_env('default', existing_repos_all)
+        if self.sync_env != Globalproperties.sync_env_default:
+            server_repo_ref_default = self.find_server_repo_for_env(Globalproperties.sync_env_default,
+                                                                    existing_repos_all)
+        else:
+            server_repo_ref_default = self.server_repo_ref
         server_path_rel = self.namespace
         if server_repo_ref_default:
             namespace_parts = pathlib.Path(server_repo_ref_default['git_repo']['server_path_rel']).parts[1:-1]
@@ -85,7 +77,7 @@ class SyncDirRegistration:
         else:
             self.create_reference(server_path_rel)
         # update the git config
-        gitsettings = GitClientSettings(self.sync_config, self.gitrepo)
+        gitsettings = GitClientSettings(self.config, self.gitrepo)
         gitsettings.set_user_config()
 
     def print_other_env_repos(self):
@@ -174,7 +166,7 @@ class SyncDirRegistration:
         response = self.api_service.create_remote_repository(self.local_path_short, server_path_rel,
                                                              repo_name, self.remote_name, all_sync_env)
         if response['is_new_reference']:
-            remote_url = SyncDirRegistration.get_remote_url(response['server_path_absolute'])
+            remote_url = GitSyncDirRegistration.get_remote_url(response['server_path_absolute'])
             if is_overwrite:
                 remote = self.gitrepo.remote(self.remote_name)
                 remote.set_url(remote_url)
@@ -211,7 +203,7 @@ class SyncDirRegistration:
             print(f"Updated local path to {gitrepo_reference['local_path_rel']}")
         else:
             print(f"The registered local path {gitrepo_reference['local_path_rel']} did not change.")
-        remote_url = SyncDirRegistration.get_remote_url(git_repo['server_path_absolute'])
+        remote_url = GitSyncDirRegistration.get_remote_url(git_repo['server_path_absolute'])
         self.remote_name = gitrepo_reference['remote_name']
         remote_name_changed = False
         if remote_name_new and self.remote_name != remote_name_new:
@@ -222,8 +214,8 @@ class SyncDirRegistration:
             remote.set_url(remote_url)
         except ValueError as e:
             self.gitrepo.create_remote(self.remote_name, remote_url)
-        self.sync_config.remote_repo = self.remote_name
-        self.sync_config.remote_repo_url = remote_url
+        self.config.remote_repo = self.remote_name
+        self.config.remote_repo_url = remote_url
         client_assoc_payload = gitrepo_reference
         client_assoc_payload['remote_name'] = self.remote_name
         client_assoc_payload['local_path_rel'] = self.local_path_short
@@ -234,7 +226,6 @@ class SyncDirRegistration:
             return
         if len(self.server_repo_ref['clientenvs']) == 1 and self.server_repo_ref['clientenvs'][0] == self.sync_env:
             self.api_service.delete_client_repo(self.server_repo_ref['id'])
-
 
     @staticmethod
     def get_remote_url(remote_repo_path):

@@ -69,7 +69,8 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     args = ArgumentsTest()
     args.action = "push"
     args.namespace = "e2e_repo"
-    execute_command(args, sync_config, remote_name="origin")
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config)
 
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     # verify that the remote repo has been updated
@@ -85,7 +86,8 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
 
     args = ArgumentsTest()
     args.action = "push"
-    execute_command(args, sync_config, remote_name="origin")
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config)
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     assert dt.datetime.fromisoformat(remote_repo_api["last_commit_date"]).replace(
         tzinfo=system_tz) == new_commit.committed_datetime
@@ -98,7 +100,8 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     # 4. test sync to other environment
     args = ArgumentsTest()
     args.action = "pull"
-    execute_command(args, sync_config, remote_name="origin")
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config)
     assert os.path.exists(local_repo_path)
 
     # 5. Finally make re-associate the original repo to the server with the new path
@@ -110,7 +113,8 @@ def test_push_sync(app_initialized, local_repo, client, sync_api_user):
     change_environment('e2e-extra', sync_api_user)
     Globalproperties.init_allconfig(args)
     sync_config_other = SyncConfig.init(allconfig=Globalproperties.allconfig)
-    execute_command(args, sync_config_other, remote_name="origin")
+    sync_config_other.remote_repo = "origin"
+    execute_command(args, sync_config_other)
     query_params = {
         "clientenv": USER_CLIENT_ENV_EXTRA,
         "full_info": True
@@ -141,7 +145,8 @@ def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     change_environment('e2e', sync_api_user, args)
 
     sync_config = SyncConfig.init(allconfig=Globalproperties.allconfig)
-    execute_command(args, sync_config, remote_name="origin")
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config)
 
     # 2. change to extra env and fetch the branch
     args = ArgumentsTest()
@@ -151,7 +156,8 @@ def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     change_environment('e2e-extra', sync_api_user, args)
 
     other_sync_config = SyncConfig.init(allconfig=Globalproperties.allconfig)
-    execute_command(args, other_sync_config, remote_name="origin")
+    other_sync_config.remote_repo = "origin"
+    execute_command(args, other_sync_config)
 
     # after sync the file system pointer points to the parent dir of the repositories
     assert os.getcwd() == Globalproperties.allconfig.global_config.filesystem_root_dir
@@ -174,7 +180,8 @@ def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     change_environment('e2e', sync_api_user)
     args = ArgumentsTest()
     args.action = "delete"
-    execute_command(args, sync_config, remote_name="origin", path=test_branch)
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config, path=test_branch)
     # branch is deleted on local workspace only
     assert not hasattr(local_repo.heads, test_branch)
     assert hasattr(server_repo.heads, test_branch)
@@ -190,7 +197,8 @@ def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     # step 4: sync to server
     args = ArgumentsTest()
     args.action = "push"
-    execute_command(args, sync_config, remote_name="origin", path=test_branch)
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config, path=test_branch)
     assert not hasattr(server_repo.heads, test_branch)
 
     # registry file should be removed
@@ -201,7 +209,8 @@ def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     args = ArgumentsTest()
     args.action = "pull"
     args.sync_env = USER_CLIENT_ENV_EXTRA
-    execute_command(args, other_sync_config, remote_name="origin")
+    other_sync_config.remote_repo = "origin"
+    execute_command(args, other_sync_config)
     assert not hasattr(other_repo.heads, test_branch)
 
 
@@ -213,7 +222,8 @@ def test_delete_remote_repo(app_initialized, local_repo, client, sync_api_user):
     change_dir(local_repo_path)
     args = ArgumentsTest()
     args.action = "delete-repo"
-    execute_command(args, sync_config, remote_name="origin")
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config)
     remote_repo_api = fetch_server_repo(client, USER_CLIENT_ENV, sync_api_user)
     assert remote_repo_api is None
 

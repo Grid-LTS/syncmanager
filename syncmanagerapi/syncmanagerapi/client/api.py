@@ -64,7 +64,7 @@ def update_client_env(env_name):
     user = User.user_by_username(auth['username'])
     body = request.data
     if not body:
-        raise InvalidRequest('Provide update body for the client environment')
+        raise InvalidRequest('Provide update body for the client environment', 'payload')
     data = request.get_json(force=True)
     if not data['env_name']:
         raise InvalidRequest('Provide descriptor for the client environment', 'env_name')
@@ -76,3 +76,15 @@ def update_client_env(env_name):
     db.session.commit()
     schema = ClientEnvSchema()
     return schema.dump(client_env)
+
+@login_required
+def delete_client_env(env_name):
+    from ..decorators import requires_auth
+    from ..model import User, ClientEnv
+    requires_auth()
+    auth = request.authorization
+    user = User.user_by_username(auth['username'])
+    client_env = ClientEnv.get_client_env(_user_id=user.id, _env_name=env_name)
+    if client_env:
+        client_env.remove()
+    return Response(status=204)

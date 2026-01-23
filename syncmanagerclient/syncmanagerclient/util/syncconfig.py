@@ -101,6 +101,7 @@ class SyncConfig(SyncAllConfig):
         path = resolve_repo_path(path)
         self._local_path_short = determine_local_path_short(path)
         self._local_path = path
+        self.set_mode()
 
     @local_path_short.setter
     def local_path_short(self, value: str):
@@ -111,6 +112,8 @@ class SyncConfig(SyncAllConfig):
             self._local_path_short = value
             self._local_path = resolve_repo_path(value)
 
+    def set_mode(self):
+        self.mode = self.determine_mode()
 
     def determine_mode(self):
         if not self.local_path:

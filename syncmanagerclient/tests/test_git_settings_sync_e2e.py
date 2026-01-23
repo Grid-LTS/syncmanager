@@ -65,9 +65,8 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     assert local_repo.config_reader().get_value("user", "email") == Globalproperties.allconfig.email
 
     sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
-
-
-    execute_command(args, sync_config, remote_name="origin")
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config)
     assert local_repo.config_reader().get_value("user", "name") == USER_NAME
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
     assert Path(local_repo.remotes["origin"].url) == Path(origin_url)

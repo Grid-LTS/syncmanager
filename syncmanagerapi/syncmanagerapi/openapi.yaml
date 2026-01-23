@@ -63,7 +63,22 @@ paths:
       responses:
         200:
           description: "Successfully updated client environment definition"
-
+    delete:
+      operationId: "syncmanagerapi.client.api.delete_client_env"
+      tags:
+        - "Client config"
+      summary: "Deletes sync environment for user"
+      description: ""
+      parameters:
+        - name: env_name
+          in: path
+          description: env descriptor of the synchronization environment
+          schema:
+            type: string
+          required: true
+      responses:
+        204:
+          description: "Successfully deleted client sync environment"
   /search/git/repos:
     get:
       operationId: "syncmanagerapi.git.api.search_repo"

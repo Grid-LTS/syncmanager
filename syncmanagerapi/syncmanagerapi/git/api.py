@@ -41,7 +41,7 @@ def create_repo():
     if data.get('client_env', None):
         client_env_name = data['client_env']
     else:
-        client_env_name = 'default'
+        raise InvalidRequest(f"No client sync env specified in request.", 'client_env')
     client_env_entity = None
     for client_env in user.client_envs:
         if client_env.env_name == client_env_name:

@@ -14,7 +14,7 @@ from ..util.error import InvalidArgument
 from ..util.globalproperties import Globalproperties
 from ..util.syncconfig import SyncConfig
 
-DEFAULT_SYNC_ENV = 'default'
+SHARED_ARCHIVE_FOR_ENV = 'shared'
 
 
 class GitArchiveIgnoredFiles(GitClientBase):
@@ -41,7 +41,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.archive_project_root = Globalproperties.archive_dir_path.joinpath(self.config.organization,
                                                                                Globalproperties.username,
                                                                                local_path_relative, project_root)
-        self.archive_default_root = self.archive_project_root.joinpath(DEFAULT_SYNC_ENV)
+        self.archive_default_root = self.archive_project_root.joinpath(SHARED_ARCHIVE_FOR_ENV)
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
         self.symlinks = []
         self.directory_registry = dict()
@@ -168,7 +168,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if not self.archive_project_root.exists():
             return
         envs = os.listdir(self.archive_project_root)
-        if not envs or not DEFAULT_SYNC_ENV in envs:
+        if not envs or not SHARED_ARCHIVE_FOR_ENV in envs:
             return
         self.symlink_archived_files_for_env(self.archive_syncenv_root)
         self.symlink_archived_files_for_env(self.archive_default_root)

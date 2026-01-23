@@ -1,16 +1,17 @@
 import json
 import os.path
+from pathlib import Path
 
 from git import Repo
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF_ALIASES, \
-    ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE_REPO
+    ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE_REPO, ACTION_SET_REMOTE_ALIASES
 from .api import ApiService
 from .git_archive_ignored import GitArchiveIgnoredFiles
 from .git_delete_repo import GitRepoDeletion
 from .git_settings import GitClientSettings
 from .git_sync import GitClientSync
-from .sync_dir_registration import SyncDirRegistration
+from .sync_dir_registration import GitSyncDirRegistration
 from .unison_sync import UnisonClientSync
 from ..util.error import InvalidArgument
 from ..util.globalproperties import Globalproperties
@@ -46,6 +47,8 @@ class SyncClient:
                 return GitArchiveIgnoredFiles(config)
             elif self.action == ACTION_DELETE_REPO:
                 return GitRepoDeletion(config)
+            elif self.action in ACTION_SET_REMOTE_ALIASES:
+                return GitSyncDirRegistration(config)
             else:
                 raise Exception('Unknown command \'' + self.action + '\'.')
         elif self.sync_config.mode == 'unison':
@@ -106,11 +109,20 @@ class SyncClient:
             if 'syncmanager' in repo.remote(remote_repo_name).url:
                 remote_repo = remote
                 break
+        if not remote_repo:
+            # fresh initialized repo on client machine with a remote yet
+            self.sync_with_remote_repo(self.sync_config)
+            return
         segments = remote_repo.url.split(os.path.sep)
-        self.sync_config.namespace = os.path.sep.join(segments[segments.index("git") + 1:])
+        crucial_segements = segments[segments.index("git") + 1:]
+        self.sync_config.namespace = os.path.sep.join(crucial_segements)
         remote_repos = self.fetch_repos(self.sync_config)
+        if not remote_repos:
+            print(
+                f"No server repo exists for remote '{remote_repo_name}' and url {os.path.sep.join(crucial_segements[1:])}")
         for remote_repo in remote_repos:
             config = self.update_config(self.sync_config, remote_repo)
+            config.local_path = Path(os.getcwd())
             self.sync_with_remote_repo(config)
         self.report_errors()
 
@@ -148,7 +160,7 @@ class SyncClient:
         config = SyncConfig.from_sync_config(sync_config)
         config.local_path = remote_repo['local_path_rel']
         config.remote_repo = remote_repo['remote_name']
-        config.remote_repo_url = SyncDirRegistration.get_remote_url(
+        config.remote_repo_url = GitSyncDirRegistration.get_remote_url(
             remote_repo['git_repo']['server_path_absolute'])
         config.username = remote_repo["user_name_config"] if remote_repo["user_name_config"] else config.username
         config.email = remote_repo["user_email_config"] if remote_repo["user_email_config"] else config.email

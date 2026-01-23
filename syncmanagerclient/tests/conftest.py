@@ -63,7 +63,8 @@ def setup_local_repo(sync_user, repo_name):
     if not Globalproperties.allconfig:
         Globalproperties.init_allconfig(args)
     sync_config = SyncConfig.init(allconfig = Globalproperties.allconfig)
-    execute_command(args, sync_config, remote_name = "origin")
+    sync_config.remote_repo = "origin"
+    execute_command(args, sync_config)
     return local_repo
 
 
