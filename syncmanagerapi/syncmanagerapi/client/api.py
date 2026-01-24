@@ -1,9 +1,12 @@
 import os
 
 from flask import request, Response
+
+from ..domain import DatabaseConflict
 from ..error import InvalidRequest
 
 from ..auth import login_required
+from ..git.model import UserGitReposAssoc, GitRepo
 
 
 def create_syncdir():
@@ -77,6 +80,7 @@ def update_client_env(env_name):
     schema = ClientEnvSchema()
     return schema.dump(client_env)
 
+
 @login_required
 def delete_client_env(env_name):
     from ..decorators import requires_auth
@@ -85,6 +89,20 @@ def delete_client_env(env_name):
     auth = request.authorization
     user = User.user_by_username(auth['username'])
     client_env = ClientEnv.get_client_env(_user_id=user.id, _env_name=env_name)
-    if client_env:
-        client_env.remove()
+    if not client_env:
+        return Response(status=204)
+    # Todo introduce abstraction as soon as more sync tools are onboarded
+    git_repos = GitRepo.get_repos_by_sync_env_and_user_id(_user_id=user.id, _env_name=env_name)
+    if not git_repos:
+        # should'nt be possible, but if we need to clean up orphaned references
+        user_git_repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _env_name=env_name)
+        try:
+            for user_git_repo in user_git_repos:
+                user_git_repo.remove_from_client_env(client_env)
+        except DatabaseConflict as e:
+            return Response(response=e.message, status=409)
+    else:
+        for git_repo in git_repos:
+            git_repo.remove_client_env_from_repo(env_name)
+    client_env.remove()
     return Response(status=204)

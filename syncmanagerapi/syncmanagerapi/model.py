@@ -69,6 +69,11 @@ class ClientEnv(db.Model):
 
     user = db.relationship(User, backref="client_envs")
 
+    def remove(self):
+        db.session.delete(self)
+        db.session.commit()
+
+
     @staticmethod
     def add_client_env(_user_id, _env_name, _filesystem_root_dir):
         client_env_entity = ClientEnv.query.filter_by(user_id=_user_id, env_name=_env_name) \
@@ -90,9 +95,6 @@ class ClientEnv(db.Model):
     def get_client_envs(_user_id):
         return ClientEnv.query.filter_by(user_id=_user_id).all()
 
-    def remove(self):
-        db.session.delete(self)
-        db.session.commit()
 
 
 class ClientEnvSchema(ma.SQLAlchemyAutoSchema):

@@ -283,7 +283,7 @@ def get_repos(clientenv, retention_years=None, refresh_rate:int=None, full_info=
             message = f"The client environment {clientenv} does not exist for your user."
             raise InvalidRequest(message=message, field='client_env', status_code=404)
         if retention_years is None:
-            repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _client_env_name=clientenv)
+            repos = UserGitReposAssoc.get_user_repos_by_client_env_name(_user_id=user.id, _env_name=clientenv)
         else:
             if not refresh_rate:
                 current_date = dt.datetime.now()

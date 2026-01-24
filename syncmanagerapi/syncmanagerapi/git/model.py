@@ -1,16 +1,15 @@
-from datetime import datetime, timezone
 import os.path as osp
 import uuid
+from datetime import datetime, timezone
+
 from dateutil.relativedelta import relativedelta
-
 from flask import current_app
-
 from marshmallow import fields
 from sqlalchemy import or_
 
 from ..database import db, ma
-from ..model import User, ClientEnv, ClientEnvSchema
-from ..error import DataInconsistencyException
+from ..domain import DatabaseConflict, DataInconsistencyException
+from ..model import User, ClientEnv
 
 
 def get_bare_repo_fs_path(server_path_relative):
@@ -31,42 +30,6 @@ class GitRepo(db.Model):
     def __init__(self, server_path_rel, user_id):
         self.server_path_rel = GitRepo.get_server_path_rel(server_path_rel, user_id)
         self.user_id = user_id
-
-    @property
-    def server_path_absolute(self):
-        return get_bare_repo_fs_path(self.server_path_rel)
-
-    @staticmethod
-    def get_server_path_rel(server_path_rel, user_id):
-        if server_path_rel[-4:] != '.git':
-            server_path_rel += '.git'
-        return osp.join(user_id, server_path_rel)
-
-    @staticmethod
-    def get_repo_by_id(_id):
-        return GitRepo.query.filter_by(id=_id).one_or_none()
-
-    @staticmethod
-    def get_repo_by_id_and_user_id(_id, _user_id):
-        return GitRepo.query.outerjoin(UserGitReposAssoc) \
-            .filter(UserGitReposAssoc.user_id == _user_id) \
-            .filter(GitRepo.id == _id) \
-            .one_or_none()
-
-    @staticmethod
-    def get_repos_by_namespace_and_user_id(namespace, _user_id):
-        if not namespace:
-            return []
-        try:
-            uuid.UUID(namespace.split('/')[0])
-        except ValueError:
-            namespace = osp.join(_user_id, namespace)
-        return GitRepo.query.filter(GitRepo.server_path_rel.like(namespace + '%')) \
-            .all()
-
-    @staticmethod
-    def load_by_server_path(_server_path_rel):
-        return GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
 
     def add(self, _local_path_rel, _remote_name, _client_envs, _git_config_user=None,
             _git_config_email=None):
@@ -96,21 +59,6 @@ class GitRepo(db.Model):
             new_reference = False
         return new_reference
 
-    def remove(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    @staticmethod
-    def add_git_repo(_server_path_rel, _user_id, _local_path_rel, _remote_name, _client_envs, _git_config_user=None,
-                     _git_config_email=None):
-        git_repo = GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
-        if not git_repo:
-            git_repo = GitRepo(server_path_rel=_server_path_rel, user_id=_user_id)
-        new_reference = git_repo.add(_local_path_rel=_local_path_rel, _remote_name=_remote_name,
-                                     _client_envs=_client_envs, _git_config_user=_git_config_user,
-                                     _git_config_email=_git_config_email)
-        return git_repo, new_reference
-
     def _persist(self, _git_user_repo_assoc):
         if not _git_user_repo_assoc.client_envs:
             raise DataInconsistencyException('No client env given')
@@ -123,9 +71,76 @@ class GitRepo(db.Model):
     def remove_client_env_from_repo(self, client_env):
         # find the reference to git repo for this user
         for ind, user_info in enumerate(self.userinfo):
-            user_info.client_envs = [env for env in user_info.client_envs if env.env_name != client_env]
+            remaining_client_env = [env for env in user_info.client_envs if env.env_name != client_env]
+            if not remaining_client_env:
+                if len(self.userinfo) == 1:
+                    raise DatabaseConflict(f"The server repo {self.server_path_rel} must be referenced by at "
+                                           f"least one sync environment")
+                user_info.remove()
+                return
+            user_info.remove_from_clientenv(client_env)
+            user_info.client_envs = remaining_client_env
             db.session.add(user_info)
             db.session.commit()
+
+    def remove(self):
+        db.session.delete(self)
+        db.session.commit()
+
+    @property
+    def server_path_absolute(self):
+        return get_bare_repo_fs_path(self.server_path_rel)
+
+    @staticmethod
+    def get_server_path_rel(server_path_rel, user_id):
+        if server_path_rel[-4:] != '.git':
+            server_path_rel += '.git'
+        return osp.join(user_id, server_path_rel)
+
+    @staticmethod
+    def get_repo_by_id(_id):
+        return GitRepo.query.filter_by(id=_id).one_or_none()
+
+    @staticmethod
+    def get_repo_by_id_and_user_id(_id, _user_id):
+        return GitRepo.query.outerjoin(UserGitReposAssoc) \
+            .filter(UserGitReposAssoc.user_id == _user_id) \
+            .filter(GitRepo.id == _id) \
+            .one_or_none()
+
+    @staticmethod
+    def get_repos_by_sync_env_and_user_id(_user_id, _env_name):
+        return GitRepo.query.outerjoin(UserGitReposAssoc) \
+            .outerjoin(UserGitReposAssoc.client_envs) \
+            .filter(UserGitReposAssoc.user_id == _user_id) \
+            .filter(ClientEnv.env_name == _env_name) \
+            .all()
+
+    @staticmethod
+    def get_repos_by_namespace_and_user_id(namespace, _user_id):
+        if not namespace:
+            return []
+        try:
+            uuid.UUID(namespace.split('/')[0])
+        except ValueError:
+            namespace = osp.join(_user_id, namespace)
+        return GitRepo.query.filter(GitRepo.server_path_rel.like(namespace + '%')) \
+            .all()
+
+    @staticmethod
+    def load_by_server_path(_server_path_rel):
+        return GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
+
+    @staticmethod
+    def add_git_repo(_server_path_rel, _user_id, _local_path_rel, _remote_name, _client_envs, _git_config_user=None,
+                     _git_config_email=None):
+        git_repo = GitRepo.query.filter_by(server_path_rel=_server_path_rel).one_or_none()
+        if not git_repo:
+            git_repo = GitRepo(server_path_rel=_server_path_rel, user_id=_user_id)
+        new_reference = git_repo.add(_local_path_rel=_local_path_rel, _remote_name=_remote_name,
+                                     _client_envs=_client_envs, _git_config_user=_git_config_user,
+                                     _git_config_email=_git_config_email)
+        return git_repo, new_reference
 
     def __repr__(self):
         return '<GitRepo %r>' % self.repo_id
@@ -191,7 +206,7 @@ class UserGitReposAssoc(db.Model):
         return new_gitrep_assoc
 
     @staticmethod
-    def save_user_gitrepo_assoc(_user_id, _repo_id, _local_path_rel, _remote_name, _client_envs):
+    def add_user_gitrepo_assoc(_user_id, _repo_id, _local_path_rel, _remote_name, _client_envs):
         """
         sets an entry in the association table. This should only be used when associating an existing repository to 
         another the user, given by id. When creating the repo in the database do not use this function, but create an
@@ -208,6 +223,23 @@ class UserGitReposAssoc(db.Model):
         db.session.commit()
         return new_gitrep_assoc
 
+    def remove_from_clientenv(self, _env_name: str):
+        client_env = ClientEnv.get_client_env(_user_id=self.user_id, _env_name=_env_name)
+        self.remove_from_client_env(client_env)
+
+
+    def remove_from_client_env(self, _client_env: ClientEnv):
+        if not _client_env:
+            return
+        if len(self.clientenvs) == 1 and self.clientenvs[0] == _client_env.env_name:
+            self.remove()
+            return
+        if not _client_env.env_name in self.clientenvs:
+            return
+        self.client_envs.remove(_client_env)
+        db.session.add(self)
+        db.session.commit()
+
     def remove(self):
         db.session.delete(self)
         db.session.commit()
@@ -222,9 +254,9 @@ class UserGitReposAssoc(db.Model):
                                                  local_path_rel=_local_path_rel).first()
 
     @staticmethod
-    def get_user_repos_by_client_env_name(_user_id, _client_env_name):
+    def get_user_repos_by_client_env_name(_user_id, _env_name):
         return UserGitReposAssoc.query.join(UserGitReposAssoc.client_envs).filter_by(user_id=_user_id) \
-            .filter(ClientEnv.env_name == _client_env_name).all()
+            .filter(ClientEnv.env_name == _env_name).all()
 
     @staticmethod
     def get_user_repos_by_client_env_name_and_retention(_user_id, _client_env_name, _retention_years, _refresh_rate):
@@ -257,6 +289,7 @@ class UserGitReposAssocSchema(ma.SQLAlchemyAutoSchema):
         sqla_session = db.session
         include_relationships = True
         exclude = ('client_envs',)
+
     clientenvs = fields.List(attribute="clientenvs", cls_or_instance=fields.Str())
 
 
