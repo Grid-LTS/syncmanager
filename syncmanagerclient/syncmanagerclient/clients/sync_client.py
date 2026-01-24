@@ -1,6 +1,6 @@
 import json
 import os.path
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from git import Repo
 
@@ -115,7 +115,7 @@ class SyncClient:
             return
         segments = remote_repo.url.split(os.path.sep)
         crucial_segements = segments[segments.index("git") + 1:]
-        self.sync_config.namespace = os.path.sep.join(crucial_segements)
+        self.sync_config.namespace = str(PurePosixPath(*crucial_segements))
         remote_repos = self.fetch_repos(self.sync_config)
         if not remote_repos:
             print(

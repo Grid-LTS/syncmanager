@@ -3,6 +3,7 @@ import os.path as osp
 import stat
 import shutil
 import pathlib
+from pathlib import PurePosixPath
 
 from git import Repo
 
@@ -16,7 +17,7 @@ class GitRepoFs:
 
     def __init__(self, gitrepo_entity: GitRepo):
         self.gitrepo_entity = gitrepo_entity
-        self.gitrepo_path = get_bare_repo_fs_path(gitrepo_entity.server_path_rel)
+        self.gitrepo_path = get_bare_repo_fs_path(PurePosixPath(gitrepo_entity.server_path_rel))
         self.gitrepo = None
 
     def create_bare_repo(self):
@@ -44,7 +45,7 @@ class GitRepoFs:
                                   target_path)
         oldmask = os.umask(0o002)
         shutil.move(self.gitrepo_path, target_path)
-        GitRepoFs.remove_empty_dir_tree_recursively(self.gitrepo_entity.server_path_rel)
+        GitRepoFs.remove_empty_dir_tree_recursively(PurePosixPath(self.gitrepo_entity.server_path_rel))
         os.umask(oldmask)
         return True
 
@@ -52,7 +53,7 @@ class GitRepoFs:
         if not os.path.exists(self.gitrepo_path):
             print(f"Upstream repository at {self.gitrepo_path} was removed")
             return
-        for root, dirs, files in os.walk(self.gitrepo_path):  
+        for root, dirs, files in os.walk(self.gitrepo_path):
             for dir in dirs:
                 os.chmod(osp.join(root, dir), stat.S_IRWXU)
             for file in files:
@@ -84,7 +85,10 @@ class GitRepoFs:
 
     @staticmethod
     def remove_empty_dir_tree_recursively(dir_path):
-        p = pathlib.Path(dir_path)
+        if not isinstance(dir_path, pathlib.Path):
+            p = pathlib.Path(dir_path)
+        else:
+            p = dir_path
         # by design the depth of a repo is at minimum 2, we keep all files at depth 1 
         if len(p.parts) < 2:
             return None

@@ -98,7 +98,8 @@ class SyncConfig(SyncAllConfig):
 
     @local_path.setter
     def local_path(self, path):
-        path = resolve_repo_path(path)
+        if not isinstance(path, Path):
+            path = resolve_repo_path(path)
         self._local_path_short = determine_local_path_short(path)
         self._local_path = path
         self.set_mode()

@@ -1,6 +1,7 @@
 import os.path as osp
 import uuid
 from datetime import datetime, timezone
+from pathlib import PurePosixPath, Path
 
 from dateutil.relativedelta import relativedelta
 from flask import current_app
@@ -12,9 +13,9 @@ from ..domain import DatabaseConflict, DataInconsistencyException
 from ..model import User, ClientEnv
 
 
-def get_bare_repo_fs_path(server_path_relative):
+def get_bare_repo_fs_path(server_path_relative: PurePosixPath):
     fs_root_dir = current_app.config['FS_ROOT']
-    return osp.join(osp.join(fs_root_dir, 'git'), server_path_relative)
+    return osp.join(osp.join(fs_root_dir, 'git'), Path(*server_path_relative.parts))
 
 
 class GitRepo(db.Model):
@@ -27,7 +28,7 @@ class GitRepo(db.Model):
     last_commit_date = db.Column(db.DateTime, nullable=True)
     user_id = None
 
-    def __init__(self, server_path_rel, user_id):
+    def __init__(self, server_path_rel: PurePosixPath, user_id):
         self.server_path_rel = GitRepo.get_server_path_rel(server_path_rel, user_id)
         self.user_id = user_id
 
@@ -89,13 +90,14 @@ class GitRepo(db.Model):
 
     @property
     def server_path_absolute(self):
-        return get_bare_repo_fs_path(self.server_path_rel)
+        return get_bare_repo_fs_path(PurePosixPath(self.server_path_rel))
 
     @staticmethod
-    def get_server_path_rel(server_path_rel, user_id):
+    def get_server_path_rel(_server_path_rel: PurePosixPath, user_id) -> str:
+        server_path_rel = str(_server_path_rel)
         if server_path_rel[-4:] != '.git':
             server_path_rel += '.git'
-        return osp.join(user_id, server_path_rel)
+        return str(PurePosixPath(user_id) / server_path_rel)
 
     @staticmethod
     def get_repo_by_id(_id):
@@ -123,7 +125,7 @@ class GitRepo(db.Model):
         try:
             uuid.UUID(namespace.split('/')[0])
         except ValueError:
-            namespace = osp.join(_user_id, namespace)
+            namespace = str(PurePosixPath(_user_id) / namespace)
         return GitRepo.query.filter(GitRepo.server_path_rel.like(namespace + '%')) \
             .all()
 
@@ -226,7 +228,6 @@ class UserGitReposAssoc(db.Model):
     def remove_from_clientenv(self, _env_name: str):
         client_env = ClientEnv.get_client_env(_user_id=self.user_id, _env_name=_env_name)
         self.remove_from_client_env(client_env)
-
 
     def remove_from_client_env(self, _client_env: ClientEnv):
         if not _client_env:

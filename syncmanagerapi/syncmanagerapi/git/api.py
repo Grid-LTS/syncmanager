@@ -1,13 +1,16 @@
+import os
 import os.path as osp
 import uuid
 
 import urllib.parse
 import datetime as dt
+from pathlib import PurePosixPath
 
 from .git import GitRepoFs
 from flask import jsonify, request, Response
 from ..error import InvalidRequest
 from ..auth import login_required
+
 
 @login_required
 def create_repo():
@@ -35,9 +38,9 @@ def create_repo():
     if repo_name[-4:] != '.git':
         repo_name += '.git'
     if data.get('server_parent_dir_relative', None):
-        server_parent_dir_rel = data['server_parent_dir_relative']
+        server_parent_dir_rel = PurePosixPath(*data['server_parent_dir_relative'].split(os.pathsep))
     else:
-        server_parent_dir_rel = ""
+        server_parent_dir_rel = PurePosixPath("")
     if data.get('client_env', None):
         client_env_name = data['client_env']
     else:
@@ -53,12 +56,12 @@ def create_repo():
         desired_client_env_entities = user.client_envs
     else:
         desired_client_env_entities = [client_env_entity]
-    server_path_rel = osp.join(server_parent_dir_rel, repo_name)
+    server_path_rel = server_parent_dir_rel / repo_name
     git_repo_entity = GitRepo.load_by_server_path(
         _server_path_rel=GitRepo.get_server_path_rel(server_path_rel, user.id))
     user_changed = git_repo_entity and git_repo_entity.user_id and git_repo_entity.user_id != user.id
     if user_changed:
-        raise InvalidRequest(f"server directory does not belong to the user.", "server_parent_dir_relative",400)
+        raise InvalidRequest(f"server directory does not belong to the user.", "server_parent_dir_relative", 400)
     if not git_repo_entity:
         git_repo_entity = GitRepo(server_path_rel=server_path_rel, user_id=user.id)
     elif not git_repo_entity.userinfo:
@@ -170,6 +173,7 @@ def update_server_repo_and_clientrepo_association(repo_id, client_env):
     user_gitrepo_schema = GitRepoFullSchema(many=False)
     return user_gitrepo_schema.dump(git_repo_entity)
 
+
 @login_required
 def update_client_repo(client_repo_id):
     from .model import UserGitReposAssoc, UserGitReposAssocSchema
@@ -188,6 +192,7 @@ def update_client_repo(client_repo_id):
     db.session.commit()
     serializer = UserGitReposAssocSchema(many=False)
     return serializer.dump(client_repo)
+
 
 @login_required
 def delete_client_repo(client_repo_id):
@@ -261,7 +266,6 @@ def delete_repo_assoc_for_clientenv(repo_id, client_env):
     git_repo_entity.remove_client_env_from_repo(client_env)
 
 
-
 def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):
     for user_info in user_infos:
         if user_info.local_path_rel == local_path:
@@ -270,7 +274,7 @@ def find_git_user_repo_assoc_ref_by_local_path(user_infos, local_path):
 
 
 @login_required
-def get_repos(clientenv, retention_years=None, refresh_rate:int=None, full_info=False):
+def get_repos(clientenv, retention_years=None, refresh_rate: int = None, full_info=False):
     from .model import UserGitReposAssoc, UserGitReposAssocSchema, UserGitReposAssocFullSchema, ClientEnv
     user = get_user()
     if full_info:
@@ -291,7 +295,7 @@ def get_repos(clientenv, retention_years=None, refresh_rate:int=None, full_info=
                 years_diff = current_date.year - 2023
                 months_diff = current_date.month
                 # choose a large enough date
-                refresh_rate = 12*years_diff + months_diff
+                refresh_rate = 12 * years_diff + months_diff
             repos = UserGitReposAssoc.get_user_repos_by_client_env_name_and_retention(_user_id=user.id,
                                                                                       _client_env_name=clientenv,
                                                                                       _retention_years=retention_years,
@@ -303,6 +307,7 @@ def get_repos(clientenv, retention_years=None, refresh_rate:int=None, full_info=
         return jsonify([])
     return user_gitrepo_assoc_schema.dump(repos)
 
+
 @login_required
 def search_repo(namespace):
     from .model import GitRepo, GitRepoFullSchema
@@ -311,8 +316,6 @@ def search_repo(namespace):
     results = GitRepo.get_repos_by_namespace_and_user_id(namespace_decode, user.id)
     gitrepo_schema = GitRepoFullSchema(many=True)
     return gitrepo_schema.dump(results)
-
-
 
 
 @login_required

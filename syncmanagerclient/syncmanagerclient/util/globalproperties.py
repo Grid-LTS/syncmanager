@@ -54,6 +54,8 @@ class Globalproperties:
         allconfig.organization = cls.organization
         filesystem_root_dir = config_parser.get(f"sync_env_{allconfig.sync_env}","filesystem_root_dir",
                                                 fallback=os.path.expanduser('~'))
+        if filesystem_root_dir.endswith(':'):
+            filesystem_root_dir += '/'
         global_config = GlobalConfig(filesystem_root_dir,
                                      int(config_parser.get('config', 'retention_years', fallback=2)),
                                      int(config_parser.get('config', 'refresh_rate_months', fallback=6)))
@@ -90,6 +92,8 @@ class Globalproperties:
                 raise RuntimeError(message)
         org_filesystem_root_dir = cls.config_parser.get(f"org_{organization}","filesystem_root_dir",
                                                     fallback=os.path.expanduser('~'))
+        if org_filesystem_root_dir.endswith(':'):
+            org_filesystem_root_dir += '/'
         var_dir = cls.config_parser.get('config', 'var_dir', fallback=f"~/.syncmanager/var")
         if not var_dir:
             message = "Please specify the var_dir property in server-sync.ini."
@@ -120,22 +124,23 @@ class Globalproperties:
 
 
 def determine_local_path_short(path) -> str:
-    system_home_dir = PurePosixPath(Path(Globalproperties.allconfig.global_config.filesystem_root_dir))
+    system_home_dir = Path(Globalproperties.allconfig.global_config.filesystem_root_dir)
     local_path_posix = PurePosixPath(path)
     if os.path.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
-        return '~/' + str(local_path_posix.relative_to(system_home_dir).as_posix())
+        return '~/' + str(local_path_posix.relative_to(system_home_dir.as_posix()))
     else:
         return str(path)
 
 
-def resolve_repo_path(path) -> Path:
+def resolve_repo_path(path: str) -> Path:
     """
-    makes it a valid posix path
-    :param path:
-    :return:
+    Resolves a path to an absolute filesystem path.
+    Handles ~ expansion and relative paths.
+    :param path: Path string (relative, absolute, or with ~)
+    :return: Absolute Path object
     """
-    if isinstance(path, Path):
-        return path
+    if not path.startswith('~'):
+        return Path(path)
     posix = PurePosixPath(path)
     parts = list(posix.parts)
     if parts[0] == '~':

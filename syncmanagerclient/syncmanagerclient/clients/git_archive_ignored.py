@@ -25,8 +25,11 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.archive_config = Globalproperties.archiveconfig
         system_home_dir = Path(Globalproperties.allconfig.global_config.filesystem_root_dir)
         allconfig = Globalproperties.allconfig
-        # the var director folder should usually sit under the $HOME/.syncmanager folder
-        common_path = os.path.commonprefix([self.local_path.parents[1], Globalproperties.archive_dir_path.parents[1]])
+        # the var director folder should usually sit under the $FS_ROOT_DIR/.syncmanager folder
+        if len(self.local_path.parents) >= 2:
+            common_path = os.path.commonprefix([self.local_path.parents[1], Globalproperties.archive_dir_path.parents[1]])
+        else:
+            common_path = None
         if common_path and os.path.commonprefix([common_path, system_home_dir]) != common_path:
             # mostly for e2e test environment
             local_path_relative = self.local_path.parents[0].relative_to(common_path)
