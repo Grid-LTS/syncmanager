@@ -48,16 +48,17 @@ def change_dir(path):
         return 1
 
 
-def sanitize_path(path:str) -> Path:
+def sanitize_path(path:str, fs_root_dir = home_dir) -> Path:
     """
     makes it a valid posix path
+    :param fs_root_dir: root directory of the file system
     :param path:
     :return:
     """
     if isinstance(path, Path):
         return path
     if path.startswith("~"):
-        sanitized = Path(home_dir).joinpath(*Path(path).parts[1:])
+        sanitized = Path(fs_root_dir).joinpath(*Path(path).parts[1:])
     else:
         sanitized = Path(path)
     return sanitized

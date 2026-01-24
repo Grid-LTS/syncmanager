@@ -88,7 +88,9 @@ class Globalproperties:
                 exit(1)
             else:
                 raise RuntimeError(message)
-        var_dir = cls.config_parser.get('config', 'var_dir', fallback=f"{os.path.expanduser('~')}/.syncmanager/var")
+        org_filesystem_root_dir = cls.config_parser.get(f"org_{organization}","filesystem_root_dir",
+                                                    fallback=os.path.expanduser('~'))
+        var_dir = cls.config_parser.get('config', 'var_dir', fallback=f"~/.syncmanager/var")
         if not var_dir:
             message = "Please specify the var_dir property in server-sync.ini."
             if not cls.test_mode:
@@ -96,7 +98,10 @@ class Globalproperties:
                 exit(1)
             else:
                 raise RuntimeError(message)
-        cls.var_dir = str(sanitize_path(var_dir))
+        if org_filesystem_root_dir:
+            cls.var_dir = str(sanitize_path(var_dir, org_filesystem_root_dir))
+        else:
+            cls.var_dir = str(sanitize_path(var_dir))
         cls.archive_dir_relative = cls.config_parser.get('config', 'archive_dir_relative', fallback="archive")
         if cls.archive_dir_relative:
             cls.archive_dir_path = Path(cls.var_dir).joinpath(cls.archive_dir_relative)
