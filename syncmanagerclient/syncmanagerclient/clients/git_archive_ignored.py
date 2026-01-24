@@ -3,7 +3,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Tuple, Any
 import re
 
 from git import Repo
@@ -67,7 +67,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
         check_for_broken_symlinks = [filename.replace("?? ", "") for filename in files_to_archive if
                                      filename.startswith("?? ")]
-        check_for_broken_symlinks = [filename for filename in check_for_broken_symlinks if Path(filename).is_symlink()]
         files_to_archive = prune_filenames(
             [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")])
         self.symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
@@ -120,7 +119,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
         for path in list(files_to_archive):
             if not os.path.isdir(path):
                 continue
-            archivable_paths = self.find_archivable_file_paths(Path(path))
+            archivable_paths, symlinked_paths = self.find_archivable_file_paths(Path(path))
+            self.symlinks += symlinked_paths
             if len(archivable_paths) == 1 and archivable_paths[0].relative_to(self.local_path) == path:
                 continue
             files_to_archive.remove(path)
@@ -184,15 +184,21 @@ class GitArchiveIgnoredFiles(GitClientBase):
             unstaged_files.remove('')
 
     def find_archivable_file_paths(self, path: Path, max_depth: Optional[int] = None,
-                                   follow_symlinks: bool = False) -> List[Path]:
+                                   follow_symlinks: bool = False) -> tuple[list[Path], list[Any]] | tuple[
+        list[Path], list[Path]]:
         if not path.is_dir():
-            return [path]
+            return [path], []
         archivable_paths = self.find_archivable_files(path, max_depth=max_depth, follow_symlinks=follow_symlinks)
         # consolidate
+        symlinked_paths: List[Path] = []
         for path in list(archivable_paths):
-            if any(parent_path in archivable_paths for parent_path in path.parents) or path.is_symlink():
+            if path.is_symlink():
+                symlinked_paths.append(path)
                 archivable_paths.remove(path)
-        return archivable_paths
+                continue
+            if any(parent_path in archivable_paths for parent_path in path.parents):
+                archivable_paths.remove(path)
+        return archivable_paths, symlinked_paths
 
     def find_archivable_files(self, path: Path, max_depth: Optional[int] = None,
                               follow_symlinks: bool = False) -> List[Path]:
