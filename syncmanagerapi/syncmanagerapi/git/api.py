@@ -231,8 +231,10 @@ def update_repo(repo_id):
         return
     from ..database import db
     from .model import GitRepoFullSchema
+    payload = request.get_json(force=True)
+    default_branch = payload.get("default_branch", None)
     fs_git_repo = GitRepoFs(git_repo_entity)
-    is_updated = fs_git_repo.update()
+    is_updated = fs_git_repo.update(default_branch)
     if is_updated:
         db.session.add(git_repo_entity)
         db.session.commit()

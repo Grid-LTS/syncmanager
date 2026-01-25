@@ -33,7 +33,7 @@ class GitClientSync(GitClientBase):
     def apply(self, **kwargs):
         code = self.change_to_local_repo_create_if_not_exists()
         if code != 0:
-            return
+            return None
         self.gitrepo = Repo(self.local_path)
         remotes = [remote.name for remote in self.gitrepo.remotes]
         if not self.remote_reponame in remotes:
@@ -41,7 +41,7 @@ class GitClientSync(GitClientBase):
                 GitErrorItem(self.local_path_short, f"Remote repo {self.remote_reponame} is not defined. "
                                                     f"Run 'set-remote' on this repo.", None)
             )
-            return
+            return None
         self.remote_gitrepo = self.gitrepo.remote(self.remote_reponame)
 
         self.consistency_check()
@@ -102,7 +102,7 @@ class GitClientSync(GitClientBase):
                     )
                     print(f"ERROR. Cannot checkout principal branch {self.principal_branch}: {str(err)}")
                     self.initial_pull()
-                    return
+                    return None
 
             try:
                 has_remote_branch = getattr(self.remote_gitrepo.refs, str(self.principal_branch))
@@ -125,6 +125,8 @@ class GitClientSync(GitClientBase):
             self.delete_local_branch(**kwargs)
         change_dir(Globalproperties.allconfig.global_config.filesystem_root_dir)
         self.close()
+        self.config.default_branch = self.principal_branch
+        return self.config
 
     def initial_pull(self):
         git = self.gitrepo.git
@@ -352,7 +354,6 @@ class GitClientSync(GitClientBase):
     def change_to_local_repo_create_if_not_exists(self):
         # first check if the local repo exists and is a git working space
         repo_exists = os.path.isdir(self.local_path)
-        print('Change to Git project \'{0}\'.'.format(self.local_path_short))
         if not os.path.isdir(os.path.join(self.local_path, '.git')) and not repo_exists:
             # local repo does not exist and must be cloned
             parent_dir = os.path.dirname(self.local_path)
@@ -363,7 +364,7 @@ class GitClientSync(GitClientBase):
             if ret_code != 0:
                 print('Could change to \'{0}\''.format(parent_dir))
                 return ret_code
-            return self.clone_remote_repo()
+            self.clone_remote_repo()
         return self.change_to_local_repo()
 
 

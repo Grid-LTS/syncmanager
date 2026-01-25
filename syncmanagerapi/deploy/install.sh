@@ -54,6 +54,7 @@ create_user() {
         exit 1
     fi
     sudo useradd -m --shell $USERS_SHELL -p "$unix_password_encrypt" $UNIX_USER
+    # usermod --shell /bin/bash  $UNIX_USER for bash access
     if [ ! "$?" -eq 0 ]; then
         echo "Could not create user ${UNIX_USER}"
         exit 1

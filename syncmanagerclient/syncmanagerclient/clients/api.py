@@ -117,9 +117,13 @@ class ApiService:
         url = f"{Globalproperties.api_base_url}/clientenv"
         return req.post(url, data=json.dumps(body), auth=self.auth)
 
-    def update_server_repo(self, server_repo_id):
+    def update_server_repo(self, server_repo_id, default_branch):
         url = f"{self.base_api_url}/repos/{server_repo_id}"
-        return req.patch(url, data='{}', auth=self.auth)
+        if default_branch:
+            payload = {"default_branch" : default_branch}
+        else:
+            payload = {}
+        return req.patch(url, data=json.dumps(payload), auth=self.auth)
 
     def delete_server_repo(self, server_repo_id):
         url = f"{self.base_api_url}/repos/{server_repo_id}"

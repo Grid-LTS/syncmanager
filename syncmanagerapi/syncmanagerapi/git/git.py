@@ -1,14 +1,14 @@
 import os
 import os.path as osp
-import stat
-import shutil
 import pathlib
+import shutil
+import stat
 from pathlib import PurePosixPath
 
 from git import Repo
 
-from ..error import FsConflictError
 from .model import GitRepo, get_bare_repo_fs_path
+from ..error import FsConflictError
 
 
 class GitRepoFs:
@@ -61,9 +61,11 @@ class GitRepoFs:
         shutil.rmtree(self.gitrepo_path)
         GitRepoFs.remove_empty_dir_tree_recursively(self.gitrepo_entity.server_path_rel)
 
-    def update(self):
+    def update(self, default_branch):
         self.gitrepo = Repo(self.gitrepo_path)
-        # Get the latest commit from the active branch
+        active_branch = self.gitrepo.active_branch
+        if not active_branch.is_valid() and default_branch:
+            self.gitrepo.git.execute(["git","symbolic-ref", "HEAD", f"refs/heads/{default_branch}"])
         try:
             last_commit = getattr(self.gitrepo.head, "commit")
             last_commit_date = last_commit.committed_datetime

@@ -67,9 +67,10 @@ class SyncClient:
         client_instance = self.get_instance(config)
         if not client_instance:
             return
-        client_instance.apply()
+        new_sync_config = client_instance.apply()
         if client_instance.errors:
             self.errors.extend(client_instance.errors)
+        return new_sync_config
 
     def get_and_sync_repos(self):
         """
@@ -82,10 +83,11 @@ class SyncClient:
         remote_repos = self.fetch_repos(self.sync_config)
         for remote_repo in remote_repos:
             config = self.update_config(self.sync_config, remote_repo)
-            self.sync_with_remote_repo(config)
+            new_sync_config = self.sync_with_remote_repo(config)
             if not self.is_update:
                 continue
-            self.api_service.update_server_repo(remote_repo['git_repo']['id'])
+            if new_sync_config:
+                self.api_service.update_server_repo(remote_repo['git_repo']['id'], new_sync_config.default_branch)
             if "user_name_config" in remote_repo and not remote_repo["user_name_config"] \
                     or "user_email_config" in remote_repo and not remote_repo["user_email_config"]:
                 remote_repo["user_name_config"] = config.username
