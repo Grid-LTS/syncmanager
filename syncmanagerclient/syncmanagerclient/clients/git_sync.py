@@ -73,7 +73,7 @@ class GitClientSync(GitClientBase):
         if is_initial_fetch or self.principal_branch is None:
             # initial fetch we determine the default branch from the remote repo
             try:
-                default_branch = self.gitrepo.git.rev_parse("--abbrev-ref", "origin/HEAD")
+                default_branch = self.gitrepo.git.rev_parse("--abbrev-ref", f"{self.remote_reponame}/HEAD")
                 self.principal_branch = os.path.basename(default_branch)
             except GitCommandError as e:
                 print(f"Cannot determine default branch. error={e}")
