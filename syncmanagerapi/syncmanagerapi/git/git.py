@@ -39,7 +39,7 @@ class GitRepoFs:
         return True
 
     def move_repo(self, target_path_rel):
-        target_path = get_bare_repo_fs_path(target_path_rel)
+        target_path = get_bare_repo_fs_path(PurePosixPath(target_path_rel))
         if os.path.exists(target_path):
             raise FsConflictError('Upstream repository could not be moved', self.gitrepo_entity.server_path_rel,
                                   target_path)
@@ -94,7 +94,7 @@ class GitRepoFs:
         # by design the depth of a repo is at minimum 2, we keep all files at depth 1 
         if len(p.parts) < 2:
             return None
-        absolute_path = get_bare_repo_fs_path(dir_path)
+        absolute_path = get_bare_repo_fs_path(PurePosixPath(p))
         if os.path.exists(absolute_path):
             files = os.listdir(absolute_path)
             if len(files) != 0:

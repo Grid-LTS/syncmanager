@@ -3,6 +3,7 @@ from xml.dom import InvalidStateErr
 import requests as req
 import json
 
+from .error import GitSyncError
 from ..util.globalproperties import Globalproperties
 
 
@@ -132,7 +133,7 @@ class ApiService:
     @staticmethod
     def check_response(response, desired_status_code):
         if response.status_code != desired_status_code:
-            print(f"Error in processing. Received status {response.status_code} from server.")
+            raise GitSyncError(f"Error in processing. Received status {response.status_code} from server.")
 
     @staticmethod
     def retrieve_repo_reference(user_infos, sync_env):

@@ -2,6 +2,7 @@ import os.path as osp
 
 import pathlib
 
+from .error import GitSyncError, GitErrorItem
 from .git_base import GitClientBase
 from ..util.syncconfig import SyncConfig
 
@@ -29,7 +30,8 @@ class GitSyncDirRegistration(GitClientBase):
 
     def find_server_repo_for_env(self, sync_env, existing_repos_all):
         if not sync_env in existing_repos_all:
-            print(f"You have no environment with name '{sync_env}' configured.")
+            print(
+                f"Your default environment with name '{sync_env}' is not registed on server. Please change in config.ini.")
             exit(1)
         existing_repos_env = existing_repos_all[sync_env]
         for repo_ref in existing_repos_env:
@@ -195,9 +197,13 @@ class GitSyncDirRegistration(GitClientBase):
         else:
             server_path_rel = git_repo['server_path_rel']
             remote_name_new = self.remote_name
-        git_repo, gitrepo_reference = self.api_service.update_server_repo_client_repo_association(
-            self.server_repo_ref['git_repo']['id'],
-            self.local_path_short, server_path_rel)
+        try:
+            git_repo, gitrepo_reference = self.api_service.update_server_repo_client_repo_association(
+                self.server_repo_ref['git_repo']['id'],
+                self.local_path_short, server_path_rel)
+        except GitSyncError as err:
+            self.errors.append(GitErrorItem(self.local_path_short, err, self.config.default_branch))
+            return
         # check if path changed
         if self.server_repo_ref['local_path_rel'] != gitrepo_reference['local_path_rel']:
             print(f"Updated local path to {gitrepo_reference['local_path_rel']}")

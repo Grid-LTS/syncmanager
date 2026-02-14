@@ -122,6 +122,7 @@ class SyncClient:
         if not remote_repos:
             print(
                 f"No server repo exists for remote '{remote_repo_name}' and url {os.path.sep.join(crucial_segements[1:])}")
+            self.sync_with_remote_repo(self.sync_config)
         for remote_repo in remote_repos:
             config = self.update_config(self.sync_config, remote_repo)
             config.local_path = Path(os.getcwd())
