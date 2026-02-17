@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 
 from .globalproperties import resolve_repo_path, determine_local_path_short
 
@@ -48,6 +49,7 @@ class SyncConfig(SyncAllConfig):
                          settings=settings, global_config=global_config)
         self.remote_repo = remote_repo
         self.remote_repo_url = remote_repo_url
+        self.remote_repo_info = None
         self._local_path_short = None
         self._local_path = None
         if namespace:

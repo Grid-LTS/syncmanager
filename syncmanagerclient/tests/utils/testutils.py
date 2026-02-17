@@ -73,6 +73,8 @@ def teardown_repos_directory(repos=[]):
 
 def teardown_repo_directory(working_dir):
     change_dir(os.path.dirname(working_dir))
+    if not os.path.exists(working_dir):
+        return
     time.sleep(1)
     try:
         shutil.rmtree(working_dir, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
