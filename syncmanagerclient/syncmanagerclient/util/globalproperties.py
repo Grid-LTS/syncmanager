@@ -5,8 +5,7 @@ from configparser import ConfigParser
 from pathlib import PurePosixPath,Path
 import pathlib
 
-from .ArchiveConfig import ArchiveConfig
-from .baseconfig import GlobalConfig, SyncAllConfig
+from .baseconfig import GlobalConfig, SyncAllConfig, ArchiveConfig
 from .system import sanitize_path
 
 class Globalproperties:
@@ -38,6 +37,11 @@ class Globalproperties:
 
     @classmethod
     def init_allconfig(cls, args):
+        """
+        config specific to the sync environment
+        :param args:
+        :return:
+        """
         allconfig = SyncAllConfig(args)
         cls.allconfig = allconfig
         config_parser = cls.config_parser
@@ -63,6 +67,13 @@ class Globalproperties:
 
     @classmethod
     def read_config(cls, stage, organization=''):
+        """
+        application config and organisation specific config
+
+        :param stage:
+        :param organization:
+        :return:
+        """
         cls.loaded = True
         if stage == 'prod':
             properties_file_name = "server-sync.ini"
