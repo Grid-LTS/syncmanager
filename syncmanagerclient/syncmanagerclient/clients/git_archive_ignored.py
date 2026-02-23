@@ -147,16 +147,19 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if not archive_path.exists():
             return
         for root, dirs, files in os.walk(archive_path):
-            if Path(root) == archive_path or archive_path.parent == Path(root):
+            if archive_path.parent == Path(root):
                 continue
             relpath = Path(root).relative_to(archive_path)
-            would_be_link_location = self.local_path.joinpath(relpath)
-            if not would_be_link_location.exists() and not would_be_link_location.is_symlink():
-                source_location = archive_path.joinpath(relpath)
-                print(f"Create directory symlink at {would_be_link_location} pointing to {source_location}")
-                if not self.config.dry_run:
-                    would_be_link_location.symlink_to(source_location, target_is_directory=True)
+            if Path(root) == archive_path:
                 dirs[:] = []
+            else:
+                would_be_link_location = self.local_path.joinpath(relpath)
+                if not would_be_link_location.exists() and not would_be_link_location.is_symlink():
+                    source_location = archive_path.joinpath(relpath)
+                    print(f"Create directory symlink at {would_be_link_location} pointing to {source_location}")
+                    if not self.config.dry_run:
+                        would_be_link_location.symlink_to(source_location, target_is_directory=True)
+                    dirs[:] = []
             for filename in files:
                 file_rel_path = relpath.joinpath(filename)
                 would_be_file_link_location = self.local_path.joinpath(file_rel_path)

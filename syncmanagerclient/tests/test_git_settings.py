@@ -1,8 +1,10 @@
 import os
 import pytest
 
+import pathlib
+
 from .utils.testutils import local_conf_file_name, test_dir
-from .utils.conffileutils import setup_legacy_sync_repos, teardown_repos_directory, detemplate_conf
+from .utils.conffileutils import setup_legacy_sync_repos, teardown_repos_directory, detemplate_conf, properties_filepath
 from syncmanagerclient.main import apply_sync_conf_files
 from syncmanagerclient.clients import ACTION_SET_CONF
 
@@ -12,6 +14,7 @@ def setup_git_repos(request):
     origin_repo, local_repo = setup_legacy_sync_repos(local_conf_file_name, request.module.__name__.split(".")[-1])
     yield origin_repo, local_repo
     teardown_repos_directory([origin_repo, local_repo])
+    pathlib.Path.unlink(properties_filepath)
 
 def test_set_config(setup_git_repos):
     origin_repo, local_repo = setup_git_repos

@@ -8,6 +8,7 @@ from syncmanagerclient.clients import ACTION_PUSH
 
 from .testutils import *
 
+properties_filepath = os.path.join(os.path.dirname(test_dir), 'server-sync.test.ini')
 
 TEMPLATE_ENVIRONMENT = Environment(
     autoescape=False,
@@ -25,7 +26,7 @@ def detemplate_conf(sync_env, context):
 
 def detemplate_properties(context):
     server_properties = TEMPLATE_ENVIRONMENT.get_template('server-sync.test.ini.j2').render(context)
-    f = open(os.path.join(os.path.dirname(test_dir), 'server-sync.test.ini'), 'w')
+    f = open(properties_filepath, 'w')
     f.write(server_properties)
     f.close()
 
