@@ -1,7 +1,6 @@
 import os
 import sys
 import tempfile
-import time
 from threading import Thread
 
 from git import Repo

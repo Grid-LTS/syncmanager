@@ -93,6 +93,7 @@ def parse_arguments_legacy():
 def legacy():
     args = parse_arguments_legacy()
     init_global_properties(args.stage)
+    Globalproperties.create_directories()
     if args.action in [ACTION_PULL, ACTION_PUSH]:
         action = args.action
     elif args.action in ACTION_SET_CONF_ALIASES:
@@ -175,6 +176,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
     init_global_properties(args.stage, args.org)
+    Globalproperties.create_directories()
     # determine the environment which is synced
     Globalproperties.init_allconfig(args)
     sync_config = SyncConfig.init(namespace=args.namespace, allconfig=Globalproperties.allconfig)

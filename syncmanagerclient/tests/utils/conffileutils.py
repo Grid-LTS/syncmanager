@@ -35,6 +35,8 @@ def setup_legacy_sync_repos(local_conf_file_name, repo_prefix):
     if not repo_prefix:
         raise ValueError(f"Base dir for repos must not be empty")
     repos_dir = os.path.join(test_dir, 'repos', repo_prefix)
+    shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
+    var_dir_path = os.path.join(repos_dir, "var")
     local_repo_path = get_local_repo_path(repos_dir)
     origin_repo_path = get_origin_repo_path(repos_dir)
     others_repo_path = get_other_repo_path(repos_dir)
@@ -55,16 +57,13 @@ def setup_legacy_sync_repos(local_conf_file_name, repo_prefix):
     }
     detemplate_properties(context)
     # setup global properties file
-    Globalproperties.set_prefix(os.path.dirname(test_dir))
-    Globalproperties.read_config('test')
+    load_global_properties('test', repos_root_dir=repos_dir)
     args = ArgumentsTest()
     args.force = False
     args.env = ''
     args.offline = False
     args.dryrun = False
     Globalproperties.init_allconfig(args)
-
-    shutil.rmtree(repos_dir, ignore_errors=True, onerror=lambda func, path, _: (os.chmod(path, stat.S_IWRITE), func(path)))
     if not os.path.exists(repos_dir):
         os.makedirs(repos_dir)
     origin_repo = Repo.init(origin_repo_path, bare=True)

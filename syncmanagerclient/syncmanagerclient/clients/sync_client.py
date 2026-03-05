@@ -131,7 +131,7 @@ class SyncClient:
 
     def fetch_repos(self, sync_config: SyncConfig):
         cache_disabled = Globalproperties.test_mode
-        cache_response_path = Globalproperties.cache_dir.joinpath("remote_repos.json")
+        cache_response_path = Globalproperties.data_dir.joinpath("remote_repos.json")
         if not cache_disabled:
             if cache_response_path.exists():
                 with cache_response_path.open("r", encoding="utf-8") as f:
@@ -150,7 +150,7 @@ class SyncClient:
 
     def update_cache(self, remote_repos):
         cached_repos_before = list(self.cache_repos)
-        cache_response_path = Globalproperties.cache_dir.joinpath("remote_repos.json")
+        cache_response_path = Globalproperties.data_dir.joinpath("remote_repos.json")
         cached_ids = [remote_repo["id"] for remote_repo in self.cache_repos]
         for remote_repo in remote_repos:
             if remote_repo["id"] not in cached_ids:

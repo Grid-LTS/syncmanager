@@ -41,7 +41,7 @@ USER_EMAIL = f"{USER_NAME}@test.com"
 @pytest.fixture(scope="module")
 def init_test(sync_api_user):
     repos_root_dir = os.path.join(e2e_test_workspace_root, sync_api_user["username"], "e2e")
-    load_global_properties(repos_root_dir=repos_root_dir)
+    load_global_properties("e2e", repos_root_dir=repos_root_dir)
 
 
 @pytest.mark.dependency()
@@ -188,8 +188,8 @@ def test_delete_branch(app_initialized, local_repo, client, sync_api_user):
     assert hasattr(Repo(other_repo_path).heads, test_branch)
 
     # registry entry exists
-    registry_file_path = os.path.join(Globalproperties.var_dir, 'git.origin.txt')
-    assert os.path.exists(registry_file_path), f"deletion registry file missing {registry_file_path}"
+    registry_file_path = Globalproperties.data_dir / 'git.origin.txt'
+    assert registry_file_path.exists(),  f"deletion registry file missing {registry_file_path}"
     with open(registry_file_path) as file:
         lines = [line.rstrip() for line in file]
     assert test_branch in lines[0]

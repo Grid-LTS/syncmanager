@@ -50,7 +50,7 @@ def test_set_settings(app_initialized, local_repo, client, sync_api_user):
     assert local_repo.config_reader().get_value("user", "email") == USER_EMAIL
     origin_url = local_repo.remotes["origin"].url
 
-    load_global_properties(args=args)
+    load_global_properties("e2e", args=args)
     Globalproperties.username = sync_api_user["username"]
     Globalproperties.api_pw = sync_api_user["password"]
 

@@ -24,7 +24,7 @@ class DeletionRegistration:
     def __init__(self, **kwargs):
         super().__init__()
         self.branch_path = kwargs.get('branch_path', None)
-        self.registry_dir = Globalproperties.var_dir
+        self.registry_dir :Path = Globalproperties.data_dir
         # first check if directory is a git working tree
         self.dir = cast(Path, kwargs.get('git_repo_path', None))
         self.entries : List[DeletionRegistrationEntry] = []
@@ -83,17 +83,17 @@ class DeletionRegistration:
                 if not remote_repo_name:
                     continue
                 registry_file = self.get_registry_file_path(remote_repo_name)
-                f = open(registry_file, 'a+')
+                f = open(str(registry_file), 'a+')
                 registry_entry = str(self.dir) + '\t' + self.branch_path + '\n'
                 f.write(registry_entry)
                 f.close()
 
-    def get_registry_file_path(self, repo_name):
-        return self.registry_dir + '/' + self.mode + '.' + repo_name + '.txt'
+    def get_registry_file_path(self, repo_name) -> Path:
+        return self.registry_dir / (self.mode + '.' + repo_name + '.txt')
 
     def read_and_flush_registry(self, repo_name):
         registry_file = self.get_registry_file_path(repo_name)
-        if not os.path.isfile(registry_file):
+        if not registry_file.is_file():
             return []
         f = open(registry_file, 'r+')
         entries = []

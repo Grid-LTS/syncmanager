@@ -12,7 +12,7 @@ class Globalproperties:
     # this module encloses all globally accessible properties
     conf_dir = ''
     var_dir = ''
-    cache_dir: Path = None
+    data_dir: Path = None
     archive_dir_path: Path = None
     api_base_url = ''
     username = ''
@@ -101,28 +101,13 @@ class Globalproperties:
                 exit(1)
             else:
                 raise RuntimeError(message)
-        org_filesystem_root_dir = cls.config_parser.get(f"org_{organization}","filesystem_root_dir",
+        cls.org_filesystem_root_dir = cls.config_parser.get(f"org_{organization}","filesystem_root_dir",
                                                     fallback=os.path.expanduser('~'))
-        if org_filesystem_root_dir.endswith(':'):
-            org_filesystem_root_dir += '/'
-        var_dir = cls.config_parser.get('config', 'var_dir', fallback=f"~/.syncmanager/var")
-        if not var_dir:
-            message = "Please specify the var_dir property in server-sync.ini."
-            if not cls.test_mode:
-                print(message)
-                exit(1)
-            else:
-                raise RuntimeError(message)
-        if org_filesystem_root_dir:
-            cls.var_dir = str(sanitize_path(var_dir, org_filesystem_root_dir))
-        else:
-            cls.var_dir = str(sanitize_path(var_dir))
+        if cls.org_filesystem_root_dir.endswith(':'):
+            cls.org_filesystem_root_dir += '/'
         cls.archive_dir_relative = cls.config_parser.get('config', 'archive_dir_relative', fallback="archive")
-        if cls.archive_dir_relative:
-            cls.archive_dir_path = Path(cls.var_dir).joinpath(cls.archive_dir_relative)
-            cls.archive_dir_path.mkdir(parents=True, exist_ok=True)
-        cls.cache_dir = Path(cls.var_dir).joinpath("cache")
-        cls.cache_dir.mkdir(parents=True, exist_ok=True)
+
+        cls.init_var_dir(cls.config_parser.get('config', 'var_dir', fallback=f"~/.syncmanager/var"))
 
         cls.api_base_url = f"http://{cls.config_parser.get('server', 'API_HOST', fallback='')}" \
                            f":{cls.config_parser.get('server', 'API_PORT', fallback='5010')}/api"
@@ -131,6 +116,29 @@ class Globalproperties:
         cls.sync_env_default = cls.config_parser.get(f"org_{organization}", 'sync_env_default', fallback='default')
         cls.ssh_user = cls.config_parser.get('ssh', 'SSH_USER', fallback=None)
         cls.ssh_host = cls.config_parser.get('ssh', 'SSH_HOST', fallback=None)
+
+    @classmethod
+    def init_var_dir(cls, var_dir):
+        if not var_dir:
+            message = "Please specify the var_dir property in server-sync.ini."
+            if not cls.test_mode:
+                print(message)
+                exit(1)
+            else:
+                raise RuntimeError(message)
+        cls.var_dir = var_dir
+        if cls.org_filesystem_root_dir:
+            cls.var_dir = str(sanitize_path(var_dir, cls.org_filesystem_root_dir))
+        else:
+            cls.var_dir = str(sanitize_path(var_dir))
+        if cls.archive_dir_relative:
+            cls.archive_dir_path = Path(cls.var_dir).joinpath(cls.archive_dir_relative)
+            cls.archive_dir_path.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def create_directories(cls):
+        cls.data_dir = Path(cls.var_dir).joinpath("data")
+        cls.data_dir.mkdir(parents=True, exist_ok=True)
 
 
 

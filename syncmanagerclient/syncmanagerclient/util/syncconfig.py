@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import shutil
 
 from .globalproperties import resolve_repo_path, determine_local_path_short
 

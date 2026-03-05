@@ -12,7 +12,6 @@ from syncmanagerclient.main import init_global_properties
 from testlib.testsetup import USER_CLIENT_ENV
 
 test_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-var_dir_path = os.path.join(test_dir, 'var')
 # workspace and others_ws are different downstream clones of the same repo
 # these are called stations here, in reality they are on different computer
 get_origin_repo_path = lambda repos_dir: build_local_repo_path(repos_dir, 'origin_repo.git')
@@ -37,7 +36,7 @@ class ArgumentsTest:
         self.dryrun = False
 
 
-def load_global_properties(stage="e2e", repos_root_dir=None, args=None):
+def load_global_properties(stage, repos_root_dir=None, args=None):
     if not repos_root_dir:
         if not Globalproperties.var_dir:
             raise ValueError("Your need configure 'var_dir' configuration parameter")
@@ -47,14 +46,13 @@ def load_global_properties(stage="e2e", repos_root_dir=None, args=None):
             repos_root_dir = os.path.join(os.path.dirname(prev_repos_dir), stage)
         else:
             repos_root_dir = prev_repos_dir
-    else:
-        stage = os.path.basename(repos_root_dir)
     var_dir = os.path.join(repos_root_dir, "var")
     Path(var_dir).mkdir(parents=True, exist_ok=True)
     init_global_properties(stage)
     Globalproperties.set_prefix(os.path.dirname(test_dir))
     Globalproperties.test_mode = True
-    Globalproperties.var_dir = var_dir
+    Globalproperties.init_var_dir(var_dir)
+    Globalproperties.create_directories()
     if args:
         Globalproperties.init_allconfig(args)
 
