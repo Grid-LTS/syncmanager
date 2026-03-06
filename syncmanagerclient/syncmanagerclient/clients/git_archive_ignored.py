@@ -150,9 +150,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
             if archive_path.parent == Path(root):
                 continue
             relpath = Path(root).relative_to(archive_path)
-            if Path(root) == archive_path:
-                dirs[:] = []
-            else:
+            if Path(root) != archive_path:
                 would_be_link_location = self.local_path.joinpath(relpath)
                 if not would_be_link_location.exists() and not would_be_link_location.is_symlink():
                     source_location = archive_path.joinpath(relpath)
