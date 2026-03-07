@@ -3,7 +3,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path
-from typing import Callable, Optional, List, Tuple, Any
+from typing import Callable, Optional, List, Any
 import re
 
 from git import Repo
@@ -18,6 +18,9 @@ SHARED_ARCHIVE_FOR_ENV = 'shared'
 
 
 class GitArchiveIgnoredFiles(GitClientBase):
+    ignore_markers = [".gitkeep",
+                      ".ignoresyncmanager",
+                      ".dontarchive"]
 
     def __init__(self, config: SyncConfig, gitrepo=None):
         super().__init__(config, gitrepo)
@@ -27,7 +30,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
         allconfig = Globalproperties.allconfig
         # the var director folder should usually sit under the $FS_ROOT_DIR/.syncmanager folder
         if len(self.local_path.parents) >= 2:
-            common_path = os.path.commonprefix([self.local_path.parents[1], Globalproperties.archive_dir_path.parents[1]])
+            common_path = os.path.commonprefix(
+                [self.local_path.parents[1], Globalproperties.archive_dir_path.parents[1]])
         else:
             common_path = None
         if common_path and os.path.commonprefix([common_path, system_home_dir]) != common_path:
@@ -42,7 +46,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
         # normalize to be OS independent
         local_path_relative = Path(*[part.lower() for part in local_path_relative.parts])
         self.archive_project_root = Globalproperties.archive_dir_path.joinpath(self.config.organization,
-                                                                               Globalproperties.username,
                                                                                local_path_relative, project_root)
         self.archive_default_root = self.archive_project_root.joinpath(SHARED_ARCHIVE_FOR_ENV)
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
@@ -126,12 +129,20 @@ class GitArchiveIgnoredFiles(GitClientBase):
             self.symlinks += symlinked_paths
             if len(archivable_paths) == 1 and archivable_paths[0].relative_to(self.local_path) == path:
                 continue
+            # if the path is a directory but contains files or dirs that must not be archived,
             files_to_archive.remove(path)
+            # only archive the eligible paths under it
             files_to_archive += [x.relative_to(self.local_path) for x in archivable_paths]
-        # we do not archive files that live in git-managed directories, having .gitkeep file, because these directory
+        # we do not archive files that live in git-managed directories, having ignore-marker file like .gitkeep, because these directories
         # are operational and contain only short-term or processed data
-        return [filename for filename in files_to_archive if
-                not (Path(filename).parent / ".gitkeep").exists()]
+        for filename in list(files_to_archive):
+            parent_dir = Path.resolve(Path(filename).parent)
+            while parent_dir != self.local_path and parent_dir != self.local_path.parent:
+                if any((parent_dir / ignore_marker).exists() for ignore_marker in self.__class__.ignore_markers):
+                    files_to_archive.remove(filename)
+                    break
+                parent_dir = Path.resolve(parent_dir.parent)
+        return files_to_archive
 
     def filter_ignored_files_based_on_name(self, files_to_archive: List[str]):
         files_to_archive = [filename for filename in files_to_archive if not filename in self.symlinks and not any(
@@ -161,6 +172,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
             for filename in files:
                 file_rel_path = relpath.joinpath(filename)
                 would_be_file_link_location = self.local_path.joinpath(file_rel_path)
+                file_link_parent = self.local_path.joinpath(relpath)
+                if not file_link_parent.exists():
+                    file_link_parent.mkdir(parents=True, exist_ok=True)
                 if not self.local_path.joinpath(
                         file_rel_path).exists() and not would_be_file_link_location.is_symlink():
                     source_location = Path(root).joinpath(filename)
@@ -265,7 +279,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
                         path_registry.remove(current.parent)
                     dirnames[:] = []
                     continue
-                if (current / ".gitkeep").exists():
+                if any((current / ignore_marker).exists() for ignore_marker in self.__class__.ignore_markers):
                     if current.parent in path_registry:
                         path_registry.remove(current.parent)
                     dirnames[:] = []
