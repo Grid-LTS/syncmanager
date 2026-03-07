@@ -73,6 +73,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
         check_for_broken_symlinks = [filename.replace("?? ", "") for filename in files_to_archive if
                                      filename.startswith("?? ")]
+        check_for_broken_symlinks += self.get_symlinks_committed()
         files_to_archive = prune_filenames(
             [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")])
         self.symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
@@ -302,6 +303,20 @@ class GitArchiveIgnoredFiles(GitClientBase):
             else:
                 path_registry.append(current)
         return path_registry
+
+    def get_symlinks_committed(self):
+        head = self.gitrepo.head.commit
+        symlinks = []
+        for blob in head.tree.traverse():
+            # blob is a git.Tree or git.Blob; the latter has a .mode attribute
+            # and .path gives the relative path
+            if blob.type == 'blob' and stat.S_ISLNK(blob.mode):
+                try:
+                    if Path(blob.path).readlink().relative_to(Globalproperties.archive_dir_path):
+                        symlinks.append(blob.path)
+                except ValueError as e:
+                    pass
+        return symlinks
 
 
 _RE = re.compile(r'\AXSym\r?\n[0-9]{4}\r?\n[0-9A-Fa-f]{32}\r?\n/(?:[^/\x00]+(?:/(?!/)[^/\x00]+)*)/?\r?\Z')
