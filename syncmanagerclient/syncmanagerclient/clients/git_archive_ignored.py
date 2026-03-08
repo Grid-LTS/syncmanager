@@ -78,8 +78,16 @@ class GitArchiveIgnoredFiles(GitClientBase):
             [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")])
         self.symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
         files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink()]
-        files_to_archive = self.filter_ignored_files(files_to_archive)
+        archivable_paths = []
+        for file in list(files_to_archive):
+            if not os.path.isdir(file):
+                continue
+            if any(x == os.path.basename(file).strip("/") for x in self.archive_config.archivable_dirs):
+                archivable_paths.append(file)
+                files_to_archive.remove(file)
 
+        files_to_archive = self.filter_ignored_files(files_to_archive)
+        files_to_archive += archivable_paths
         for file in list(files_to_archive + self.symlinks + check_for_broken_symlinks):
             path = Path(file)
             is_stale = path.is_symlink() and not os.path.exists(os.path.realpath(path))

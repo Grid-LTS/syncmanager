@@ -60,7 +60,10 @@ class ArchiveConfig:
             config.get('config', 'environment_files', fallback='.DS_Store'))
         self.code_file_extensions = ArchiveConfig.parse_and_prune(
             config.get('config', 'code_file_extensions', fallback=''))
+        self.archivable_dirs = ArchiveConfig.parse_and_prune(
+            config.get('config', 'archivable_dirs', fallback=''))
         self.max_archive_filesize_MB = int(config.get('config', 'max_archive_filesize_MB', fallback='10'))
+
 
     def skip_list(self):
         return self.dependency_dirs + self.environment_files
