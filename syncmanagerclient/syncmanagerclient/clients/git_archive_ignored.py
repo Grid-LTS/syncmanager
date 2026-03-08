@@ -155,7 +155,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         return [filename for filename in files_to_archive if
                 not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
 
-    def symlink_archived_files_for_env(self, archive_path: Path):
+    def symlink_archived_files_for_env(self, archive_path: Path, revert=False):
         if not archive_path.exists():
             return
         for root, dirs, files in os.walk(archive_path):
@@ -164,33 +164,53 @@ class GitArchiveIgnoredFiles(GitClientBase):
             relpath = Path(root).relative_to(archive_path)
             if Path(root) != archive_path:
                 would_be_link_location = self.local_path.joinpath(relpath)
-                if not would_be_link_location.exists() and not would_be_link_location.is_symlink():
-                    source_location = archive_path.joinpath(relpath)
-                    print(f"Create directory symlink at {would_be_link_location} pointing to {source_location}")
-                    if not self.config.dry_run:
-                        would_be_link_location.symlink_to(source_location, target_is_directory=True)
+                source_location = archive_path.joinpath(relpath)
+                is_created = self.create_symlink(would_be_link_location, source_location, _revert=revert)
+                if is_created:
                     dirs[:] = []
             for filename in files:
                 file_rel_path = relpath.joinpath(filename)
-                would_be_file_link_location = self.local_path.joinpath(file_rel_path)
                 file_link_parent = self.local_path.joinpath(relpath)
                 if not file_link_parent.exists():
                     file_link_parent.mkdir(parents=True, exist_ok=True)
-                if not self.local_path.joinpath(
-                        file_rel_path).exists() and not would_be_file_link_location.is_symlink():
-                    source_location = Path(root).joinpath(filename)
-                    print(f"Create file symlink at {would_be_file_link_location} pointing to {source_location}")
-                    if not self.config.dry_run:
-                        would_be_file_link_location.symlink_to(source_location)
+                source_location = Path(root).joinpath(filename)
+                would_be_link_location = self.local_path.joinpath(file_rel_path)
+                self.create_symlink(would_be_link_location, source_location, _revert=revert)
 
-    def symlink_archived_files_back(self):
+    def create_symlink(self, would_be_link_location, source_location, _revert=False):
+        if not source_location.exists():
+            return True
+        if source_location.is_file():
+            fs_type = "file"
+            target_is_directory = False
+        else:
+            fs_type = "directory"
+            target_is_directory = True
+        if not _revert:
+            if not would_be_link_location.exists() and not would_be_link_location.is_symlink():
+                print(f"Create {fs_type} symlink at {would_be_link_location} pointing to {source_location}")
+                if not self.config.dry_run:
+                    would_be_link_location.symlink_to(source_location, target_is_directory=target_is_directory)
+                return True
+            return False
+        if would_be_link_location.exists() and would_be_link_location.is_symlink():
+            print(f"Revert {fs_type} symlink at {would_be_link_location}, pointing to {source_location}")
+            if not self.config.dry_run:
+                os.unlink(would_be_link_location)
+                shutil.move(source_location, would_be_link_location)
+                if not os.listdir(str(source_location.parent.absolute())):
+                    shutil.rmtree(str(source_location.parent.absolute()))
+            return True
+        return False
+
+    def symlink_archived_files_back(self, revert=False):
         if not self.archive_project_root.exists():
             return
         envs = os.listdir(self.archive_project_root)
         if not envs or not SHARED_ARCHIVE_FOR_ENV in envs:
             return
-        self.symlink_archived_files_for_env(self.archive_syncenv_root)
-        self.symlink_archived_files_for_env(self.archive_default_root)
+        self.symlink_archived_files_for_env(self.archive_syncenv_root, revert)
+        self.symlink_archived_files_for_env(self.archive_default_root, revert)
 
     def get_unstaged_files(self):
         """
