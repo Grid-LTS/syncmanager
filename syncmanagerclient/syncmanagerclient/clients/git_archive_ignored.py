@@ -103,7 +103,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
 
         if not files_to_archive:
             return True
-
+        self.extend_git_ignore_file([x for x in files_to_archive if Path(x).is_dir()])
         for original_file_rel in files_to_archive:
             original_path = Path(original_file_rel)
             if original_path.exists():
@@ -340,11 +340,232 @@ class GitArchiveIgnoredFiles(GitClientBase):
             # and .path gives the relative path
             if blob.type == 'blob' and stat.S_ISLNK(blob.mode):
                 try:
+                    Path(blob.path).readlink()
+                except OSError as e:
+                    print(f"Target of committed symlink at {blob.path} cannot be resolved. Remove")
+                    try:
+                        os.unlink(blob.path)
+                    except OSError:
+                        pass
+                    continue
+                try:
                     if Path(blob.path).readlink().relative_to(Globalproperties.archive_dir_path):
                         symlinks.append(blob.path)
                 except ValueError as e:
                     pass
+                except OSError as e:
+                    print(f"Cannot resolve target of symlink at {blob.path}")
         return symlinks
+
+    def extend_git_ignore_file(self, ignored_directories):
+        """
+        Extend .gitignore with directories that don't have matching patterns.
+        
+        For each directory in ignored_directories:
+        1. Scan .gitignore files in the item's directory and parent directories for matching patterns (based on basename)
+        2. If no match found, append the full relative path to the nearest .gitignore file
+        
+        Args:
+            ignored_directories: List of directory paths (strings)
+        """
+        directories_to_add = []
+        
+        for directory in ignored_directories:
+            directory_path = Path(directory)
+            basename = directory_path.name
+            
+            gitignore_files = self._find_gitignore_files_for_path(directory_path)
+            
+            matched = False
+            for gitignore_path in gitignore_files:
+                existing_patterns = self._read_gitignore_patterns(gitignore_path)
+                
+                for pattern in existing_patterns:
+                    pattern_stripped = pattern.rstrip('/')
+                    
+                    if pattern.endswith('/') and pattern_stripped == basename:
+                        continue
+                    
+                    if self._matches_gitignore_pattern(pattern_stripped, basename):
+                        matched = True
+                        break
+                
+                if matched:
+                    break
+            
+            if not matched:
+                directories_to_add.append((directory, gitignore_files[0] if gitignore_files else None))
+        
+        for directory, gitignore_path in directories_to_add:
+            if gitignore_path is None:
+                gitignore_path = self.local_path / '.gitignore'
+            
+            # Calculate relative path from .gitignore directory to target directory
+            gitignore_dir = gitignore_path.parent
+            directory_absolute = (self.local_path / directory).resolve()
+            entry = str(directory_absolute.relative_to(gitignore_dir.resolve()))
+            normalized_entry = self._normalize_gitignore_entry(entry)
+            
+            # Check if basename already exists (keeping it exactly as written in .gitignore)
+            directory_basename = Path(normalized_entry).name
+            existing_basenames = self._read_gitignore_basenames(gitignore_path)
+            
+            if directory_basename not in [x.split('/')[-1] for x in existing_basenames]:
+                with open(gitignore_path, 'a', encoding='utf-8') as f:
+                    f.write(normalized_entry + '\n')
+
+    def _find_gitignore_files_for_path(self, item_path):
+        """
+        Find all .gitignore files from the item's directory up to the repository root.
+        Returns ordered list from nearest to furthest.
+        
+        Args:
+            item_path: Path to the directory item (relative to repository root)
+        
+        Returns:
+            List of Path objects pointing to .gitignore files
+        """
+        gitignore_files = []
+        
+        current_path = (self.local_path / item_path).resolve()
+        repo_root = self.local_path.resolve()
+        
+        while current_path >= repo_root:
+            gitignore_path = current_path / '.gitignore'
+            if gitignore_path.exists():
+                gitignore_files.append(gitignore_path)
+            
+            if current_path == repo_root:
+                break
+            
+            current_path = current_path.parent
+        
+        return gitignore_files
+
+    def _read_gitignore_patterns(self, gitignore_path):
+        """
+        Read patterns from a .gitignore file.
+        
+        Args:
+            gitignore_path: Path to .gitignore file
+        
+        Returns:
+            List of pattern strings (filtered for comments, empty lines, and negation patterns)
+        """
+        patterns = []
+        
+        if gitignore_path.exists():
+            with open(gitignore_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.rstrip('\r\n')
+                    if not line:
+                        continue
+                    if line.startswith('#'):
+                        continue
+                    if line.startswith('!'):
+                        continue
+                    patterns.append(line)
+        
+        return patterns
+
+    def _read_gitignore_basenames(self, gitignore_path):
+        """
+        Read entries from a .gitignore file for duplicate checking.
+
+        Args:
+            gitignore_path: Path to .gitignore file
+        
+        Returns:
+            Set of entries strings (exactly as written in .gitignore)
+        """
+        ignore_entries = set()
+        
+        if gitignore_path.exists():
+            with open(gitignore_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.rstrip('\r\n')
+                    if not line:
+                        continue
+                    if line.startswith('#'):
+                        continue
+                    if line.startswith('!'):
+                        continue
+        return ignore_entries
+
+    def _read_gitignore_entries(self, gitignore_path):
+        """
+        Read all entries from a .gitignore file for duplicate checking.
+        
+        Args:
+            gitignore_path: Path to .gitignore file
+        
+        Returns:
+            Set of normalized entry strings
+        """
+        entries = set()
+        
+        if gitignore_path.exists():
+            with open(gitignore_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.rstrip('\r\n')
+                    if not line:
+                        continue
+                    if line.startswith('#'):
+                        continue
+                    if line.startswith('!'):
+                        continue
+                    normalized_entry = self._normalize_gitignore_entry(line)
+                    entries.add(normalized_entry)
+        
+        return entries
+
+    def _normalize_gitignore_entry(self, entry):
+        normalized = entry.replace('\\', '/')
+        if normalized.startswith('./'):
+            normalized = normalized[2:]
+        normalized = normalized.rstrip('/')
+        return normalized
+
+    def _matches_gitignore_pattern(self, pattern, name):
+        if pattern.startswith('/'):
+            pattern = pattern[1:]
+        regex_pattern = self._gitignore_pattern_to_regex(pattern)
+        return bool(regex_pattern.fullmatch(name))
+
+    def _gitignore_pattern_to_regex(self, pattern):
+        regex_parts = []
+        in_char_class = False
+        
+        i = 0
+        while i < len(pattern):
+            char = pattern[i]
+            
+            if char == '*':
+                regex_parts.append('[^/]*')
+            elif char == '?':
+                regex_parts.append('[^/]')
+            elif char == '[':
+                if i + 1 < len(pattern) and pattern[i + 1] == '!':
+                    regex_parts.append('[^')
+                    i += 1
+                else:
+                    regex_parts.append('[')
+                in_char_class = True
+            elif char == ']' and in_char_class:
+                regex_parts.append(']')
+                in_char_class = False
+            elif char in '.^$+()|\\':
+                if not in_char_class:
+                    regex_parts.append('\\' + char)
+                else:
+                    regex_parts.append(char)
+            else:
+                regex_parts.append(re.escape(char) if not in_char_class else char)
+            
+            i += 1
+        
+        regex = '^' + ''.join(regex_parts) + '$'
+        return re.compile(regex)
 
 
 _RE = re.compile(r'\AXSym\r?\n[0-9]{4}\r?\n[0-9A-Fa-f]{32}\r?\n/(?:[^/\x00]+(?:/(?!/)[^/\x00]+)*)/?\r?\Z')
