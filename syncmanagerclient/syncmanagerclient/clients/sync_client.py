@@ -115,13 +115,13 @@ class SyncClient:
             # fresh initialized repo on client machine with a remote yet
             self.sync_with_remote_repo(self.sync_config)
             return
-        segments = remote_repo.url.split(os.path.sep)
-        crucial_segements = segments[segments.index("git") + 1:]
-        self.sync_config.namespace = str(PurePosixPath(*crucial_segements))
-        remote_repos = self.fetch_repos(self.sync_config)
+        segments = remote_repo.url.split("/")
+        crucial_segments = segments[segments.index("git") + 1:]
+        self.sync_config.namespace = str(PurePosixPath(*crucial_segments))
+        remote_repos = self.api_service.fetch_repos(self.sync_config)
         if not remote_repos:
             print(
-                f"No server repo exists for remote '{remote_repo_name}' and url {os.path.sep.join(crucial_segements[1:])}")
+                f"No server repo exists for remote '{remote_repo_name}' and url {'/'.join(crucial_segments[1:])}")
             self.sync_with_remote_repo(self.sync_config)
         for remote_repo in remote_repos:
             config = self.update_config(self.sync_config, remote_repo)
