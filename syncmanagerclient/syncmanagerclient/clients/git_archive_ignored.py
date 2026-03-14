@@ -65,7 +65,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
             return
         self.symlink_archived_files_back()
 
-
     def archive_ignored_files(self):
         if not self.local_path.joinpath(".git").resolve().exists():
             raise InvalidArgument(f"{self.local_path} is not a git project root path")
@@ -191,7 +190,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 would_be_link_location = self.local_path.joinpath(file_rel_path)
                 self.create_symlink(would_be_link_location, source_location, _revert=revert)
 
-    def create_symlink(self, would_be_link_location, source_location, _revert=False):
+    def create_symlink(self, would_be_link_location: Path, source_location: Path, _revert=False):
         if not source_location.exists():
             return True
         if source_location.is_file():
@@ -328,15 +327,20 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 # skip directories we cannot stat, but continue searching other branches
                 dirnames[:] = []
                 continue
+            directory_is_eligible = True
+            dir_rel_path = Path(dirpath).relative_to(self.local_path)
             if filenames:
-                okay_files = self.filter_ignored_files_based_on_name(prune_filepaths([
-                    Path(dirpath).joinpath(filename).relative_to(self.local_path) for filename in filenames]))
+                okay_files = self.gitrepo.ignored(self.filter_ignored_files_based_on_name(prune_filepaths([
+                    dir_rel_path.joinpath(filename) for filename in filenames])))
                 path_registry += [self.local_path.joinpath(file) for file in okay_files]
-                if len(okay_files) == len(filenames):
-                    path_registry.append(current)
-            else:
+                directory_is_eligible = len(okay_files) == len(filenames)
+            if directory_is_eligible and self.is_ignored(str(dir_rel_path)):
                 path_registry.append(current)
         return path_registry
+
+    def is_ignored(self, filepath: str) -> bool:
+        ignored_list = self.gitrepo.ignored(filepath)
+        return bool(ignored_list)
 
     def get_symlinks_committed(self):
         head = self.gitrepo.head.commit
@@ -417,7 +421,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
             existing_basenames = self._read_gitignore_patterns(gitignore_path)
             if directory_basename not in [x.split('/')[-1] for x in existing_basenames]:
                 with open(gitignore_path, 'a', encoding='utf-8') as f:
-                    f.write(normalized_entry + '\n')
+                    f.write('\n' + normalized_entry + '\n')
 
     def _find_gitignore_files_for_path(self, item_path):
         """
@@ -472,7 +476,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     patterns.append(line)
 
         return patterns
-
 
     def _read_gitignore_entries(self, gitignore_path):
         """
