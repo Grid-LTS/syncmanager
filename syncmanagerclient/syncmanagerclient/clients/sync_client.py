@@ -118,7 +118,7 @@ class SyncClient:
         segments = remote_repo.url.split("/")
         crucial_segments = segments[segments.index("git") + 1:]
         self.sync_config.namespace = str(PurePosixPath(*crucial_segments))
-        remote_repos = self.api_service.fetch_repos(self.sync_config)
+        remote_repos = self.fetch_repos(self.sync_config)
         if not remote_repos:
             print(
                 f"No server repo exists for remote '{remote_repo_name}' and url {'/'.join(crucial_segments[1:])}")

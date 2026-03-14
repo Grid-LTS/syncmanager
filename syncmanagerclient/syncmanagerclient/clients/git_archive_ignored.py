@@ -65,6 +65,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
             return
         self.symlink_archived_files_back()
 
+
     def archive_ignored_files(self):
         if not self.local_path.joinpath(".git").resolve().exists():
             raise InvalidArgument(f"{self.local_path} is not a git project root path")
@@ -85,7 +86,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
             if any(x == os.path.basename(file).strip("/") for x in self.archive_config.archivable_dirs):
                 archivable_paths.append(file)
                 files_to_archive.remove(file)
-
         files_to_archive = self.filter_ignored_files(files_to_archive)
         files_to_archive += archivable_paths
         for file in list(files_to_archive + self.symlinks + check_for_broken_symlinks):
@@ -154,14 +154,20 @@ class GitArchiveIgnoredFiles(GitClientBase):
         return files_to_archive
 
     def filter_ignored_files_based_on_name(self, files_to_archive: List[str]):
-        files_to_archive = [filename for filename in files_to_archive if not filename in self.symlinks and not any(
-            x.match(filename) for x in self.archive_config.skip_regex_pattern)
-                            and not os.path.basename(
-            filename) in self.archive_config.skip_list()]
-        files_to_archive = [filename for filename in files_to_archive if
-                            not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0]
         return [filename for filename in files_to_archive if
-                not any(filename.endswith(x) for x in self.archive_config.code_file_extensions)]
+                (Path(filename).is_dir() and self.is_eligible_directory(filename))
+                or (Path(filename).is_file() and self.is_eligible_file(filename))
+                ]
+
+    def is_eligible_file(self, filename) -> bool:
+        return (self.is_eligible_directory(filename)
+                and not any(filename.endswith(x) for x in self.archive_config.code_file_extensions))
+
+    def is_eligible_directory(self, filename) -> bool:
+        return (not filename in self.symlinks
+                and not any(x.match(filename) for x in self.archive_config.skip_regex_pattern)
+                and not os.path.basename(filename) in self.archive_config.skip_list()
+                and not len(set(Path(filename).parts) & set(self.archive_config.skip_directory_list())) > 0)
 
     def symlink_archived_files_for_env(self, archive_path: Path, revert=False):
         if not archive_path.exists():
@@ -369,47 +375,46 @@ class GitArchiveIgnoredFiles(GitClientBase):
             ignored_directories: List of directory paths (strings)
         """
         directories_to_add = []
-        
+
         for directory in ignored_directories:
             directory_path = Path(directory)
             basename = directory_path.name
-            
+
             gitignore_files = self._find_gitignore_files_for_path(directory_path)
-            
+
             matched = False
             for gitignore_path in gitignore_files:
                 existing_patterns = self._read_gitignore_patterns(gitignore_path)
-                
+
                 for pattern in existing_patterns:
                     pattern_stripped = pattern.rstrip('/')
-                    
+
                     if pattern.endswith('/') and pattern_stripped == basename:
                         continue
-                    
+
                     if self._matches_gitignore_pattern(pattern_stripped, basename):
                         matched = True
                         break
-                
+
                 if matched:
                     break
-            
+
             if not matched:
                 directories_to_add.append((directory, gitignore_files[0] if gitignore_files else None))
-        
+
         for directory, gitignore_path in directories_to_add:
             if gitignore_path is None:
                 gitignore_path = self.local_path / '.gitignore'
-            
+
             # Calculate relative path from .gitignore directory to target directory
             gitignore_dir = gitignore_path.parent
             directory_absolute = (self.local_path / directory).resolve()
             entry = str(directory_absolute.relative_to(gitignore_dir.resolve()))
             normalized_entry = self._normalize_gitignore_entry(entry)
-            
+
             # Check if basename already exists (keeping it exactly as written in .gitignore)
             directory_basename = Path(normalized_entry).name
-            existing_basenames = self._read_gitignore_basenames(gitignore_path)
-            
+            existing_basenames = self._read_gitignore_patterns(gitignore_path)
             if directory_basename not in [x.split('/')[-1] for x in existing_basenames]:
                 with open(gitignore_path, 'a', encoding='utf-8') as f:
                     f.write(normalized_entry + '\n')
@@ -426,20 +431,20 @@ class GitArchiveIgnoredFiles(GitClientBase):
             List of Path objects pointing to .gitignore files
         """
         gitignore_files = []
-        
+
         current_path = (self.local_path / item_path).resolve()
         repo_root = self.local_path.resolve()
-        
+
         while current_path >= repo_root:
             gitignore_path = current_path / '.gitignore'
             if gitignore_path.exists():
                 gitignore_files.append(gitignore_path)
-            
+
             if current_path == repo_root:
                 break
-            
+
             current_path = current_path.parent
-        
+
         return gitignore_files
 
     def _read_gitignore_patterns(self, gitignore_path):
@@ -453,7 +458,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
             List of pattern strings (filtered for comments, empty lines, and negation patterns)
         """
         patterns = []
-        
+
         if gitignore_path.exists():
             with open(gitignore_path, 'r', encoding='utf-8') as f:
                 for line in f:
@@ -465,32 +470,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     if line.startswith('!'):
                         continue
                     patterns.append(line)
-        
+
         return patterns
 
-    def _read_gitignore_basenames(self, gitignore_path):
-        """
-        Read entries from a .gitignore file for duplicate checking.
-
-        Args:
-            gitignore_path: Path to .gitignore file
-        
-        Returns:
-            Set of entries strings (exactly as written in .gitignore)
-        """
-        ignore_entries = set()
-        
-        if gitignore_path.exists():
-            with open(gitignore_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.rstrip('\r\n')
-                    if not line:
-                        continue
-                    if line.startswith('#'):
-                        continue
-                    if line.startswith('!'):
-                        continue
-        return ignore_entries
 
     def _read_gitignore_entries(self, gitignore_path):
         """
@@ -503,20 +485,10 @@ class GitArchiveIgnoredFiles(GitClientBase):
             Set of normalized entry strings
         """
         entries = set()
-        
-        if gitignore_path.exists():
-            with open(gitignore_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.rstrip('\r\n')
-                    if not line:
-                        continue
-                    if line.startswith('#'):
-                        continue
-                    if line.startswith('!'):
-                        continue
-                    normalized_entry = self._normalize_gitignore_entry(line)
-                    entries.add(normalized_entry)
-        
+
+        for entry in self._read_gitignore_patterns(gitignore_path):
+            normalized_entry = self._normalize_gitignore_entry(entry)
+            entries.add(normalized_entry)
         return entries
 
     def _normalize_gitignore_entry(self, entry):
@@ -535,11 +507,11 @@ class GitArchiveIgnoredFiles(GitClientBase):
     def _gitignore_pattern_to_regex(self, pattern):
         regex_parts = []
         in_char_class = False
-        
+
         i = 0
         while i < len(pattern):
             char = pattern[i]
-            
+
             if char == '*':
                 regex_parts.append('[^/]*')
             elif char == '?':
@@ -561,9 +533,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     regex_parts.append(char)
             else:
                 regex_parts.append(re.escape(char) if not in_char_class else char)
-            
+
             i += 1
-        
+
         regex = '^' + ''.join(regex_parts) + '$'
         return re.compile(regex)
 

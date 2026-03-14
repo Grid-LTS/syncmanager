@@ -4,6 +4,9 @@ import re
 
 from configparser import ConfigParser
 
+from syncmanagerclient.util.error import ConfigurationError
+
+
 class GlobalConfig:
     def __init__(self, filesystem_root_dir, retention_years=None, refresh_rate_months=None, ):
         self.retention_years = retention_years
@@ -38,8 +41,10 @@ class SyncAllConfig:
             self.offline = False
             self.dry_run = False
 
+CONFIG_SEPARATOR=','
 
 class ArchiveConfig:
+
 
     def __init__(self, properties_path):
         config = ConfigParser()
@@ -73,6 +78,7 @@ class ArchiveConfig:
 
     @staticmethod
     def parse_and_prune(value):
+        value = value.strip(CONFIG_SEPARATOR)
         if not value:
             return []
-        return [item.strip() for item in value.split(',')]
+        return [item.strip() for item in value.split(CONFIG_SEPARATOR)]
