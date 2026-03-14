@@ -330,7 +330,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
             directory_is_eligible = True
             dir_rel_path = Path(dirpath).relative_to(self.local_path)
             if filenames:
-                okay_files = self.gitrepo.ignored(self.filter_ignored_files_based_on_name(prune_filepaths([
+                okay_files = self.ignored(self.filter_ignored_files_based_on_name(prune_filepaths([
                     dir_rel_path.joinpath(filename) for filename in filenames])))
                 path_registry += [self.local_path.joinpath(file) for file in okay_files]
                 directory_is_eligible = len(okay_files) == len(filenames)
@@ -338,9 +338,18 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 path_registry.append(current)
         return path_registry
 
+    def ignored(self, filepaths: List[str]) -> List[str]:
+        if not filepaths:
+            return []
+        return self.gitrepo.ignored(*filepaths)
+
+
     def is_ignored(self, filepath: str) -> bool:
         ignored_list = self.gitrepo.ignored(filepath)
         return bool(ignored_list)
+
+
+
 
     def get_symlinks_committed(self):
         head = self.gitrepo.head.commit
