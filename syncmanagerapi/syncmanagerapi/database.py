@@ -25,7 +25,7 @@ def get_database_url(app):
         path_to_db = get_sqlite_path(conf)
         return f"sqlite:///{path_to_db}"
     else:
-        return "mysql://{db_user}:{db_password}@{db_host}/{db_schema}".format(
+        return "mysql+pymysql://{db_user}:{db_password}@{db_host}/{db_schema}".format(
             db_user=conf['DB_USER'], db_password=conf['DB_PASSWORD'], db_host=conf['DB_HOST'],
             db_schema=conf['DB_SCHEMA_NAME'])
 
@@ -40,6 +40,8 @@ def get_database_connection(app):
         ret = cursor.execute("PRAGMA foreign_keys=ON;")
         cursor.close()
     else:
+        import pymysql
+        pymysql.install_as_MySQLdb()
         import MySQLdb
         db = MySQLdb.connect(host=conf['DB_HOST'], user=conf['DB_USER'],
                              passwd=conf['DB_PASSWORD'], db=conf['DB_SCHEMA_NAME'])

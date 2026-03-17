@@ -3,7 +3,9 @@
 cd "$(dirname "$0")"
 mv alembic.ini ..
 cd ..
-poetry run alembic upgrade head
+source $SYNCMANAGER_VENV_DIR/bin/activate
+pip install pymysql
+python alembic_cli.py
 if [ "$?" -eq 0 ]; then
   rm alembic.ini
 fi

@@ -51,7 +51,7 @@ if os.path.isfile(properties_path):
                 'db_port': config['default_section'].get('DB_PORT', '3306').strip('"\''),
             }
             context[
-                'database_url'] = (f"mysql://{context['db_user']}:{context['db_user_password']}"
+                'database_url'] = (f"mysql+pymysql://{context['db_user']}:{context['db_user_password']}"
                                    f"@{context['db_host']}:{context['db_port']}/{context['db_schema_name']}")
 
             conf_file = TEMPLATE_ENVIRONMENT.get_template('{}.j2'.format(init_db_file)).render(context)

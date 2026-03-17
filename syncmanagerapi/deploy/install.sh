@@ -116,7 +116,7 @@ deactivate
 
 # install system dependencies
 sudo apt-get update
-sudo apt-get -y install python3-dev python3-pip python-is-python3 default-libmysqlclient-dev libmysqlclient-dev
+sudo apt-get -y install python3-dev python3-pip python-is-python3 default-libmysqlclient-dev libmysqlclient-dev python3-pymysql
 
 pipx --version
 if [ "$?" -ne 0 ]; then
@@ -160,7 +160,7 @@ fi
 poetry lock
 poetry install
 # in production we do not need to set FLASK_ENV since the default is already 'production'
-venv_path=$(poetry env info -p)
+export SYNCMANAGER_VENV_DIR=$(poetry env info -p)
 echo ""
 poetry build
 VERSION=$(poetry run python -c 'from properties import __version__; print(__version__)')
@@ -201,6 +201,8 @@ source $venv_dir/bin/activate
 pip install --upgrade gunicorn
 pip install --upgrade uvicorn
 pip install --upgrade click
+pip install pymysql
+echo
 echo "install application $(basename $package_name)"
 pip install $package_name
 deactivate

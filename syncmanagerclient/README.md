@@ -6,7 +6,7 @@
 ##### 1. Install as local package
 * this will provide you the syncmanager command
 ```
-pipx install -e .[dev] --include-deps
+pip install -e .[dev]
 # older python versions
 pip3 install -e .[dev] --user
 ```
@@ -15,8 +15,10 @@ pip3 install -e .[dev] --user
 * you need to have poetry installed `pipx install poetry`
 * run
 ```
+source .venv/bin/activate
+cd ../syncmanagerapi
+pip install -e .[dev]
 poetry install
-poetry shell
 ```
 
 ### Usage

@@ -9,7 +9,7 @@ from .utils import generate_password
 from .error import InvalidRequest
 from .authorization import InvalidAuthorizationException
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, dotenv_values
 
 # .env file should only exists on developer machine, setting FLASK_ENV=development
 dotenv_path = os.path.join(project_dir, '.env')  # Path to .env file
@@ -36,7 +36,12 @@ def create_app(test_config=None):
         app.config.from_mapping(test_config)
     properties_file_path = get_properties_path(environment=app.config["ENV"],
                                                _properties_dir=app.config['SYNCMANAGER_SERVER_CONF'])
-    app.config.from_pyfile(properties_file_path, silent=True)
+    conf_vars = dotenv_values(properties_file_path)
+    if conf_vars.get("SERVER_PORT", None):
+        conf_vars["SERVER_PORT"] = int(conf_vars["SERVER_PORT"])
+    if conf_vars.get("DB_SQLITE_PATH", None):
+        conf_vars["DB_SQLITE_PATH"] = conf_vars["DB_SQLITE_PATH"].replace("~", os.path.expanduser("~"))
+    app.config.from_mapping(conf_vars, silent=True)
     if app.config["ENV"] in ['test', 'e2e', "development"]:
         if app.config["ENV"] == "development":
             app.config["INSTALL_DIR"] = os.path.join(app.config['SYNCMANAGER_SERVER_CONF'], "local")
