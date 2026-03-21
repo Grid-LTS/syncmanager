@@ -4,8 +4,6 @@ import re
 
 from configparser import ConfigParser
 
-from syncmanagerclient.util.error import ConfigurationError
-
 
 class GlobalConfig:
     def __init__(self, filesystem_root_dir, retention_years=None, refresh_rate_months=None, ):

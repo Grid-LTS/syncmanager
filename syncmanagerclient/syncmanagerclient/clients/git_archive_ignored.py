@@ -51,6 +51,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
         self.symlinks = []
         self.directory_registry = dict()
+        self.files_to_archive = []
 
     def apply(self):
         if not self.local_path.exists():
@@ -70,40 +71,32 @@ class GitArchiveIgnoredFiles(GitClientBase):
             raise InvalidArgument(f"{self.local_path} is not a git project root path")
         if not self.gitrepo:
             self.gitrepo = Repo(self.local_path)
-        files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
-        check_for_broken_symlinks = [filename.replace("?? ", "") for filename in files_to_archive if
+        self.files_to_archive = self.gitrepo.git.status("--ignored", porcelain=True).split('\n')
+        check_for_broken_symlinks = [filename.replace("?? ", "") for filename in self.files_to_archive if
                                      filename.startswith("?? ")]
         check_for_broken_symlinks += self.get_symlinks_committed()
-        files_to_archive = prune_filenames(
-            [filename.replace("!! ", "") for filename in files_to_archive if filename.startswith("!! ")])
-        self.symlinks = [filename for filename in files_to_archive if Path(filename).is_symlink()]
-        files_to_archive = [filename for filename in files_to_archive if not Path(filename).is_symlink()]
+        self.files_to_archive = prune_filenames(
+            [filename.replace("!! ", "") for filename in self.files_to_archive if filename.startswith("!! ")])
+        self.symlinks = [filename for filename in self.files_to_archive if Path(filename).is_symlink()]
+        self.files_to_archive = [filename for filename in self.files_to_archive if not Path(filename).is_symlink()]
         archivable_paths = []
-        for file in list(files_to_archive):
+        for file in list(self.files_to_archive):
             if not os.path.isdir(file):
                 continue
             if any(x == os.path.basename(file).strip("/") for x in self.archive_config.archivable_dirs):
                 archivable_paths.append(file)
-                files_to_archive.remove(file)
-        files_to_archive = self.filter_ignored_files(files_to_archive)
-        files_to_archive += archivable_paths
-        for file in list(files_to_archive + self.symlinks + check_for_broken_symlinks):
-            path = Path(file)
-            is_stale = path.is_symlink() and not os.path.exists(os.path.realpath(path))
-            if not check_if_broken_symlink(path) and not is_stale:
-                continue
-            if is_stale:
-                print(f"{file} is a stale symlink. Delete")
-            else:
-                print(f"{file} is a broken symlink. Delete")
-            path.unlink()
-            if file in files_to_archive:
-                files_to_archive.remove(file)
-
-        if not files_to_archive:
+                self.files_to_archive.remove(file)
+        self.remove_broken_symlinks(self.files_to_archive + self.symlinks + check_for_broken_symlinks)
+        for path in self.files_to_archive:
+            dirpath = self.local_path / path
+            GitArchiveIgnoredFiles.remove_broken_symlinks_recursively(dirpath)
+        self.filter_ignored_files()
+        self.files_to_archive += archivable_paths
+        self.remove_broken_symlinks(self.files_to_archive + self.symlinks)
+        if not self.files_to_archive:
             return True
-        self.extend_git_ignore_file([x for x in files_to_archive if Path(x).is_dir()])
-        for original_file_rel in files_to_archive:
+        self.extend_git_ignore_file([x for x in self.files_to_archive if Path(x).is_dir()])
+        for original_file_rel in self.files_to_archive:
             original_path = Path(original_file_rel)
             if original_path.exists():
                 new_path = self.archive_default_root.joinpath(original_file_rel)
@@ -126,11 +119,25 @@ class GitArchiveIgnoredFiles(GitClientBase):
                         print(f"Unexpected error: {e}")
         return False
 
-    def filter_ignored_files(self, files_to_archive):
-        files_to_archive = self.filter_ignored_files_based_on_name(files_to_archive)
-        files_to_archive = [filename for filename in files_to_archive if
-                            is_file_or_dir_and_smaller_than(Path(filename))]
-        for path in list(files_to_archive):
+    def remove_broken_symlinks(self, symlinks):
+        for file in symlinks:
+            path = Path(file)
+            is_stale = path.is_symlink() and not os.path.exists(os.path.realpath(path))
+            if not check_if_broken_symlink(path) and not is_stale:
+                continue
+            if is_stale:
+                print(f"{file} is a stale symlink. Delete")
+            else:
+                print(f"{file} is a broken symlink. Delete")
+            path.unlink()
+            if file in self.files_to_archive:
+                self.files_to_archive.remove(file)
+
+    def filter_ignored_files(self):
+        self.files_to_archive = self.filter_ignored_files_based_on_name(self.files_to_archive)
+        self.files_to_archive = [filename for filename in self.files_to_archive if
+                                 is_file_or_dir_and_smaller_than(Path(filename))]
+        for path in list(self.files_to_archive):
             if not os.path.isdir(path):
                 continue
             archivable_paths, symlinked_paths = self.find_archivable_file_paths(Path(path))
@@ -138,19 +145,18 @@ class GitArchiveIgnoredFiles(GitClientBase):
             if len(archivable_paths) == 1 and archivable_paths[0].relative_to(self.local_path) == path:
                 continue
             # if the path is a directory but contains files or dirs that must not be archived,
-            files_to_archive.remove(path)
+            self.files_to_archive.remove(path)
             # only archive the eligible paths under it
-            files_to_archive += [x.relative_to(self.local_path) for x in archivable_paths]
+            self.files_to_archive += [x.relative_to(self.local_path) for x in archivable_paths]
         # we do not archive files that live in git-managed directories, having ignore-marker file like .gitkeep, because these directories
         # are operational and contain only short-term or processed data
-        for filename in list(files_to_archive):
+        for filename in list(self.files_to_archive):
             parent_dir = Path.resolve(Path(filename).parent)
             while parent_dir != self.local_path and parent_dir != self.local_path.parent:
                 if any((parent_dir / ignore_marker).exists() for ignore_marker in self.__class__.ignore_markers):
-                    files_to_archive.remove(filename)
+                    self.files_to_archive.remove(filename)
                     break
                 parent_dir = Path.resolve(parent_dir.parent)
-        return files_to_archive
 
     def filter_ignored_files_based_on_name(self, files_to_archive: List[str]):
         return [filename for filename in files_to_archive if
@@ -343,13 +349,34 @@ class GitArchiveIgnoredFiles(GitClientBase):
             return []
         return self.gitrepo.ignored(*filepaths)
 
-
     def is_ignored(self, filepath: str) -> bool:
         ignored_list = self.gitrepo.ignored(filepath)
         return bool(ignored_list)
 
+    @staticmethod
+    def remove_broken_symlinks_recursively(path: Path):
+        for dirpath, dirnames, filenames in os.walk(str(path), topdown=True, followlinks=True):
+            # we don't follow symlinks recursively
+            if GitArchiveIgnoredFiles.check_and_remove_broken_symlink(Path(dirpath)):
+                dirnames[:] = []
+                continue
+            for name in filenames + dirnames:
+                current = Path(dirpath) / name
+                GitArchiveIgnoredFiles.check_and_remove_broken_symlink(current)
 
-
+    @staticmethod
+    def check_and_remove_broken_symlink(current: Path):
+        try:
+            if not current.is_symlink():
+                return False
+            current.is_dir()  # forces to resolve target file and sees if symlink is broken
+        except OSError as e:
+            print(f"Target of committed symlink at {str(current)} cannot be resolved. Remove")
+            try:
+                os.unlink(str(current))
+            except OSError:
+                pass
+        return True
 
     def get_symlinks_committed(self):
         head = self.gitrepo.head.commit
