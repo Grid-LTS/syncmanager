@@ -21,7 +21,7 @@ class GitClientBase:
 
     def set_config(self, config : SyncConfig, *args):
         self.local_path_short = config.local_path_short
-        self.local_path = config.local_path
+        self.local_path = config.local_path.resolve()
         self.config = config
         config_in_repo = os.path.join(self.local_path, 'syncmanager.ini')
         if os.path.exists(config_in_repo):

@@ -47,8 +47,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
         local_path_relative = Path(*[part.lower() for part in local_path_relative.parts])
         self.archive_project_root = Globalproperties.archive_dir_path.joinpath(self.config.organization,
                                                                                local_path_relative, project_root)
-        self.archive_default_root = self.archive_project_root.joinpath(SHARED_ARCHIVE_FOR_ENV)
         self.archive_syncenv_root = self.archive_project_root.joinpath(allconfig.sync_env)
+        self.archive_syncenv_backup_root = self.archive_project_root.joinpath("syncmanager_backup", allconfig.sync_env)
+
         self.symlinks = []
         self.directory_registry = dict()
         self.files_to_archive = []
@@ -99,9 +100,13 @@ class GitArchiveIgnoredFiles(GitClientBase):
         for original_file_rel in self.files_to_archive:
             original_path = Path(original_file_rel)
             if original_path.exists():
-                new_path = self.archive_default_root.joinpath(original_file_rel)
+                new_path = self.archive_syncenv_root.joinpath(original_file_rel)
                 if os.path.exists(new_path):
-                    new_path = self.archive_syncenv_root.joinpath(original_file_rel)
+                    print(f"Archive file {original_file_rel} already exists in new location {new_path}. "
+                          f"Move already present file in new location to backup")
+                    backup_file_path = self.archive_syncenv_backup_root.joinpath(original_file_rel)
+                    backup_file_path.parents[0].mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(new_path), str(backup_file_path))
                 print(f"Archive file {original_file_rel} in new location {new_path}")
                 if self.config.dry_run:
                     continue
@@ -177,6 +182,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
     def symlink_archived_files_for_env(self, archive_path: Path, revert=False):
         if not archive_path.exists():
             return
+        archive_path = archive_path.resolve()
         for root, dirs, files in os.walk(archive_path):
             if archive_path.parent == Path(root):
                 continue
@@ -197,8 +203,16 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 self.create_symlink(would_be_link_location, source_location, _revert=revert)
 
     def create_symlink(self, would_be_link_location: Path, source_location: Path, _revert=False):
-        if not source_location.exists():
-            return True
+        try:
+            if not source_location.exists():
+                return True
+        except OSError as e:
+            try:
+                print(f"Corrupted state. Source location {source_location} is a broken link. Remove")
+                os.unlink(str(source_location))
+            except OSError as e:
+                print(f"Cannot remove {source_location}. Please repair manually.")
+                return True
         if source_location.is_file():
             fs_type = "file"
             target_is_directory = False
@@ -229,7 +243,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if not envs or not SHARED_ARCHIVE_FOR_ENV in envs:
             return
         self.symlink_archived_files_for_env(self.archive_syncenv_root, revert)
-        self.symlink_archived_files_for_env(self.archive_default_root, revert)
 
     def get_unstaged_files(self):
         """
