@@ -90,7 +90,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.remove_broken_symlinks(self.files_to_archive + self.symlinks + check_for_broken_symlinks)
         for path in self.files_to_archive:
             dirpath = self.local_path / path
-            GitArchiveIgnoredFiles.remove_broken_symlinks_recursively(dirpath)
+            self.remove_broken_symlinks_recursively(dirpath)
         self.filter_ignored_files()
         self.files_to_archive += archivable_paths
         self.remove_broken_symlinks(self.files_to_archive + self.symlinks)
@@ -242,6 +242,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
         envs = os.listdir(self.archive_project_root)
         if not envs or not SHARED_ARCHIVE_FOR_ENV in envs:
             return
+        if revert:
+            self.symlink_archived_files_for_env(self.archive_syncenv_root, False)
         self.symlink_archived_files_for_env(self.archive_syncenv_root, revert)
 
     def get_unstaged_files(self):
@@ -366,19 +368,17 @@ class GitArchiveIgnoredFiles(GitClientBase):
         ignored_list = self.gitrepo.ignored(filepath)
         return bool(ignored_list)
 
-    @staticmethod
-    def remove_broken_symlinks_recursively(path: Path):
+    def remove_broken_symlinks_recursively(self, path: Path):
         for dirpath, dirnames, filenames in os.walk(str(path), topdown=True, followlinks=True):
             # we don't follow symlinks recursively
-            if GitArchiveIgnoredFiles.check_and_remove_broken_symlink(Path(dirpath)):
+            if self.check_and_remove_broken_symlink(Path(dirpath)):
                 dirnames[:] = []
                 continue
             for name in filenames + dirnames:
                 current = Path(dirpath) / name
-                GitArchiveIgnoredFiles.check_and_remove_broken_symlink(current)
+                self.check_and_remove_broken_symlink(current)
 
-    @staticmethod
-    def check_and_remove_broken_symlink(current: Path):
+    def check_and_remove_broken_symlink(self, current: Path):
         try:
             if not current.is_symlink():
                 return False
@@ -389,6 +389,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 os.unlink(str(current))
             except OSError:
                 pass
+        self.remove_broken_symlinks([current])
         return True
 
     def get_symlinks_committed(self):
