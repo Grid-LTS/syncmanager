@@ -240,7 +240,7 @@ class GitArchiveIgnoredFiles(GitClientBase):
         if not self.archive_project_root.exists():
             return
         envs = os.listdir(self.archive_project_root)
-        if not envs or not SHARED_ARCHIVE_FOR_ENV in envs:
+        if not envs:
             return
         if revert:
             self.symlink_archived_files_for_env(self.archive_syncenv_root, False)
