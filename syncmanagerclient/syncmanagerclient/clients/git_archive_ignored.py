@@ -94,9 +94,6 @@ class GitArchiveIgnoredFiles(GitClientBase):
         self.filter_ignored_files()
         self.files_to_archive += archivable_paths
         self.remove_broken_symlinks(self.files_to_archive + self.symlinks)
-        if not self.files_to_archive:
-            return True
-        self.extend_git_ignore_file([x for x in self.files_to_archive if Path(x).is_dir()])
         for original_file_rel in self.files_to_archive:
             original_path = Path(original_file_rel)
             if original_path.exists():
@@ -122,6 +119,8 @@ class GitArchiveIgnoredFiles(GitClientBase):
                         print(f"Activate developer mode to allow creation of symlinks. Error : {e}")
                     else:
                         print(f"Unexpected error: {e}")
+        symlinks_not_ignored = self.gitrepo.git.ls_files(["--others", "--exclude-standard"]).split('\n')
+        self.extend_git_ignore_file(symlinks_not_ignored)
         return False
 
     def remove_broken_symlinks(self, symlinks):
@@ -417,28 +416,30 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     print(f"Cannot resolve target of symlink at {blob.path}")
         return symlinks
 
-    def extend_git_ignore_file(self, ignored_directories):
+    def extend_git_ignore_file(self, to_ignore_paths):
         """
-        Extend .gitignore with directories that don't have matching patterns.
+        Extend .gitignore with paths that don't have matching patterns.
         
-        For each directory in ignored_directories:
+
         1. Scan .gitignore files in the item's directory and parent directories for matching patterns (based on basename)
         2. If no match found, append the full relative path to the nearest .gitignore file
         
         Args:
-            ignored_directories: List of directory paths (strings)
+            to_ignore_paths: List of paths (strings)
         """
-        directories_to_add = []
+        ignores_to_add = []
 
-        for directory in ignored_directories:
-            directory_path = Path(directory)
-            basename = directory_path.name
+        for ignore_path_str in to_ignore_paths:
+            ignore_path = self.local_path / ignore_path_str
+            if not ignore_path.is_symlink():
+                continue
+            basename = ignore_path.name
 
-            gitignore_files = self._find_gitignore_files_for_path(directory_path)
+            gitignore_files = self._find_gitignore_files_for_path(ignore_path.parent.relative_to(self.local_path))
 
             matched = False
-            for gitignore_path in gitignore_files:
-                existing_patterns = self._read_gitignore_patterns(gitignore_path)
+            for dot_gitignore_path in gitignore_files:
+                existing_patterns = self._read_gitignore_patterns(dot_gitignore_path)
 
                 for pattern in existing_patterns:
                     pattern_stripped = pattern.rstrip('/')
@@ -454,24 +455,26 @@ class GitArchiveIgnoredFiles(GitClientBase):
                     break
 
             if not matched:
-                directories_to_add.append((directory, gitignore_files[0] if gitignore_files else None))
+                ignores_to_add.append((ignore_path_str, gitignore_files[0] if gitignore_files else None))
 
-        for directory, gitignore_path in directories_to_add:
-            if gitignore_path is None:
-                gitignore_path = self.local_path / '.gitignore'
+        for ignore_path_str, dot_gitignore_path in ignores_to_add:
+            if dot_gitignore_path is None:
+                dot_gitignore_path = self.local_path / '.gitignore'
 
             # Calculate relative path from .gitignore directory to target directory
-            gitignore_dir = gitignore_path.parent
-            directory_absolute = (self.local_path / directory).resolve()
-            entry = str(directory_absolute.relative_to(gitignore_dir.resolve()))
+            dot_gitignore_dir = dot_gitignore_path.parent
+            link_path_absolute = self.local_path / ignore_path_str
+            entry = str(link_path_absolute.relative_to(dot_gitignore_dir.resolve()))
             normalized_entry = self._normalize_gitignore_entry(entry)
 
             # Check if basename already exists (keeping it exactly as written in .gitignore)
             directory_basename = Path(normalized_entry).name
-            existing_basenames = self._read_gitignore_patterns(gitignore_path)
+            existing_basenames = self._read_gitignore_patterns(dot_gitignore_path)
+            if self.config.dry_run:
+                return
             if directory_basename not in [x.split('/')[-1] for x in existing_basenames]:
-                with open(gitignore_path, 'a', encoding='utf-8') as f:
-                    f.write('\n' + normalized_entry + '\n')
+                with open(dot_gitignore_path, 'a', encoding='utf-8') as f:
+                    f.write('\n' + normalized_entry)
 
     def _find_gitignore_files_for_path(self, item_path):
         """
@@ -486,10 +489,14 @@ class GitArchiveIgnoredFiles(GitClientBase):
         """
         gitignore_files = []
 
-        current_path = (self.local_path / item_path).resolve()
-        repo_root = self.local_path.resolve()
+        current_path = self.local_path / item_path
+        repo_root = self.local_path
 
-        while current_path >= repo_root:
+        try:
+            current_path.relative_to(repo_root)
+        except Exception:
+            return []
+        while True:
             gitignore_path = current_path / '.gitignore'
             if gitignore_path.exists():
                 gitignore_files.append(gitignore_path)
@@ -498,6 +505,9 @@ class GitArchiveIgnoredFiles(GitClientBase):
                 break
 
             current_path = current_path.parent
+
+            if current_path == repo_root.parent:
+                break
 
         return gitignore_files
 

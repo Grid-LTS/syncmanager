@@ -1,14 +1,20 @@
 import shutil
+from pathlib import Path
+
 import pytest
 
 from syncmanagerclient.clients.git_archive_ignored import GitArchiveIgnoredFiles
+from syncmanagerclient.util.syncconfig import SyncConfig
 
+archive_root =  None
 
 @pytest.fixture
 def temp_repo(tmp_path):
+    global archive_root
     """Create a temporary git repository for testing"""
     # Create repo directory structure
     repo_root = tmp_path / "test_repo"
+    archive_root = tmp_path / "archive" / "test_repo"
     repo_root.mkdir(parents=True)
     
     # Initialize git repo
@@ -21,10 +27,10 @@ def temp_repo(tmp_path):
     repo.index.add([str(test_file)])
     repo.index.commit("Initial commit")
     
-    yield repo_root
+    yield repo
     
     # Cleanup
-    shutil.rmtree(repo_root, ignore_errors=True)
+    shutil.rmtree(repo.working_dir, ignore_errors=True)
 
 
 @pytest.fixture
@@ -32,7 +38,9 @@ def git_archive_ignored(temp_repo):
     """Create GitArchiveIgnoredFiles instance for testing"""
     # Create a minimal mock - only set the instance attributes we need
     instance = object.__new__(GitArchiveIgnoredFiles)
-    instance.local_path = temp_repo
+    instance.local_path = Path(temp_repo.working_dir)
+    instance.config = SyncConfig(object, "git")
+    instance.config.dry_run = False
     # Don't call __init__ to avoid heavy initialization
     return instance
 
@@ -141,7 +149,7 @@ class TestReadGitignorePatterns:
     
     def test_read_empty_file(self, git_archive_ignored, temp_repo):
         """Test reading from empty .gitignore"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) / ".gitignore"
         gitignore_path.write_text("")
         
         patterns = git_archive_ignored._read_gitignore_patterns(gitignore_path)
@@ -149,7 +157,7 @@ class TestReadGitignorePatterns:
     
     def test_read_with_patterns(self, git_archive_ignored, temp_repo):
         """Test reading valid patterns"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) /".gitignore"
         gitignore_path.write_text("node_modules/\n*.log\nbuild/")
         
         patterns = git_archive_ignored._read_gitignore_patterns(gitignore_path)
@@ -157,7 +165,7 @@ class TestReadGitignorePatterns:
     
     def test_filter_comments(self, git_archive_ignored, temp_repo):
         """Test that lines starting with # are filtered"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) /".gitignore"
         gitignore_path.write_text("# Comment\nnode_modules\n# Another comment")
         
         patterns = git_archive_ignored._read_gitignore_patterns(gitignore_path)
@@ -165,7 +173,7 @@ class TestReadGitignorePatterns:
     
     def test_filter_empty_lines(self, git_archive_ignored, temp_repo):
         """Test that empty lines are filtered"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) /".gitignore"
         gitignore_path.write_text("\nnode_modules\n\nbuild\n")
         
         patterns = git_archive_ignored._read_gitignore_patterns(gitignore_path)
@@ -173,7 +181,7 @@ class TestReadGitignorePatterns:
     
     def test_filter_negation_patterns(self, git_archive_ignored, temp_repo):
         """Test that negation patterns starting with ! are filtered"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) /".gitignore"
         gitignore_path.write_text("*.log\n!important.log\n*.tmp")
         
         patterns = git_archive_ignored._read_gitignore_patterns(gitignore_path)
@@ -181,7 +189,7 @@ class TestReadGitignorePatterns:
     
     def test_combined_filters(self, git_archive_ignored, temp_repo):
         """Test all filters together"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) / ".gitignore"
         gitignore_path.write_text("""
 # Comments section
 
@@ -203,7 +211,7 @@ class TestReadGitignoreEntries:
     
     def test_read_entries_for_duplicate_check(self, git_archive_ignored, temp_repo):
         """Test reading entries as normalized set"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) /".gitignore"
         gitignore_path.write_text("node_modules/\nbuild/\n*.log")
         
         entries = git_archive_ignored._read_gitignore_entries(gitignore_path)
@@ -214,7 +222,7 @@ class TestReadGitignoreEntries:
     
     def test_filters_comments_and_empty_and_negation(self, git_archive_ignored, temp_repo):
         """Test that all filters apply to entries"""
-        gitignore_path = temp_repo / ".gitignore"
+        gitignore_path = Path(temp_repo.working_dir) /".gitignore"
         gitignore_path.write_text("# comment\n\nnode_modules\n!keep.log\nbuild/")
         
         entries = git_archive_ignored._read_gitignore_entries(gitignore_path)
@@ -226,7 +234,7 @@ class TestFindGitignoreFilesForPath:
     
     def test_finds_gitignore_in_current_dir(self, git_archive_ignored, temp_repo):
         """Test finds .gitignore in the immediate directory"""
-        subdir = temp_repo / "subdir"
+        subdir = Path(temp_repo.working_dir) /"subdir"
         subdir.mkdir()
         gitignore = subdir / ".gitignore"
         gitignore.write_text("*.log")
@@ -237,14 +245,14 @@ class TestFindGitignoreFilesForPath:
     
     def test_finds_gitignore_in_parent_dirs(self, git_archive_ignored, temp_repo):
         """Test finds .gitignore files up the directory tree"""
-        subdir = temp_repo / "a" / "b"
+        subdir = Path(temp_repo.working_dir) /"a" / "b"
         subdir.mkdir(parents=True)
         
         # Create multiple .gitignore files
-        gitignore_root = temp_repo / ".gitignore"
+        gitignore_root = Path(temp_repo.working_dir) /".gitignore"
         gitignore_root.write_text("node_modules/")
         
-        gitignore_a = temp_repo / "a" / ".gitignore"
+        gitignore_a = Path(temp_repo.working_dir) /"a" / ".gitignore"
         gitignore_a.write_text("*.log")
         
         gitignore_b = subdir / ".gitignore"
@@ -262,7 +270,7 @@ class TestFindGitignoreFilesForPath:
     
     def test_no_gitignore_files(self, git_archive_ignored, temp_repo):
         """Test when no .gitignore files exist"""
-        subdir = temp_repo / "subdir"
+        subdir = Path(temp_repo.working_dir) /"subdir"
         subdir.mkdir()
         
         files = git_archive_ignored._find_gitignore_files_for_path(subdir)
@@ -270,9 +278,9 @@ class TestFindGitignoreFilesForPath:
     
     def test_stops_at_repo_root(self, git_archive_ignored, temp_repo):
         """Test doesn't search beyond repository root"""
-        subdir = temp_repo / "subdir"
+        subdir = Path(temp_repo.working_dir) /"subdir"
         subdir.mkdir()
-        gitignore_root = temp_repo / ".gitignore"
+        gitignore_root = Path(temp_repo.working_dir) /".gitignore"
         gitignore_root.write_text("node_modules/")
         
         files = git_archive_ignored._find_gitignore_files_for_path(subdir)
@@ -286,15 +294,15 @@ class TestExtendGitIgnore:
     def test_adds_directory_without_match(self, git_archive_ignored, temp_repo):
         """Test adding directory that has no matching pattern"""
         # Create ignored directory
-        ignored_dir = temp_repo / "my_cache"
-        ignored_dir.mkdir()
-        
-        gitignore = temp_repo / ".gitignore"
+        to_ignore_symlink = self.construct_symlink(temp_repo, "my_cache")
+
+        gitignore = Path(Path(temp_repo.working_dir)) / ".gitignore"
+
         gitignore.write_text("node_modules/")
         
         # Call extend_git_ignore
-        git_archive_ignored.extend_git_ignore_file([str(ignored_dir.relative_to(temp_repo))])
-        
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         # Verify .gitignore was updated
         content = gitignore.read_text()
         assert "my_cache" in content
@@ -302,29 +310,29 @@ class TestExtendGitIgnore:
     
     def test_skips_directory_with_exact_match(self, git_archive_ignored, temp_repo):
         """Test not adding directory when exact pattern matches"""
-        ignored_dir = temp_repo / "node_modules"
-        ignored_dir.mkdir()
-        
-        gitignore = temp_repo / ".gitignore"
+        to_ignore_symlink = self.construct_symlink(temp_repo,  "node_modules")
+
+        gitignore = Path(temp_repo.working_dir) / ".gitignore"
+
         gitignore.write_text("node_modules")
         
         original_content = gitignore.read_text()
-        git_archive_ignored.extend_git_ignore_file([str(ignored_dir.relative_to(temp_repo))])
-        
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         # Should not add duplicate
         assert gitignore.read_text() == original_content
     
     def test_skips_directory_with_wildcard_match(self, git_archive_ignored, temp_repo):
         """Test not adding directory when wildcard pattern matches"""
-        ignored_dir = temp_repo / "my_modules"
-        ignored_dir.mkdir()
-        
-        gitignore = temp_repo / ".gitignore"
+        to_ignore_symlink = self.construct_symlink(temp_repo,  "my_modules")
+
+        gitignore = Path(temp_repo.working_dir) / ".gitignore"
+
         gitignore.write_text("*modules")
         
         original_content = gitignore.read_text()
-        git_archive_ignored.extend_git_ignore_file([str(ignored_dir.relative_to(temp_repo))])
-        
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         assert gitignore.read_text() == original_content
     
     def test_directory_only_pattern_no_match(self, git_archive_ignored, temp_repo):
@@ -334,39 +342,35 @@ class TestExtendGitIgnore:
         → do NOT match (e.g., 'node_modules/' should NOT match 'node_modules')
         """
         # Create a directory WITHOUT trailing slash in name (normal directory)
-        ignored_dir = temp_repo / "node_modules"
-        ignored_dir.mkdir()
-        
+        to_ignore_symlink = self.construct_symlink(temp_repo,  "node_modules")
+
         # Create .gitignore with pattern ending with /
-        gitignore = temp_repo / ".gitignore"
+        gitignore = Path(temp_repo.working_dir) /".gitignore"
         gitignore.write_text("node_modules/")
         
         # The directory 'node_modules' (basename without /) should NOT match pattern 'node_modules/'
         # because the pattern explicitly requires a directory ending
-        git_archive_ignored.extend_git_ignore_file([str(ignored_dir.relative_to(temp_repo))])
-        
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         # Should add it since 'node_modules/' != 'node_modules' for matching purposes
         content = gitignore.read_text()
         assert "node_modules/" in content
     
     def test_uses_nearest_gitignore(self, git_archive_ignored, temp_repo):
         """Test adding to nearest .gitignore file in hierarchy"""
-        subdir = temp_repo / "subdir"
-        subdir.mkdir()
-        
-        ignored_dir = subdir / "cache"
-        ignored_dir.mkdir()
-        
+        subdir = Path(temp_repo.working_dir) / "subdir"
+        to_ignore_symlink = self.construct_symlink(temp_repo,  "subdir/cache")
+
         # Create .gitignore in parent directory
         gitignore_sub = subdir / ".gitignore"
         gitignore_sub.write_text("*.log")
         
-        gitignore_root = temp_repo / ".gitignore"
+        gitignore_root = Path(temp_repo.working_dir) /".gitignore"
         gitignore_root.write_text("node_modules/")
         
         # Should add to nearest .gitignore (subdir/.gitignore)
-        git_archive_ignored.extend_git_ignore_file([str(ignored_dir.relative_to(temp_repo))])
-        
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         content_sub = gitignore_sub.read_text()
         assert "cache" in content_sub
         
@@ -375,21 +379,21 @@ class TestExtendGitIgnore:
     
     def test_fallback_to_root_gitignore(self, git_archive_ignored, temp_repo):
         """Test falling back to root .gitignore when none in path"""
-        ignored_dir = temp_repo / "deep" / "cache"
-        ignored_dir.mkdir(parents=True)
-        
-        gitignore_root = temp_repo / ".gitignore"
+
+        to_ignore_symlink = self.construct_symlink(temp_repo,  "deep/cache")
+
+        gitignore_root = Path(temp_repo.working_dir) / ".gitignore"
         gitignore_root.write_text("node_modules/")
         
         # Should add to root .gitignore since no .gitignore in the path
-        git_archive_ignored.extend_git_ignore_file([str(ignored_dir.relative_to(temp_repo))])
-        
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         content = gitignore_root.read_text()
         assert "deep/cache" in content
     
     def test_prevents_duplicates_in_same_file(self, git_archive_ignored, temp_repo):
         """Test that duplicate entries are not added to same .gitignore"""
-        gitignore = temp_repo / ".gitignore"
+        gitignore = Path(temp_repo.working_dir) /".gitignore"
         gitignore.write_text("cache/")
         
         # Try to add same directory twice
@@ -403,17 +407,17 @@ class TestExtendGitIgnore:
     
     def test_multiple_directories(self, git_archive_ignored, temp_repo):
         """Test adding multiple directories at once"""
-        dir1 = temp_repo / "cache1"
-        dir2 = temp_repo / "cache2"
-        dir1.mkdir()
-        dir2.mkdir()
-        
-        gitignore = temp_repo / ".gitignore"
+        to_ignore_symlink1 = self.construct_symlink(temp_repo,  "cache1")
+        to_ignore_symlink2 = self.construct_symlink(temp_repo,  "cache2")
+
+
+        gitignore = Path(temp_repo.working_dir) / ".gitignore"
+
         gitignore.write_text("node_modules/")
         
         git_archive_ignored.extend_git_ignore_file([
-            str(dir1.relative_to(temp_repo)),
-            str(dir2.relative_to(temp_repo))
+            str(to_ignore_symlink1.relative_to(Path(temp_repo.working_dir))),
+            str(to_ignore_symlink2.relative_to(Path(temp_repo.working_dir)))
         ])
         
         content = gitignore.read_text()
@@ -423,44 +427,47 @@ class TestExtendGitIgnore:
     def test_check_hierarchical_gitignore_first(self, git_archive_ignored, temp_repo):
         """Test that hierarchical .gitignore is checked before adding"""
         # Structure: .gitignore at root with "*" pattern
-        gitignore_root = temp_repo / ".gitignore"
+        gitignore_root = Path(temp_repo.working_dir) /".gitignore"
         gitignore_root.write_text("*")
-        
-        subdir = temp_repo / "subdir"
-        subdir.mkdir()
-        
-        ignored_dir = subdir / "anything"
-        ignored_dir.mkdir()
-        
+
+        to_ignore_symlink = self.construct_symlink(temp_repo,  "subdir/anything")
+
         # Should NOT add because root .gitignore has "*" which matches everything
         original_content = gitignore_root.read_text()
-        git_archive_ignored.extend_git_ignore_file([str(ignored_dir.relative_to(temp_repo))])
-        
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
         assert gitignore_root.read_text() == original_content
     
     def test_relative_path_handling(self, git_archive_ignored, temp_repo):
         """Test that relative paths are handled correctly"""
-        nested_dir = temp_repo / "a" / "b" / "c"
-        nested_dir.mkdir(parents=True)
-        
-        gitignore = temp_repo / ".gitignore"
+        to_ignore_symlink = self.construct_symlink(temp_repo,  "a/b/c")
+
+        gitignore = Path(temp_repo.working_dir) / ".gitignore"
         gitignore.write_text("")
-        
-        git_archive_ignored.extend_git_ignore_file([str(nested_dir.relative_to(temp_repo))])
-        
+
+        git_archive_ignored.extend_git_ignore_file([str(to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         content = gitignore.read_text()
         assert "a/b/c" in content
     
     def test_utf8_encoding(self, git_archive_ignored, temp_repo):
         """Test that UTF-8 encoding is used"""
-        utf_dir = temp_repo / "кириллица"
-        utf_dir.mkdir()
-        
-        gitignore = temp_repo / ".gitignore"
+        utf_dir_to_ignore_symlink = self.construct_symlink(temp_repo,  "кириллица")
+
+        gitignore = Path(temp_repo.working_dir) / ".gitignore"
         gitignore.write_text("", encoding='utf-8')
-        
-        git_archive_ignored.extend_git_ignore_file([str(utf_dir.relative_to(temp_repo))])
-        
+
+        git_archive_ignored.extend_git_ignore_file([str(utf_dir_to_ignore_symlink.relative_to(Path(temp_repo.working_dir)))])
+
         # Should be able to read with UTF-8
         content = gitignore.read_text(encoding='utf-8')
         assert "кириллица" in content
+
+
+    def construct_symlink(self, temp_repo, rel_path_str):
+        target_dir = Path(archive_root).joinpath(*rel_path_str.split("/"))
+        target_dir.mkdir(parents=True, exist_ok=True)
+        to_ignore_symlink = Path(temp_repo.working_dir) / rel_path_str
+        to_ignore_symlink.parent.mkdir(parents=True, exist_ok=True)
+        to_ignore_symlink.symlink_to(archive_root)
+        return to_ignore_symlink
+
