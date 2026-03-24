@@ -34,12 +34,14 @@ def temp_repo(tmp_path):
 
 
 @pytest.fixture
-def git_archive_ignored(temp_repo):
+def git_archive_ignored(temp_repo, mocker):
     """Create GitArchiveIgnoredFiles instance for testing"""
     # Create a minimal mock - only set the instance attributes we need
     instance = object.__new__(GitArchiveIgnoredFiles)
     instance.local_path = Path(temp_repo.working_dir)
-    instance.config = SyncConfig(object, "git")
+    mock_args = mocker.MagicMock()
+    mock_args.configure_mock(sync_env='test')
+    instance.config = SyncConfig(mock_args, "git")
     instance.config.dry_run = False
     # Don't call __init__ to avoid heavy initialization
     return instance
