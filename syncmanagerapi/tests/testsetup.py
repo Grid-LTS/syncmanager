@@ -1,3 +1,4 @@
+import json
 import os
 import os.path as osp
 from pathlib import Path, PurePosixPath
@@ -44,11 +45,14 @@ def setup_test_repo(client, http_headers, local_repo_path, remote_name, client_e
     # Push to the remote repository
     try:
         repo.remote("origin").push("master")
+        branch = "master"
     except GitCommandError:
-        repo.remote("origin").push("main")
+        branch = "main"
+        repo.remote("origin").push(branch)
     # Use the API to update the last_commit_date
     update_url = f"/api/git/repos/{repo_id}"
-    update_response = client.patch(update_url, headers=http_headers)
+    payload = {"default_branch": branch}
+    update_response = client.patch(update_url, headers=http_headers, json=payload)
     assert update_response.status_code == 200
     updated_repo = update_response.json()
     assert updated_repo["last_commit_date"] is not None, "last_commit_date should be set after the update API call"
