@@ -3,7 +3,7 @@ import os.path as osp
 import pathlib
 import uuid
 
-
+from . import get_remote_url
 from .error import GitSyncError, GitErrorItem
 from .git_base import GitClientBase
 from .gitsync import sanitize_remote_url
@@ -50,7 +50,7 @@ class GitSyncDirRegistration(GitClientBase):
             sanitized_url = '/'.join([prefix, sanitized_url])
             # find entry for repo in the list from the server by comparing the url of the remotes with the
             # one provided by Git
-            if sanitized_url == GitSyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
+            if sanitized_url == get_remote_url(repo_ref['git_repo']['server_path_absolute']):
                 return repo_ref
 
     def apply(self):
@@ -170,6 +170,11 @@ class GitSyncDirRegistration(GitClientBase):
                 print("")
             except ValueError:
                 pass
+        if not self.remote_name or (not is_overwrite and self.remote_name in self.gitrepo.remotes):
+            self.errors.append(GitErrorItem(self.local_path_short,
+                                            "Remote repo name not set or already used",
+                                            self.remote_name))
+            return
         repo_name = self.prompt_for_repo_name()
         server_path = osp.join(repo_namespace_spec, repo_name)
         all_sync_env = False
@@ -189,7 +194,7 @@ class GitSyncDirRegistration(GitClientBase):
         response = self.api_service.create_remote_repository(self.local_path_short, repo_namespace_spec,
                                                              repo_name, self.remote_name, all_sync_env)
         if response['is_new_reference']:
-            remote_url = GitSyncDirRegistration.get_remote_url(response['server_path_absolute'])
+            remote_url = get_remote_url(response['server_path_absolute'])
             if is_overwrite:
                 remote = self.gitrepo.remote(self.remote_name)
                 remote.set_url(remote_url)
@@ -230,7 +235,7 @@ class GitSyncDirRegistration(GitClientBase):
             print(f"Updated local path to {gitrepo_reference['local_path_rel']}")
         else:
             print(f"The registered local path {gitrepo_reference['local_path_rel']} did not change.")
-        remote_url = GitSyncDirRegistration.get_remote_url(git_repo['server_path_absolute'])
+        remote_url = get_remote_url(git_repo['server_path_absolute'])
         self.remote_name = gitrepo_reference['remote_name']
         remote_name_changed = False
         if remote_name_new and self.remote_name != remote_name_new:
@@ -253,9 +258,3 @@ class GitSyncDirRegistration(GitClientBase):
             return
         if len(self.server_repo_ref['clientenvs']) == 1 and self.server_repo_ref['clientenvs'][0] == self.sync_env:
             self.api_service.delete_client_repo(self.server_repo_ref['id'])
-
-    @staticmethod
-    def get_remote_url(remote_repo_path):
-        if Globalproperties.ssh_user and Globalproperties.ssh_host:
-            return f"ssh://{Globalproperties.ssh_user}@{Globalproperties.ssh_host}:{remote_repo_path}"
-        return f"file:///{remote_repo_path}"

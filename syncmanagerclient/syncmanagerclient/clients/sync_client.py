@@ -1,12 +1,10 @@
 import json
 import os.path
-from pathlib import Path, PurePosixPath
-import uuid
-
+from pathlib import Path
 from git import Repo
 
 from . import ACTION_PULL, ACTION_PUSH, ACTION_DELETE, ACTION_SET_CONF_ALIASES, \
-    ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE_REPO, ACTION_SET_REMOTE_ALIASES
+    ACTION_ARCHIVE_IGNORED_FILES, ACTION_DELETE_REPO, ACTION_SET_REMOTE_ALIASES, get_remote_url
 from .api import ApiService
 from .git_archive_ignored import GitArchiveIgnoredFiles
 from .git_delete_repo import GitRepoDeletion
@@ -118,7 +116,7 @@ class SyncClient:
             self.sync_with_remote_repo(self.sync_config)
             return
         self.sync_config.namespace, _ = sanitize_remote_url(remote_repo.url)
-        remote_repos = self.api_service.fetch_repos(self.sync_config)
+        remote_repos = self.fetch_repos(self.sync_config)
         if not remote_repos:
             print(
                 f"No server repo exists for remote '{remote_repo_name}' and url {remote_repo.url}")
@@ -163,7 +161,7 @@ class SyncClient:
         config = SyncConfig.from_sync_config(sync_config)
         config.local_path = remote_repo['local_path_rel']
         config.remote_repo = remote_repo['remote_name']
-        config.remote_repo_url = GitSyncDirRegistration.get_remote_url(
+        config.remote_repo_url = get_remote_url(
             remote_repo['git_repo']['server_path_absolute'])
         config.username = remote_repo["user_name_config"] if remote_repo["user_name_config"] else config.username
         config.email = remote_repo["user_email_config"] if remote_repo["user_email_config"] else config.email
