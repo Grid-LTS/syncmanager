@@ -1,9 +1,12 @@
 import os.path as osp
 
 import pathlib
+import uuid
+
 
 from .error import GitSyncError, GitErrorItem
 from .git_base import GitClientBase
+from .gitsync import sanitize_remote_url
 from ..util.syncconfig import SyncConfig
 
 from git import Repo
@@ -41,9 +44,13 @@ class GitSyncDirRegistration(GitClientBase):
             if len(remote_objs) == 0:
                 continue
             url = next(self.gitrepo.remote(repo_ref['remote_name']).urls)
+            if not url:
+                return None
+            sanitized_url, prefix = sanitize_remote_url(url)
+            sanitized_url = '/'.join([prefix, sanitized_url])
             # find entry for repo in the list from the server by comparing the url of the remotes with the
             # one provided by Git
-            if url == GitSyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
+            if sanitized_url == GitSyncDirRegistration.get_remote_url(repo_ref['git_repo']['server_path_absolute']):
                 return repo_ref
 
     def apply(self):
@@ -73,6 +80,16 @@ class GitSyncDirRegistration(GitClientBase):
                 server_path_rel = namespace_parts[0]
             elif len(namespace_parts) > 1:
                 server_path_rel = osp.join(namespace_parts[0], *namespace_parts[1:])
+        else:
+            # namespace contains also the user UUID, but we want the part without it = namespace spec
+            if self.namespace:
+                parts = pathlib.Path(self.namespace).parts
+                try:
+                    uuid.UUID(parts[0])
+                    parts = parts[1:]
+                except ValueError:
+                    pass
+                server_path_rel = '/'.join(parts)
         self.print_other_env_repos()
         if is_update:
             self.update_reference()
@@ -128,9 +145,13 @@ class GitSyncDirRegistration(GitClientBase):
 
     def create_reference(self, _server_path_rel=''):
         if not _server_path_rel:
-            server_path_rel = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
+            # heads up: namespace_spec is only the part of namespace with out the user UUID
+            repo_namespace_spec = input('Enter namespace of your repo. e.g. my/path (or skip): ').strip()
         else:
-            server_path_rel = _server_path_rel
+            if _server_path_rel.endswith('.git'):
+                repo_namespace_spec = '/'.join(_server_path_rel.split('/')[:-1])
+            else:
+                repo_namespace_spec = _server_path_rel
         is_overwrite = False
         while not self.remote_name:
             self.remote_name = input('Name of remote repo (default: origin): ').strip()
@@ -150,7 +171,7 @@ class GitSyncDirRegistration(GitClientBase):
             except ValueError:
                 pass
         repo_name = self.prompt_for_repo_name()
-        server_path = osp.join(server_path_rel, repo_name)
+        server_path = osp.join(repo_namespace_spec, repo_name)
         all_sync_env = False
         # in case the desired remote repo is already created and registered for other environments, we only
         # register this env as client
@@ -165,7 +186,7 @@ class GitSyncDirRegistration(GitClientBase):
                     f"{server_path} for the environment {self.sync_env}.")
         else:
             all_sync_env = True
-        response = self.api_service.create_remote_repository(self.local_path_short, server_path_rel,
+        response = self.api_service.create_remote_repository(self.local_path_short, repo_namespace_spec,
                                                              repo_name, self.remote_name, all_sync_env)
         if response['is_new_reference']:
             remote_url = GitSyncDirRegistration.get_remote_url(response['server_path_absolute'])
