@@ -14,8 +14,11 @@ ACTION_SET_CONF_ALIASES = ['set_conf', 'set-conf', 'set-config', 'set_config']
 ACTION_ARCHIVE_IGNORED_FILES = 'archive-ignored-files'
 
 
-def get_remote_url(remote_repo_path):
-    path = Path(remote_repo_path)
+def get_remote_url(remote_repo_path: str):
     if Globalproperties.ssh_user and Globalproperties.ssh_host:
-        return f"ssh://{Globalproperties.ssh_user}@{Globalproperties.ssh_host}:{path.as_posix()}"
-    return f"file://{path.as_posix()}"
+        protocol = f"ssh://{Globalproperties.ssh_user}@{Globalproperties.ssh_host}:"
+    else:
+        protocol = "file://"
+    path = Path(remote_repo_path.replace(protocol, ""))
+    url = path.as_posix()
+    return f"{protocol}{url}"

@@ -10,10 +10,7 @@ def sanitize_remote_url(url: str) -> Tuple[str, str]:
     segments = url_path.parts
     crucial_start_index = segments.index("git") + 1
     crucial_segments = segments[crucial_start_index:]
-    if '//' in url:
-        url_prefix = get_remote_url(str(PurePosixPath(*segments[1:crucial_start_index])))
-    else:
-        url_prefix = str(PurePosixPath(*segments[:crucial_start_index]))
+    url_prefix = get_remote_url(url.replace("/" + str(PurePosixPath(*crucial_segments)), ""))
     # safety checks that we collect the right positions
     try:
         uuid.UUID(crucial_segments[1])
