@@ -1,6 +1,7 @@
 import json
 import os.path
 from pathlib import Path, PurePosixPath
+import uuid
 
 from git import Repo
 
@@ -11,6 +12,7 @@ from .git_archive_ignored import GitArchiveIgnoredFiles
 from .git_delete_repo import GitRepoDeletion
 from .git_settings import GitClientSettings
 from .git_sync import GitClientSync
+from .gitsync import sanitize_remote_url
 from .sync_dir_registration import GitSyncDirRegistration
 from .unison_sync import UnisonClientSync
 from ..util.error import InvalidArgument
@@ -115,13 +117,11 @@ class SyncClient:
             # fresh initialized repo on client machine with a remote yet
             self.sync_with_remote_repo(self.sync_config)
             return
-        segments = remote_repo.url.split("/")
-        crucial_segments = segments[segments.index("git") + 1:]
-        self.sync_config.namespace = str(PurePosixPath(*crucial_segments))
-        remote_repos = self.fetch_repos(self.sync_config)
+        self.sync_config.namespace, _ = sanitize_remote_url(remote_repo.url)
+        remote_repos = self.api_service.fetch_repos(self.sync_config)
         if not remote_repos:
             print(
-                f"No server repo exists for remote '{remote_repo_name}' and url {'/'.join(crucial_segments[1:])}")
+                f"No server repo exists for remote '{remote_repo_name}' and url {remote_repo.url}")
             self.sync_with_remote_repo(self.sync_config)
         for remote_repo in remote_repos:
             config = self.update_config(self.sync_config, remote_repo)

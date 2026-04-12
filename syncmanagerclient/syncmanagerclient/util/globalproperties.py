@@ -2,7 +2,7 @@ import os
 from os.path import dirname
 from configparser import ConfigParser
 
-from pathlib import PurePosixPath,Path
+from pathlib import PurePosixPath, Path, WindowsPath
 import pathlib
 
 from .baseconfig import GlobalConfig, SyncAllConfig, ArchiveConfig
@@ -144,10 +144,13 @@ class Globalproperties:
 
 def determine_local_path_short(path) -> str:
     system_home_dir = Path(Globalproperties.allconfig.global_config.filesystem_root_dir)
-    local_path_posix = PurePosixPath(path)
-    if os.path.commonprefix([local_path_posix, system_home_dir]) == system_home_dir.as_posix():
-        return '~/' + str(local_path_posix.relative_to(system_home_dir.as_posix()))
+    local_path = Path(path)
+    rel_path=os.path.commonprefix([local_path, system_home_dir])
+    if rel_path == str(system_home_dir):
+        return '~/' + str(local_path.relative_to(system_home_dir).as_posix())
     else:
+        if local_path is WindowsPath:
+            path = Path(*local_path.parts[1:]).as_posix()
         return str(path)
 
 
